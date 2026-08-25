@@ -4444,6 +4444,9 @@ function documentsBodyHtml() {
 }
 
 function bindDocumentControls() {
+  // The draft being edited, if there is one. documentsBodyHtml() reads the same
+  // value — the two halves are rendered and bound in the same pass.
+  const d = state.docDraft;
   const addBtn = document.getElementById('doc-add');
   if (addBtn) addBtn.addEventListener('click', () => { state.docDraft = emptyDocDraft(); render(); });
 
@@ -4631,7 +4634,7 @@ function priceListBodyHtml() {
 }
 
 function bindPriceListControls() {
-
+  const d = state.priceDraft;
   const addBtn = document.getElementById('price-add');
   if (addBtn) addBtn.addEventListener('click', () => { state.priceDraft = emptyPriceDraft(); render(); });
 
