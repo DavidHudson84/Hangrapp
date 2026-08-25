@@ -495,10 +495,37 @@
 
   .chart-wrap { position: relative; height: 240px; }
 
-  .step-nav { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
-  .step-pill { flex: 1; min-width: 90px; padding: 8px 10px; border-radius: 4px; background: var(--paper-2); font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); text-align: center; border-bottom: 2px solid transparent; }
-  .step-pill.active { background: var(--accent-soft); color: var(--accent); border-bottom-color: var(--accent); }
-  .step-pill.done { color: var(--green); }
+  /* Settings tabs. One row that scrolls rather than wrapping into ragged
+     rows — eight labels at varying widths wrapped badly, and "Price list"
+     broke across two lines. */
+  .step-nav {
+    display: flex; gap: 2px; margin-bottom: 24px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid var(--rule); padding-bottom: 0;
+    scrollbar-width: thin;
+  }
+  .step-pill {
+    display: flex; align-items: center; gap: 7px; flex: none;
+    padding: 9px 13px; background: none; border: 0;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    font-size: 13px; color: var(--muted); white-space: nowrap; cursor: pointer;
+  }
+  .step-pill:hover { color: var(--ink-2); background: var(--surface); }
+  .step-pill.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
+  /* Filled or not, at a glance, so it is obvious what is still blank without
+     opening all eight sections. */
+  .step-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; border: 1px solid var(--rule-strong); }
+  .step-dot.filled { background: var(--green); border-color: var(--green); }
+  .step-pill.active .step-dot:not(.filled) { border-color: var(--accent); }
+
+  /* First-run progress. The steps are linear, so this says where you are
+     rather than offering eight destinations you cannot reach. */
+  .step-progress { margin-bottom: 24px; }
+  .step-progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .step-progress-now { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .step-progress-count { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .step-progress-track { height: 3px; border-radius: 2px; background: var(--paper-2); overflow: hidden; }
+  .step-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .25s ease; }
   .step-actions { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--rule); flex-wrap: wrap; gap: 10px; }
 
   .sites-list { display: flex; flex-direction: column; gap: 12px; }
@@ -556,7 +583,6 @@
   .export-group { flex: 1; min-width: 130px; border: 1px solid var(--rule-strong); border-radius: 10px; padding: 12px; }
   .export-group .eg-label { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
   .export-group .btn { width: 100%; justify-content: center; margin-top: 6px; }
-  .step-pill[data-goto-step]:hover { background: var(--paper-2); }
 
   @media print {
     @page { size: A4; margin: 20mm; }
@@ -2440,11 +2466,7 @@ function renderOnboarding() {
   // Two modes: first-run setup (linear step-through) and Settings (jump freely between sections).
   const editMode = state.onboardingComplete;
   const step = ONBOARDING_STEPS[state.onboardingStep];
-  const stepNav = ONBOARDING_STEPS.map((s, i) => {
-    const cls = i === state.onboardingStep ? 'active' : (!editMode && i < state.onboardingStep ? 'done' : '');
-    const clickable = editMode ? `data-goto-step="${i}" style="cursor:pointer"` : '';
-    return `<div class="step-pill ${cls}" ${clickable}>${i+1}. ${s.label}</div>`;
-  }).join('');
+  const stepNav = stepNavHtml(editMode);
 
   const stepContent = {
     business: businessStep, sites: sitesStep, operations: operationsStep,
@@ -2470,7 +2492,7 @@ function renderOnboarding() {
     </div>
   ` : `
     <div class="screen-header">
-      <div class="ix">Step ${String(state.onboardingStep+1).padStart(2,'0')} of ${String(ONBOARDING_STEPS.length).padStart(2,'0')}</div>
+      <div class="ix">Setup</div>
       <h2>Tell me about your business</h2>
       <p>Quick setup so the consultant knows your sites, staff, equipment and suppliers — and never asks you twice. Skip anything you don't know yet.</p>
     </div>
@@ -2919,6 +2941,55 @@ function pricelistStep() {
   return stepIntro('Your price lists',
     'Upload a POS export or a PDF and the consultant decodes it into a clean summary. Tag each by store, agency or customer and it quotes the right one when you answer an enquiry in chat. You can skip this and add them later.')
     + priceListBodyHtml();
+}
+
+
+// ===== Step navigation =====
+// Two different jobs. In Settings you can jump anywhere, so it is a set of tabs.
+// During first-run setup you cannot, so it is a progress indicator — a row of
+// pills you are unable to click is a lie about what the screen does.
+
+// Whether a section has anything in it yet. Shown in Settings so an owner can
+// see at a glance what is still blank without opening all eight.
+function stepFilled(id) {
+  const p = state.profile;
+  switch (id) {
+    case 'business':   return !!(p.businessName || '').trim();
+    case 'sites':      return (p.sites || []).some(x => (x.name || '').trim());
+    case 'operations': return !!(p.services || []).length || !!(p.solvents || []).length;
+    case 'machinery':  return !!machinerySummary(p.machinery);
+    case 'utilities':  return !!(p.utilities.electricity || p.utilities.gas || p.utilities.water);
+    case 'documents':  return !!(state.documents || []).length;
+    case 'pricelist':  return !!(state.priceLists || []).length;
+    case 'brand':      return !!(p.logoDataUrl || (p.assistantName || '').trim());
+    default:           return false;
+  }
+}
+
+function stepNavHtml(editMode) {
+  if (!editMode) {
+    const n = ONBOARDING_STEPS.length;
+    const at = state.onboardingStep;
+    const pct = Math.round((at / (n - 1)) * 100);
+    return `
+      <div class="step-progress">
+        <div class="step-progress-head">
+          <span class="step-progress-now">${escapeHtml(ONBOARDING_STEPS[at].label)}</span>
+          <span class="step-progress-count">Step ${at + 1} of ${n}</span>
+        </div>
+        <div class="step-progress-track"><div class="step-progress-fill" style="width:${pct}%"></div></div>
+      </div>`;
+  }
+
+  return `<div class="step-nav" role="tablist">` + ONBOARDING_STEPS.map((st, i) => {
+    const on = i === state.onboardingStep;
+    const filled = stepFilled(st.id);
+    return `<button class="step-pill ${on ? 'active' : ''}" data-goto-step="${i}"
+        role="tab" aria-selected="${on}" title="${escapeHtml(st.label)}">
+        <span class="step-dot ${filled ? 'filled' : ''}" aria-hidden="true"></span>
+        <span class="step-pill-label">${escapeHtml(st.label)}</span>
+      </button>`;
+  }).join('') + `</div>`;
 }
 // ============ CHAT ============
 // Tracks chat scroll intent across renders: land at top on entry, pin to bottom on new/incoming messages.
@@ -4025,27 +4096,6 @@ async function removeStaff(id) {
 }
 
 // Nine realistic staff for the Main St Dry Cleaners demo persona (Bendigo VIC).
-const MAIN_ST_TEAM = [
-  { name: 'Sharon Delaney', role: 'Shop manager / senior customer service', classification: 'Dry Cleaning DC5', employmentType: 'Full-time', startDate: '2016-03-14', site: 'Main Street, Bendigo', notes: 'Runs the counter and the roster. Longest-serving.' },
-  { name: 'Peter Nguyen',   role: 'Dry cleaner / plant operator',           classification: 'Dry Cleaning DC3', employmentType: 'Full-time', startDate: '2019-08-05', site: 'Main Street, Bendigo', notes: 'Runs the perc machine and wet cleaning.' },
-  { name: 'Marco Rossi',    role: 'Presser & finisher',                     classification: 'Dry Cleaning DC3', employmentType: 'Full-time', startDate: '2021-02-22', site: 'Main Street, Bendigo', notes: '' },
-  { name: 'Julie Harmon',   role: 'Shirt presser',                          classification: 'Dry Cleaning DC2', employmentType: 'Part-time', startDate: '2022-11-07', site: 'Main Street, Bendigo', notes: 'School-hours shifts.' },
-  { name: 'Emma Sutton',    role: 'Counter / customer service',             classification: 'Dry Cleaning DC2', employmentType: 'Part-time', startDate: '2023-06-19', site: 'Main Street, Bendigo', notes: '' },
-  { name: 'Rebecca Toomey', role: 'Counter — drop store',                   classification: 'Dry Cleaning DC1', employmentType: 'Part-time', startDate: '2024-01-15', site: 'Kangaroo Flat',        notes: 'Only staff at the Kangaroo Flat agency.' },
-  { name: 'Anh Tran',       role: 'Alterations / tailor',                   classification: 'Dry Cleaning DC4', employmentType: 'Part-time', startDate: '2018-09-03', site: 'Main Street, Bendigo', notes: 'Skilled alterations and wedding gowns.' },
-  { name: 'Dylan Pearce',   role: 'Pickup & delivery driver',               classification: 'Dry Cleaning DC2', employmentType: 'Casual',    startDate: '2023-10-02', site: 'Main Street, Bendigo', notes: 'Regular ~25 hrs/week on a settled pattern — casual conversion candidate.' },
-  { name: 'Chloe Barnes',   role: 'Saturday junior / counter',              classification: 'Dry Cleaning DC1', employmentType: 'Casual',    startDate: '2025-02-01', site: 'Main Street, Bendigo', notes: 'Student, Saturdays only.' }
-];
-async function seedMainStStaff() {
-  const have = new Set(state.staff.map(s => (s.name || '').toLowerCase()));
-  if (MAIN_ST_TEAM.some(s => have.has(s.name.toLowerCase()))) {
-    const go = await uiConfirm('Some of the sample team look like they are already loaded. Add them again anyway?', { confirmLabel: 'Add anyway' });
-    if (!go) return;
-  }
-  MAIN_ST_TEAM.forEach(s => state.staff.push(Object.assign({ id: newId('S') }, s)));
-  render();
-}
-
 function staffLettersHtml(staffId) {
   const ls = (state.letters || []).filter(x => x.staffId === staffId).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   if (!ls.length) return '';
@@ -4077,12 +4127,9 @@ function renderStaff() {
         <h3>No staff added yet</h3>
         <p>Add your team members here. You only enter the basics once — casual conversion offers, warnings, show-cause and redundancy letters then pull straight from the record so you are not retyping names and start dates every time.</p>
         <button class="btn btn-primary" id="staff-add-first">Add a staff member</button>
-        <button class="btn btn-secondary" id="staff-seed" style="margin-left:8px">Load Main St sample team</button>
       </div>`;
     const b = document.getElementById('staff-add-first');
     if (b) b.addEventListener('click', addStaff);
-    const sd = document.getElementById('staff-seed');
-    if (sd) sd.addEventListener('click', seedMainStStaff);
     return;
   }
 
@@ -4124,14 +4171,12 @@ function renderStaff() {
       <h2>Staff</h2>
       <p>Your team on file. Draft a standardised HR letter for anyone from their record — the name, classification, employment type and start date pre-fill, and you complete the specifics before it drafts.</p>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" id="staff-seed2">Load Main St sample team</button><button class="btn btn-secondary" id="staff-add">+ Add staff member</button></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-secondary" id="staff-add">+ Add staff member</button></div>
     <div class="staff-list">${cards}</div>
     <p style="font-size:12px;color:var(--muted);margin-top:16px">HR letters follow a fair-process structure (Fair Work Act / MA000096). They are general information, not a substitute for advice on a specific termination or dispute.</p>`;
 
   const addBtn = document.getElementById('staff-add');
   if (addBtn) addBtn.addEventListener('click', addStaff);
-  const seed2 = document.getElementById('staff-seed2');
-  if (seed2) seed2.addEventListener('click', seedMainStStaff);
   document.querySelectorAll('[data-staff]').forEach(el => {
     const [id, field] = el.dataset.staff.split(':');
     const ev = (el.tagName === 'SELECT') ? 'change' : 'input';
@@ -5186,10 +5231,22 @@ function renderSidebar() {
         </div>`).join('')
     : '<div class="side-empty">No saved chats yet</div>';
 
+  // Settings is the onboarding screen in edit mode. Once setup is done it stops
+  // being a step to complete and becomes somewhere you go back to, so it sits
+  // apart from the numbered sections.
+  const settingsItem = (state.onboardingComplete && can('settings'))
+    ? `<nav class="sidebar-nav"><button class="side-item ${state.activeTab === 'onboarding' ? 'on' : ''}"
+         data-side-tab="onboarding" title="Business settings">
+         <span class="side-ico">${sideIcons.onboarding}</span>
+         <span class="side-text">Settings</span>
+       </button></nav>`
+    : '';
+
   body.innerHTML =
     (state.onboardingComplete ? `<button class="sidebar-new" id="sidebar-new" title="Start a new chat">${icons.plus}<span class="side-text">New chat</span></button>` : '') +
     `<nav class="sidebar-nav">${primary.map(sideItem).join('')}</nav>` +
     (rest.length ? `<div class="sidebar-label">Your business</div><nav class="sidebar-nav">${rest.map(sideItem).join('')}</nav>` : '') +
+    settingsItem +
     (showChats ? `<div class="sidebar-label">Recent chats</div><div class="side-chats">${chatList}</div>` : '');
 
   foot.innerHTML = sidebarFootHtml();
