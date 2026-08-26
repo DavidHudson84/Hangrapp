@@ -1,0 +1,9 @@
+The boiler inspection report, third of five parts: gas train, flue, boiler house, safety device results, the safety valve test and the two defects.
+The report number, inspection body, inspector and registration number are not stated in this part — see parts 1 and 5.
+Item 1 — gauge glass lower gland weeping. Category 3. Rectify by 24 July 2026. Isolate, depressurise and repack the gland, renew the glass and both gaskets, confirm it dry at working pressure. May be done by a competent maintenance person or the service contractor, and must be entered in the maintenance record.
+Item 2 — bottom blowdown valve packing worn. Category 4. Rectify at the next shutdown and in any event by 30 November 2026; a shutdown is planned for the second week of October 2026. Replace the packing in the slow opening valve, and inspect the seat and spindle while apart.
+No Category 1 or 2 findings were made. Category 3 means rectify within 30 days, Category 4 at the next shutdown, Category 5 is an observation with no compliance date.
+Safety valve tested on steam: set 690 kPa, popped 703 kPa (+1.9%, limit 711 kPa), reseated 641 kPa, no chatter, no leakage. Resealed with lead seal 4471. Removal, overhaul and recertification recommended in 2029 with the hydrostatic test.
+Every safety device tested passed and none was found bypassed: high pressure limit set 660 kPa, operated at 657; flame failure lockout in 0.8 seconds against a 1 second limit; low gas 1.5 kPa, operated 1.55; high gas 4.0 kPa, operated 3.92.
+Combustion clean: 42 ppm carbon monoxide at high fire against a 400 ppm action level, efficiency 82.4%.
+Flue sound, renewed above the roof line in 2021. Boiler house lighting measured only about 90 lux at the gauge glass, low for reading a water level, and 400 mm of header lagging is missing.

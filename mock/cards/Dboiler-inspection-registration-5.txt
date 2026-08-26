@@ -1,0 +1,12 @@
+The boiler inspection report, last of five parts: the certification, its conditions, the test appendices and the action summary.
+Report GPIS-2026-1188, issued 26 June 2026 by G. Mattison, Pressure Equipment Inspector GPI-INS-114, of Goldfields Plant Inspection Services, accreditation IBA-0374. Received by Karen Whitfield of Aveline Holdings 27 June 2026.
+Certified: the Fulton FB-030, serial FB030-2014-3312, registration VIC-PV-118-4470, is fit for service at 690 kPa MAWP until the next external inspection on 24 June 2027, subject to items 1 and 2 being rectified.
+Action summary and dates (observations 3 to 14 have no fixed date):
+Item 1, repack the lower gauge glass gland — Category 3, due 24 July 2026.
+Item 2, replace the slow opening blowdown valve packing — Category 4, due 30 November 2026.
+Softener check and dissolved solids action — July 2026. Water treatment contract CIW-4412 — decide by 31 October 2026.
+Book the 2027 external inspection — 24 June 2027. Renew the registration — 30 June 2027.
+Safety valve overhaul and recertification — 2029, with the hydrostatic test.
+If either defect is not rectified by its date the certification lapses for that item, and the boiler should not be operated until it is done and the inspection body notified. The certificate also depends on operating within registered parameters, recording the daily checks and maintaining water treatment; breaking the safety valve seal voids it. After a low water event, overpressure, fire or impact the boiler must be inspected before it is used again.
+All 14 thickness readings acceptable, lowest 10.1 mm against 8.6 mm required.
+All 20 safety devices passed. Between inspections the operator records the gauge glass blowdown and level controls daily, the low water alarm weekly and the cut-out monthly.

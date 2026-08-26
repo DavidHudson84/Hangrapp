@@ -1,0 +1,9 @@
+Second part of the Fulton FB-030 manual, Rev 7 (March 2019): blowdown vessel, commissioning, water treatment, controls and safety devices, operation and maintenance.
+Boiler water must not go direct to drain: blowdown vessel 200 L, vented. Trade waste discharge must not exceed 38 °C, pH typically 6.0 - 10.0, under TW-4471.
+Pressure: cut-out 620 kPa, cut-in 550 kPa, high limit lockout 655 kPa manual reset (B16), safety relief valve set 690 kPa and sealed. The setpoint must never be raised above 620 kPa nor the high limit above 655 kPa.
+Level: first low water 190 mm above the furnace crown (B05), second at 165 mm, the LWL (B06, manual reset). The second device is a separate probe with its own relay and reset, as AS 2593 requires for limited attendance.
+Gas train: low gas pressure switch 8 kPa (B25), high 25 kPa (B26); valve proving locks out on more than 0.5 kPa change in its 30 s test (B27, B28); never disable it.
+Proof tests: gauge glass, first low water, operating control daily; second low water to B06, high limit to B16, emergency stops weekly; flame supervision, low gas pressure, air proving and CO monitor monthly; valve proving and high gas pressure six-monthly; control function test annually. A test not recorded has not been done.
+Water: feedwater hardness 2 mg/L or less; boiler TDS max 2,500 mg/L, target 1,800 - 2,200; pH 10.5 - 11.8; sulphite 20 - 50 and phosphate 30 - 60 mg/L.
+Bottom blowdown 4 to 6 seconds once per operating day, never longer. Surface blowdown holds 3,100 - 3,800 µS/cm.
+Maintenance is daily, weekly, monthly, quarterly, six-monthly (Type B gasfitter) and annual; S items are statutory, not deferrable. Internal inspection and safety valve overhaul 24 months, hydrostatic test 72 months, plant registration renewal at its expiry, 30 June 2027.

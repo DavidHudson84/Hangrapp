@@ -1,0 +1,9 @@
+Second part of the Realstar HM-450 manual, Rev 2 (March 2023), serial RHM45-23-1182: daily operation, solvent management, maintenance, fault codes, parts, warranty and record sheets.
+Fault codes run F-01 to F-36, logged permanently with timestamp and operator identifier. Warnings A-01 to A-12 are advisory and escalate to the matching fault if acknowledged three times.
+Lockout codes are F-04, F-05, F-09, F-17, F-22, F-28, F-33, F-35 and F-36. They cannot be cleared with RESET: they need a technician, the service code and menu 9.3, with a cause code entered. An operator never resets one — the solvent is flammable and every lockout means the machine has detected a condition in which it can burn.
+Safety-critical items at 10.6, technician-only and not deferrable: vapour monitor span calibration, bond continuity, door interlock proof, thermostat and cut-out proof, still vacuum interlock, extinguishing system and hazardous area inspection to AS/NZS 60079.17, all 12-monthly; laboratory flash point to AS 2106.2 every 6 months.
+A flash point below 60 °C means the charge is contaminated: machine out of service, charge disposed of as prescribed industrial waste.
+Mileage: above 70 kg/L good, 55 - 70 normal, 40 - 55 investigate, under 40 a fault.
+Still: one batch per 400 - 500 kg, 80 L, 78 minutes, maximum 4 a day (P-10). Never run a cycle or a still batch with the plant unoccupied.
+Parts: RS-HM4-4021 filter cartridge (3 per change, hold 6), RS-HM4-4030 housing O-ring, RS-HM4-0112 button trap gasket, RS-HM4-0118 door gasket. Safety-related parts must be genuine Realstar.
+Warranty 24 months from commissioning or 30 months from despatch, whichever is first. The annual safety inspection is a condition of it; 60 days overdue voids it, as does bypassing the vapour monitor.

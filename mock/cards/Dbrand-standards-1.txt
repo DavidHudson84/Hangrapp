@@ -1,0 +1,10 @@
+Brand and Marketing Standards, first of three parts — the tagline, the logo, the colour palette and the type scale.
+MSDC-BR-01, version 3.0, issued 1 February 2026, next review 1 February 2027.
+Cleaning for Bendigo since 1987; Karen Whitfield bought it in March 2016.
+Tagline "Bendigo's since 1987" — display serif, sentence case, +40 tracking, no more than 45% of the wordmark width, Brass on dark grounds and Deep Forest on light. Never mid-sentence, never on a claim letter or price list, never with the year changed.
+Palette: Deep Forest #1F3D2B primary (nearest Pantone 3435 C); Brass #C8A96A accent; Bone #F2EFE7 paper; Ink #22252A text; Mist #D9D5CB light neutral; Graphite #5A5E66 mid neutral.
+Proportion 60% Bone, 30% Deep Forest, 7% Ink and Graphite, 3% Brass — one Brass accent per piece.
+Contrast: Ink on Bone 13.4:1 and Deep Forest on Bone 10.4:1 pass AAA; Graphite on Bone 5.7:1 passes AA; Brass on Deep Forest 5.3:1 is for the tagline only. Never as type: Brass on Bone 2.0:1, Brass on Mist 1.5:1, Deep Forest on Ink 1.3:1, Graphite on Mist 4.4:1.
+Type: Libre Caslon Display for headings 24 pt and up, the wordmark and signage; Libre Caslon Text for printed body copy; Inter for all screen text, forms, dockets and price lists; IBM Plex Mono for reference numbers only.
+Scale: Display 40 pt / 44 px, H1 28 / 32, H2 20 / 24, H3 15 / 19 Inter SemiBold, Body 11 / 17, Small 9 / 14, Caption 8 / 13, reference number 11 pt / 16 px Plex Mono. Body never below 9 pt or 14 px.
+Three lockups only — stacked, horizontal, mark alone. Clear space equals the cap height of the monogram M, 1.5 x below 25 mm wide. Minimum widths 32 mm stacked, 45 mm horizontal, 12 mm mark alone; 120, 180 and 40 px on screen. Never redraw, stretch, rotate, recolour, add effects or place it in another shape.
