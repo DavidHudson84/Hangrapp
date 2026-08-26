@@ -64,6 +64,26 @@ inbox and landing in spam at Gmail and Outlook.
 flowing for a few weeks and the reports look clean, tighten it to
 `p=quarantine`.
 
+### There must be exactly one
+
+As at 26 August 2026 a lookup of `_dmarc.hangr.au` returns **two** records:
+
+```
+v=DMARC1; p=none; rua=mailto:david@hudsongroup.com.au
+v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net;
+```
+
+The first is the one above. The second is a registrar default — `onsecureserver.net`
+is GoDaddy's. This is not a harmless duplicate: when a receiver finds more than
+one DMARC record it must treat the domain as having **no DMARC policy at all**
+(RFC 7489 §6.6.3), so neither record is doing anything and mail loses the
+alignment signal that keeps it out of spam.
+
+**Delete one of them.** Keep whichever you want to own — but only one may exist.
+Check with `dig TXT _dmarc.hangr.au +short`; a single line back means it is fixed.
+
+SPF and DKIM are both correct and are not affected by this.
+
 ## 3. The app's address (only if the app should live at app.hangr.au)
 
 The app is a single `index.html` served by GitHub Pages from
