@@ -1,0 +1,11 @@
+Operations and maintenance manual for the Union XL-800 dry cleaning machine, first of two parts: safety, specifications, installation, machine description, control panel, programmes and daily operation to the running of a cycle — Sections 1 to 8.4.
+Enclosed three-tank perchloroethylene dry-to-dry machine, 25 kg nominal load, with distillation still and refrigerated solvent recovery.
+Serial UXL8-2019-0447, built 2018, commissioned 14 March 2019 at Main Street Dry Cleaners, Shop 4, 118 Hargreaves Street, Bendigo VIC 3550.
+Manual Rev 4, January 2024, superseding Rev 3, June 2021.
+The fault code table is Section 11, in the other part.
+Solvent perchloroethylene, UN 1897, CAS 127-18-4. Working charge 380 L. Tank 1 clean distilled 120 L, Tank 2 working 130 L, Tank 3 filtered 130 L. Still batch 75 L at 22 L/h. Carbon adsorber 45 kg, desorbed every 60 cycles.
+Exposure standard 50 ppm 8-hour TWA, 150 ppm 15-minute STEL.
+Supply 400 V 3-phase, 32 A full load, 40 A C curve protection. Steam 550 to 620 kPa; still jacket design 700 kPa, relief valve set 650 kPa. Refrigerant R404A, 4.3 kg.
+Filter clean differential 30 to 60 kPa, warning 180 kPa, trip 220 kPa. Still overtemperature trip 138 °C. Filter service alarm 250 hours, still service alarm 500 hours.
+Factory programmes P01 to P12, custom P13 to P20. Supervisor code default 2140, to be changed at commissioning.
+Safety rules that must not be broken: isolate all four energy sources — electrical, steam, compressed air, solvent under head — before work inside a guard or panel; the still and the base tank are confined spaces under AS 2865, entry only on permit, jacket below 40 °C, 30 minutes purge, oxygen 19.5 to 23.5%, perc below 25 ppm; never defeat the door, button trap, lint trap or still access interlocks.

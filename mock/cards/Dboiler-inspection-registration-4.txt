@@ -1,0 +1,9 @@
+The boiler inspection report, fourth of five parts: the twelve observations, the water treatment review, the operator and log review, and the conclusion.
+Fulton FB-030, serial FB030-2014-3312, registration VIC-PV-118-4470, inspected 24 June 2026 under AS 3788.
+Observations 3 to 14 are all Category 5 with no compliance date, reviewed at the next inspection: missing steam header lagging; no hotwell thermometer; burner front plate staining; lighting only 90 lux at the gauge glass against 200; flue cap discolouration; three log gaps in May 2026; faded dosing pot label; boiler house door wedged open; no critical spares on site; rising dissolved solids; no standby feedwater pump.
+The two 2025 defects are closed out; the 2025 observation about spares is not.
+Water treatment is under contract CIW-4412 with Castlemaine Industrial Water Pty Ltd, monthly attendance. It expires on 31 October 2026 and needs 30 days' notice to renew or terminate.
+Boiler water compliant on 24 June 2026: pH 11.2 (limit 10.5 to 11.8), alkalinity 480 ppm, total dissolved solids 2,980 ppm against a 3,500 ppm limit, nil hardness. Feedwater hardness 2 ppm — at the limit and up from nil six months ago, so have the softener checked at the next monthly service.
+Operators, both licensed for standard boiler operation: Peter Nguyen, HRW 2214887, expires 12 March 2029; Marco Rossi, HRW 2331904, expires 5 August 2027.
+Log review 1 July 2025 to 24 June 2026: of 249 operating days, 246 have a complete entry; no entry on 13, 14 and 27 May 2026. Under AS 2593 limited attendance the log is the evidence the checks were done, and a gap could defeat a machinery breakdown claim. Gaps are not to be back-filled.
+Conclusion: pressure envelope sound, every safety device passed, chemistry within limits, two defects to rectify.

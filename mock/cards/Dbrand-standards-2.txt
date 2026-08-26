@@ -1,0 +1,10 @@
+Brand and Marketing Standards, second of three parts — signage, typography in use, the voice rules and the applications.
+MSDC-BR-01, version 3.0, issued 1 February 2026.
+Signage: wordmark in the display serif, every other line in Inter SemiBold. Minimum cap height 180 mm on the fascia, 60 mm on the window, 90 mm on the van; reversed signage opens tracking by +20.
+Screen is sans except H1 and H2, body Inter at 17 px, display serif never below 24 px. Sentence case headings, ragged right, never justified. Prices written $29.50.
+Voice: plain, warm, specific. No "we apologise for any inconvenience", no "as per our policy", no "unfortunately". Never overclaim — no "guaranteed", "perfect", "like new", "we can get anything out". Never blame the customer. Words we do not use: luxury, premium, bespoke, artisan, curated, journey, solutions, reach out.
+Bendigo fascia 4,200 x 700 mm in Deep Forest, horizontal lockup in Bone cut vinyl, wordmark 180 mm, tagline in Brass at 55 mm, LED uplight 3000 K on a timer to 22:00. Kangaroo Flat wordmark minimum 120 mm; the sign never says "drop store" — it reads "Drop off and collect" in Brass at 45 mm.
+Window: frosted band across the lower 900 mm, service list in Inter SemiBold Deep Forest at 35 mm, maximum 25% of the glass covered. Never a price flash, a starburst or an A4 page taped up.
+Poly bags clear with the mark in Deep Forest at 90 mm; gown bags Bone cotton, stacked lockup embroidered at 140 mm; account work unprinted.
+Van: white, Deep Forest lower two-thirds, wordmark 90 mm, phone in Brass at 45 mm.
+Dockets thermal 80 mm wide, ticket number in IBM Plex Mono at 14 pt, promised date given as a date and a time, at-risk items flagged "AT RISK — SIGNED" with the authorisation number, terms on the reverse at 8 pt in no more than 180 words.

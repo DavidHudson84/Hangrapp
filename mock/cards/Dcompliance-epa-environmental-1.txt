@@ -1,0 +1,9 @@
+First part of the Main Street Dry Cleaners environmental compliance manual for the Bendigo plant, covering responsibility, the general environmental duty, the regulatory picture and perchloroethylene. It is the company's own document, not a regulator's.
+Document MSDC-ENV-01, version 4.0, issued 1 March 2026, next review 1 March 2027, approved by Karen Whitfield, Director.
+Entity Aveline Holdings Pty Ltd ACN 617 903 558, Shop 4, 118 Hargreaves Street, Bendigo.
+Karen Whitfield is accountable and decides notifications. Peter Nguyen, Plant Operator, is the day-to-day duty holder for solvent transfers, the still, filters, separator water, bunds, spill kits and the plant registers, and may stop any activity on environmental grounds without approval. Nadia Farrell keeps the records and the compliance calendar.
+The general environmental duty is section 25 of the Environment Protection Act 2017 (Vic), in force from 1 July 2021: minimise risks of harm from pollution or waste so far as reasonably practicable. It is proactive, so it can be breached on a day when nothing has spilled.
+The site holds no EPA permission: dry cleaning at this scale is not a prescribed permission activity. The position is re-tested at each annual audit and on any plant change.
+Trade waste to sewer is regulated by Coliban Water under agreement TW-4471.
+Perchloroethylene is charged to the Union XL-800, serial UXL8-2019-0447, installed March 2019. UN 1897, Class 6.1 packing group III, Hazchem 2Z, IARC Group 2A. Non-flammable, but decomposes in fire to hydrogen chloride and phosgene. Density about 1.62 kg/L, so spilled perc sinks.
+Exposure standards: 25 ppm eight-hour time-weighted average, 100 ppm short-term over fifteen minutes. Internal action level 10 ppm, at which the machine stops.

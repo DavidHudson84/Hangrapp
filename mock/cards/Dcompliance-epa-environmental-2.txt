@@ -1,0 +1,9 @@
+Second part of the Main Street Dry Cleaners environmental compliance manual, covering solvent storage and bunding, decanting, spill kits and waste.
+The solvent store is locked and mechanically ventilated, keys with Karen Whitfield and Peter Nguyen only. It holds up to 2 x 200 L drums each of perc and hydrocarbon solvent in separate bunded bays, plus a waste bay.
+Bund rule: the greater of 110% of the largest single container and 25% of the aggregate stored. For 2 x 200 L drums that is 220 L required. The perc bund is 1,800 x 1,200 x 160 mm, so 345.6 L available, a margin of 125.6 L. The hydrocarbon bay is identical; the waste bay covers a 205 L drum, requiring 225.5 L.
+Bunds have no drain, valve or outlet. Liquid found in a bund is removed within 24 hours into a labelled drum as reportable priority waste, never mopped to a floor waste.
+Two spill kits, checked monthly: a 240 L bin in the store and a 60 L kit at the machine.
+Maximum held: 400 L perc, 400 L hydrocarbon, about 60 L of process chemistry. The site reaches neither the placarding nor the manifest quantity for any class, so neither is required; a chemical register and door placard are kept anyway.
+Perc transfer is closed system only, by drum pump and closed coupling over the bund, with low-level store extraction running. Open pouring, siphoning and transfer by a lone worker are prohibited. Gloves laminate or Viton, never nitrile.
+Waste: perc still bottoms, spent filters, spent carbon, separator water and perc-contaminated rags are Category B reportable priority waste, code N220, halogenated organic solvents and residues. Hydrocarbon still residues are code N205, Category C.
+Maximum waste held: 2 x 205 L drums of Category B plus a 60 L separator water drum, never more than 12 months from the date first filled.

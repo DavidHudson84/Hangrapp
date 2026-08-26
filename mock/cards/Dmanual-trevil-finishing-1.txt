@@ -1,0 +1,12 @@
+The Trevil finishing room manual, first of two parts, covering front matter, safety, services, specifications and the operation of the two finishers as far as 6.7.
+Rev 3, September 2020, superseding Rev 2 of March 2017.
+Installed at Main Street Dry Cleaners, Shop 4, 118 Hargreaves Street, Bendigo VIC 3550.
+Machines: Diamant SA-90 steam-air cabinet finisher, DSA90-2017-0231; Princess FF-300 form finisher or Suzy, PFF300-2019-0884; Spotmaster SB-40 vacuum spotting board, SSB40-2016-0512.
+Sections here: 1 front matter, 2 safety, 3 services, 4 specifications, 5 SA-90, 6.1-6.7 FF-300.
+Not in this part, all in part 2: Section 7 the spotting board with its chemistry set, stain table and fibre cautions, and Sections 8 maintenance, 9 fault codes, 10 parts, 11 warranty.
+Safety covers the whole room, spotting board included: never mix oxygen bleach with an acid formula, rust remover with an alkali, or amyl acetate with an oxidiser; amyl acetate TVC-05 is flammable, flash point about 25 C, and is used only under the running hood; no chemical gun or solvent work with the extraction fan off.
+Hood face velocity at least 0.5 m/s, measured quarterly; room ventilation 8 air changes per hour. The SB-40 hood must not be joined into a common duct with the finisher vents.
+SB-40 supply must be RCD-protected at 30 mA, tested monthly. Eyewash within 10 seconds of the board. Poisons Information Centre 13 11 26. Cool a burn or flush an eye for 20 minutes, skin for 15.
+Steam up to 690 kPa, not below 400 kPa at the header. Over-temperature cut-outs: SA-90 145 C, FF-300 135 C.
+SA-90 has 24 programme memories and P1 to P14, FF-300 20 memories and F1 to F12, 12 factory programmes each. P14, the door interlock, must never be set to 0.
+Fault codes are not tabled here; the prefixes are SA, FF and SB.

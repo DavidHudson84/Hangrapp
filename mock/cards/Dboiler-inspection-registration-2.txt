@@ -1,0 +1,11 @@
+The boiler inspection report, second of five parts: the method followed on the day and the findings on the pressure envelope, level controls and blowdown.
+Inspected 24 June 2026, over five and a half hours from 07:15, cold first and then fired for testing at pressure. The report number, inspection body, inspector and registration number are not stated in this part — see parts 1 and 5.
+Pressure envelope sound. Lowest shell thickness 10.1 mm against a minimum required 8.6 mm; lowest furnace reading 12.2 mm against 10.8 mm. No measurable loss against the 2024 datum.
+The 2021 furnace-to-tubesheet repair weld is sound — magnetic particle examination over the accessible 340 mm found no indication.
+Safety valve: Hartland SV-25, serial HV-25-14-7702, set 690 kPa, certified capacity 520 kg/h against the boiler's 470 kg/h.
+Level controls correct on test: feed pump on 150 mm and off 195 mm above the crown; first low water alarm set 100 mm, sounded at 103 mm; low water cut-out set 75 mm, locked the burner out at 78 mm, manual reset confirmed.
+Item 1: the lower gauge glass gland is weeping, about a drop every 40 seconds at working pressure. The gland nut is at the end of its travel, so the packing must be renewed with the glass and both gaskets. Required within 30 days of the inspection.
+Item 2: the slow opening bottom blowdown valve packing is worn, with a trace of moisture at the gland after operation. It still seals. Its due date is not stated in this part — see parts 3 and 5.
+Feedwater: 300 L hotwell at 82 °C, condensate return 54%, single feed pump with no standby fitted.
+Blowdown runs to a 200 L vented vessel, then to trade waste under Coliban Water agreement TW-4471; discharge measured 41 °C against a 60 °C limit.
+No spare gauge glass, gasket set or packing is held on site.

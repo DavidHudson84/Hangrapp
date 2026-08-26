@@ -1,0 +1,11 @@
+Operation and maintenance manual for the Pilot K25 rotary screw air compressor, first of two parts — Sections 1 to 6.4: identification, safety, specification, installation, description and air quality.
+Oil-flooded rotary screw with integrated refrigerated dryer, 18.5 kW motor, 500 L receiver, in the Bendigo plant room.
+Serial PK25-19-0883, built 2019. Manual PK25-OM-EN, Rev 3 of 2021, superseding Rev 2 and 1. Rev 3 added codes A28 to A34 and cut the separator interval to 2,000 h on high duty or hot ambient.
+The fault code table is Section 10, in the other part.
+Oil: Pilot SS-8000 semi-synthetic ISO VG 46, PK-OIL-8000-20. System 18 L, refill 16 L. Due at 4,000 h or 12 months standard, 2,000 h or 12 months on high duty or ambient above 32 °C. Normal 78 to 95 °C, warning 105 °C (A02), trip 110 °C (A01). Do not mix grades.
+Load 7.0 bar, unload 8.0 bar, maximum 10.0 bar, receiver design 11.0 bar, safety valve sealed at 10.5 bar. Free air delivery 3.05 m³/min at 7 bar.
+Supply 400 V 3-phase, 34 A full load, star-delta transition 6 s.
+Receiver: registered pressure vessel, AS 1210, Hazard Level C, registration VIC-PV-118-4602; external inspection 12 months, internal 48 months, by Goldfields Plant Inspection Services. No welding or drilling.
+Dryer R134a 0.62 kg, rated dew point +3 °C. Filters in order F1 PK-LF-030P, F2 PK-LF-030C, F3 PK-LF-030A. Target ISO 8573-1 Class 2:4:2 at the presses.
+Package rejects 22.0 kW; ventilation 6,600 m³/h. Condensate 18 to 25 L a day, oily — never to stormwater.
+Safety: automatic restart is on by default (P26) and the machine starts without warning — only isolated, locked and tagged is safe. The receiver holds pressure for days; prove zero before breaking a joint. Never open the oil filler hot or pressurised. The air is not breathing air.

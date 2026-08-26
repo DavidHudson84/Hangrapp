@@ -1,0 +1,12 @@
+The Sankosha press line manual, first of two parts, covering front matter, safety, services, specification tables, the LP-580 shirt unit and the UP-120 utility press as far as 6.4.
+Rev 5, March 2022, superseding Rev 4 of August 2019.
+Installed at Main Street Dry Cleaners, Shop 4, 118 Hargreaves Street, Bendigo VIC 3550.
+Machines: LP-580 shirt unit SK-LP580-17-3241 and UP-120 utility press SK-UP120-17-1188, installed 12/02/2018; TT-240 trouser topper SK-TT240-19-0774 and TL-260 trouser legger SK-TL260-19-0775, installed 04/11/2019.
+Sections here: 1 front matter, 2 safety, 3 services, 4 specifications, 5 LP-580, 6.1 to 6.4 UP-120.
+Not in this part: the finishing quality fault table, the fault code tables, the maintenance schedule with its service intervals, and the warranty section — all in part 2.
+Safety rules that must not be broken: never defeat, tape, tie or wedge a two-hand control; never bypass a guard interlock; never clear a jam on a live machine; once a cycle is initiated no part of the body enters the machine; treat every head, buck, plate and former as hot until the steam valve has been shut 40 minutes; never search for a steam leak by hand.
+Lockout under 2.8 isolates electrical, steam and air, then requires a try-to-start on the two-hand control.
+Closing forces: UP-120 head 26 kN at 620 kPa, 0.9 s over 320 mm; LP-580 collar bar 9.5 kN and sleeve pads 7.2 kN; TL-260 leg clamps 6.8 kN; TT-240 waist clamp 4.4 kN.
+Temperatures: UP-120 head 160-170 C, LP-580 collar plate 175-185 C, TL-260 bucks 140-150 C.
+LP-580 has four size settings and fabric programmes A to E; UP-120 has fabric classes 1 to 6 at 180 to 620 kPa head pressure.
+Fault codes appear only in passing: SU-01 is raised below 480 kPa steam and locks out below 400 kPa.

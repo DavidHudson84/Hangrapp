@@ -1,0 +1,12 @@
+First part of the Realstar HM-450 operator and service manual, Rev 2 (March 2023): front matter, safety, specifications, installation, machine description, the control panel and the ten factory programmes.
+Realstar HM-450 hydrocarbon dry cleaning machine, 18 kg. Serial RHM45-23-1182, build 1182, made 2023, MC-4 controller. Installed August 2023 at Shop 4, 118 Hargreaves Street, Bendigo VIC 3550. Rev 1 (August 2021) is withdrawn.
+Supply 415 V, 3 phase, 50 Hz, 14.8 kW connected, 26 A.
+The solvent is FLAMMABLE. Solvex HC-560 isoparaffinic hydrocarbon, Class 3 flammable liquid. Flash point 63 °C, minimum in service 60 °C. LEL 0.6 % v/v, UEL 6.5 %, auto-ignition 220 °C, vapour 4.9 times denser than air.
+The machine is not nitrogen-inerted. The vapour monitor is its primary fire safeguard and must never be bypassed or disabled.
+Vapour responses: 0 - 15 % LEL normal; 16 - 24 % warning; 25 - 39 % raises F-03, drying heat isolated; 40 % LEL and above raises F-04 — all heating isolated, cage stopped in 8 s, door held locked, technician reset only.
+An operator must never reset a safety lockout: F-04, F-05, F-09, F-17, F-22, F-28, F-33 and F-36.
+Locked parameters P-30 to P-37 may be lowered but never raised above factory value; P-38 self-test and P-39 extraction interlock are Enabled only. More time, never more heat, is the answer to a load that will not dry.
+First fill 420 L; Tank 1 and Tank 2 190 L working each; target mileage not less than 55 kg per litre.
+Three filter cartridges, part RS-HM4-4021, changed at 220 kPa, 1,600 kg or three months, whichever is first.
+Hazardous area zoned 0/1/2 to AS/NZS 60079.10.1; ventilation 10 air changes per hour at low level; bund not less than 500 L.
+Vapour monitor span calibration is a 12-month technician task; F-36 lockout at expiry.

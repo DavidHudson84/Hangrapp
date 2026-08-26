@@ -1,0 +1,12 @@
+Fault code, maintenance and parts half of the Union XL-800 dry cleaning machine manual, Rev 4, second of two parts — Sections 8.5 to 14: solvent management, maintenance schedule, fault codes, spare parts, warranty and appendices.
+Union XL-800, serial UXL8-2019-0447, Main Street Dry Cleaners, Bendigo. Quote it with every order.
+Fault codes run E01 to E40, with no E13, E23, E28, E33, E37 or E39 in the table. Warning and prompt codes A01 to A14.
+E17 is STILL OVERTEMP — still above 138 °C, usually run low or dry with steam still on, or muck baked on the coil; stop the still, let it cool and inspect before restarting.
+Also E05 out of balance (the most frequent stop), E15 filter above 220 kPa, E21 separator high level, E24 refrigeration high pressure, E30 dry temperature not reached, E35 steam below 480 kPa, E38 e-stop.
+Three resets of the same code within one hour lock it out and require a technician.
+Maintenance schedules, each with task, tool and time: daily, weekly, monthly, quarterly, annual.
+Consumables: filter cartridges 250 running hours or 180 kPa and annually; adsorber carbon 12 months; polisher carbon 6 months; door and still gaskets 12 months; trap gaskets 6 months; pump seals 12 months; drive belt 24 months.
+Parts: UXL-1104 filter cartridge (4 per change), UXL-1120 carbon 45 kg, UXL-1218 button trap gasket, UXL-2602 relief valve.
+Distil at least 25 L per 100 kg cleaned. Mileage 400 to 500 kg/L normal, below 300 call a technician.
+Muck is raked from outside the still, no part of the body through the opening. Never clear E21 by discharging the separator to drain.
+Warranty 24 months or 3,000 cycles, expired March 2021. Quarterly technical service, annual major, annual AS 3788 vessel inspection, quarterly refrigerant leak check by an ARC licensed technician.

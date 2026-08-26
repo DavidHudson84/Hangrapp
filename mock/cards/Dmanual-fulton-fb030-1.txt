@@ -1,0 +1,9 @@
+First part of the Fulton FB-030 manual, Rev 7 (March 2019), publication FB-IOM-030-R7: installation record, safety, statutory compliance, specification and installation.
+Fulton FB-030 vertical tubeless gas-fired steam boiler, 30 boiler horsepower. Serial FB030-14-0873, commissioned 19 September 2014 at Shop 4, 118 Hargreaves Street, Bendigo VIC 3550. Operator (person with management or control) Aveline Holdings Pty Ltd ACN 617 903 558.
+Registered pressure vessel. Design registration VIC-DR-PV-11-0592 covers the drawing; plant registration VIC-PV-118-4470 covers this boiler at this address, held by the operator. Expires 30 June 2027; diarise 90 days ahead. Operating a lapsed or unregistered item is an offence.
+Hazard level B to AS 4343, built to AS 1210 Class 2H. Inspection body Goldfields Plant Inspection Services Pty Ltd.
+Maximum inspection intervals: AS 3788 external 12 months and internal 24 months, both by a competent person independent of the operator; hydrostatic test at 1,035 kPa 72 months or after any pressure part repair or relocation; relief valve overhaul 24 months; combustion and burner service 6 months; low water probe examination, AS 2593 control function test and valve proving verification each 12 months.
+MAWP 690 kPa, normal working 550 - 620 kPa, output 470 kg/h, 415 L at working level, LWL 165 mm above the furnace crown. A total feedwater failure at full fire reaches first low water in under six minutes.
+Type B appliance at 363 kW: gas work only by a licensed Type B gasfitter. Max CO in flue gas, air-free, 100 ppm.
+Certified for limited attendance, maximum unattended 24 hours, on six conditions including two independent low water devices and recorded proof tests.
+Never gag or adjust the safety relief valve; never add water to a dry-fired boiler.

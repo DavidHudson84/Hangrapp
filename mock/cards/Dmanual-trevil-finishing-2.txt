@@ -1,0 +1,9 @@
+The Trevil finishing room manual, second of two parts — the whole SB-40 spotting board section, plus maintenance, fault codes, parts, warranty. Rev 3, September 2020.
+Sections here: 6.8 shoulder pads, 6.9 lined jackets, 7 spotting board, 8 maintenance, 9 fault codes, 10 spares, 11 warranty, 12 appendices.
+Chemistry set 7.4, TVC-01 to TVC-12: protein formula, tannin formula, neutral lubricant, POG, amyl acetate, oxygen bleach, rust remover, digester, dry solvent, ammonia, acetic acid, ink and dye remover.
+Stain table 7.6, 28 stains with class, agent, procedure, mechanical action and risk: blood, coffee, tea, red wine, ballpoint ink, fountain pen ink, lipstick, foundation, deodorant, perspiration, grass, mud, oil/grease, butter, chocolate, egg, milk, urine, vomit, rust, water mark, dye transfer, nail polish, PVA glue, water-based paint, oil-based paint, candle wax and chewing gum.
+Fibre cautions 7.8: wool, silk, acetate, triacetate, rayon and viscose, cotton, linen, polyester, nylon, elastane, leather and suede trim, bonded and laminated fabrics, beaded, sequinned and printed garments.
+Rules: dry side before wet side; test every agent on a hidden area first; vacuum running for every flush; blood and egg cold only, as heat sets albumin; amyl acetate dissolves acetate and triacetate. 7.9 lists when to refuse treatment; record on Appendix D, keep 12 months.
+Fault codes: SA-01 to SA-15, FF-01 to FF-12, SB-01 to SB-11, marked technician or operator.
+Service intervals 8.3-8.5: daily, weekly, monthly, quarterly, annual. Monthly steam trap and RCD tests; quarterly hood face velocity and SDS reconciliation; annual electrical inspection.
+Warranty 24 months parts, 12 months labour; voided by a defeated guard, P14 set to 0, chemistry not listed at 7.4, or missing maintenance logs.

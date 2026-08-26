@@ -1,0 +1,12 @@
+The 2026 boiler inspection report and registration record, first of five parts: summary, next dates, registration particulars, plant data and scope.
+Inspection body Goldfields Plant Inspection Services Pty Ltd, Bendigo, (03) 5441 2290. Accreditation IBA-0374, type A body to AS/NZS ISO/IEC 17020 for in-service inspection to AS 3788.
+Inspector G. Mattison, competent person under AS 3788, GPI-INS-114.
+Report GPIS-2026-1188, issued 26 June 2026, superseding GPIS-2025-0974. Inspected 24 June 2026.
+Owner Aveline Holdings Pty Ltd ACN 617 903 558, trading as Main Street Dry Cleaners, Shop 4, 118 Hargreaves Street, Bendigo. Responsible officer Karen Whitfield.
+Plant: Fulton FB-030 vertical gas fired steam boiler, serial FB030-2014-3312, 30 hp, 470 kg/h, MAWP 690 kPa, natural gas, made 2014, refurbished 2021. Hazard level B, AS 2593 limited attendance LA-24.
+Item registration VIC-PV-118-4470, first registered 14 August 2014, current period 1 July 2022 to 30 June 2027. Renewal may be lodged from 30 March 2027. Operating after the registration lapses is an offence and voids machinery breakdown cover.
+Insured as item M1 under Meridian policy MDC-BP-4471822, value $48,000.
+Outcome: sound and fit for continued service at its registered MAWP of 690 kPa, subject to two defects. Nothing required it to be taken out of service.
+Item 1 — lower gauge glass gland weeping, must be repacked. Category 3, by 24 July 2026.
+Item 2 — bottom blowdown valve packing worn, must be replaced. Category 4, at the next shutdown and in any event by 30 November 2026.
+Next due: external inspection 24 June 2027; internal inspection June 2028 (last 18 June 2024, interval extended to 24 months); hydrostatic test 2029; safety valve and safety device tests 24 June 2027; registration renewal 30 June 2027.
