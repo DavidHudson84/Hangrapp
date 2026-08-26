@@ -12,6 +12,12 @@ index.html  ──POST──▶  send-letter (Supabase edge function)  ──▶
   + the PDF
 ```
 
+The function is deployed to the `hangr-consultant` project
+(`cntwhojxperdrrufpokl`) and sending is live — the secrets below are set and a
+letter delivers in a few seconds. If either of the first two ever goes missing
+the function stops before it does anything else and says which one, so a 503
+naming a secret means that secret, not a broken key or a DNS problem.
+
 ## The letter travels as a PDF
 
 The message body is a short plain-text covering note; the letter itself is
@@ -30,10 +36,6 @@ several megabytes an image-based PDF would cost. The browser base64s it and
 cannot walk out of a directory.
 
 Printed and downloaded copies are unaffected — those never left the browser.
-
-The function is already deployed to the `hangr-consultant` project
-(`cntwhojxperdrrufpokl`). It refuses every request with a plain
-"Email is not configured yet." until the secrets below are set.
 
 ## The secrets
 
@@ -69,23 +71,28 @@ caller cannot redirect it.
 Sending a letter straight to a customer puts Hangr in the chain of a document
 that may end up in a dispute, so it stays off until the terms and liability
 position are settled in writing (handover step 1). The switch lives on the
-server, not in `index.html`; the UI reads the server's answer and shows
-"Sending to customers is not switched on yet" rather than a raw error. Turning it
-on later is a one-word secret change — `true` — with no code change and no
-redeploy.
+server, not in `index.html`; the app asks and greys the option out, so the
+server's refusal is a backstop rather than something an operator ever meets
+(see [While it is off](#while-it-is-off)). Turning it on later is a one-word secret
+change — `true` — with no code change and no redeploy.
 
 When it is on, only `owner`, `admin` and `manager` may use it, and the role is
 read from the `memberships` table, never from the request body. Staff draft
 letters; they do not post them out under the business name.
 
-While it is off, the app does not offer the option at all: "Straight to someone
-else" is greyed out and reads *Coming soon*, and the customer acknowledgement on
-a problem report says the same before it opens its form. The app learns this by
-asking — a `GET` to the same function returns `{ configured, customerSend }`,
-two booleans and nothing else. That is why flipping the secret is still enough
-on its own: nothing in `index.html` holds a second copy of the answer. If the
-app cannot reach the function it assumes off, since offering a send that then
-fails is worse than not offering one.
+### While it is off
+
+The app does not offer the option at all: "Straight to someone else" is greyed
+out, unclickable, and carries the same *Coming soon* pill as the screens that
+are not switched on yet, with "email it to yourself and forward it on" beneath.
+The **Let the customer know** button on a problem report says the same thing
+before it opens its form, rather than after the address is typed in.
+
+The app learns this by asking — a `GET` to the same function returns
+`{ configured, customerSend }`, two booleans and nothing else. That is why
+flipping the secret is still enough on its own: nothing in `index.html` holds a
+second copy of the answer. If the app cannot reach the function it assumes off,
+since offering a send that then fails is worse than not offering one.
 
 ## Replies
 
@@ -132,8 +139,11 @@ decision about who reads that mailbox. Nothing in the app depends on it.
    letter attached as a PDF and a short note in the body.
 4. Check the send is listed under Emails in the Resend dashboard.
 
-Then try **to a customer**: it should be refused with "Sending to customers is
-not switched on yet", which confirms `ALLOW_CUSTOMER_SEND` is doing its job.
+Then look at **Straight to someone else**: it should be greyed out and tagged
+*Coming soon*, which confirms the app read `ALLOW_CUSTOMER_SEND` as off. There is
+no longer a refusal to trigger from here — the option cannot be chosen. To check
+the server guard itself rather than the app's reading of it, `POST` to the
+function with `toSelf: false`; it answers 403 with `code: customer_send_disabled`.
 
 ## When it does not work
 
