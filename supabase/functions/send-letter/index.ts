@@ -34,7 +34,7 @@ const MAX_RECIPIENTS = 5;
 const cors = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 const json = (body: unknown, status = 200) =>
@@ -58,7 +58,16 @@ const clean = (s: unknown, max = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
-  if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
+
+  // What the app may offer, so the UI can grey out what would only fail. Two
+  // booleans and nothing else — the app needs to know whether customer sending
+  // is on, never anything about the key behind it. Asked rather than copied
+  // into index.html, so flipping ALLOW_CUSTOMER_SEND still takes no redeploy.
+  if (req.method === 'GET') {
+    return json({ configured: !!(RESEND_API_KEY && EMAIL_FROM), customerSend: ALLOW_CUSTOMER_SEND });
+  }
+
+  if (req.method !== 'POST') return json({ error: 'POST or GET only' }, 405);
   // Naming the missing secret turns a dead end into an instruction. These are
   // names, never values — they are already written down in docs/EMAIL.md.
   const missing = [

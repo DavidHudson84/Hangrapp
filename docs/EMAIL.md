@@ -58,6 +58,15 @@ When it is on, only `owner`, `admin` and `manager` may use it, and the role is
 read from the `memberships` table, never from the request body. Staff draft
 letters; they do not post them out under the business name.
 
+While it is off, the app does not offer the option at all: "Straight to someone
+else" is greyed out and reads *Coming soon*, and the customer acknowledgement on
+a problem report says the same before it opens its form. The app learns this by
+asking — a `GET` to the same function returns `{ configured, customerSend }`,
+two booleans and nothing else. That is why flipping the secret is still enough
+on its own: nothing in `index.html` holds a second copy of the answer. If the
+app cannot reach the function it assumes off, since offering a send that then
+fails is worse than not offering one.
+
 ## Replies
 
 Nothing can be replied to at the sending address. Receiving is switched off on

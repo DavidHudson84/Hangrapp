@@ -8612,6 +8612,23 @@ async function mustChangePassword() {
 
 const EMAIL_ENDPOINT = SB_URL + '/functions/v1/send-letter';
 
+// The server owns the customer-send switch, so the app asks rather than keeping
+// a second copy of the answer that would go stale the moment the secret is
+// flipped. Cached for the session: it changes about once, and never mid-visit.
+let _emailCaps = null;
+async function emailCapabilities() {
+  if (_emailCaps) return _emailCaps;
+  let token = SB_ANON;
+  try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
+  try {
+    const r = await fetch(EMAIL_ENDPOINT, { headers: { Authorization: 'Bearer ' + token, apikey: SB_ANON } });
+    if (r.ok) _emailCaps = await r.json();
+  } catch (e) {}
+  // Unreachable, or an older function that has no answer to give: assume the
+  // cautious side. Offering a send that then fails is worse than not offering.
+  return _emailCaps || { configured: true, customerSend: false };
+}
+
 async function sendEmail({ toSelf, to, subject, html, body, replyTo }) {
   let token = SB_ANON;
   try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
@@ -8657,7 +8674,13 @@ async function openEmailLetter(l) {
   // behind this one and never be answered.
   let sentTo = null;
   const own = (state.profile.email || '').trim();
-  const customerAllowed = can('letters.all');
+  const caps = await emailCapabilities();
+  // Two separate reasons the option can be shut: this login is not allowed to
+  // use it, or nobody is yet. They read differently to the person looking.
+  const customerAllowed = can('letters.all') && caps.customerSend;
+  const customerReason = can('letters.all')
+    ? 'Coming soon — email it to yourself and forward it on'
+    : 'Not available on this login';
 
   await uiModal({
     title: 'Email this letter',
@@ -8671,7 +8694,7 @@ async function openEmailLetter(l) {
           <input type="radio" name="email-dest" value="customer" ${customerAllowed ? '' : 'disabled'}>
           <span><strong>Straight to someone else</strong><small>${customerAllowed
             ? 'The customer, a retailer, or an insurer'
-            : 'Not available on this login'}</small></span>
+            : escapeHtml(customerReason)}</small></span>
         </label>
         <div id="email-to-row" style="display:none">
           <label class="auth-label">Their email address</label>
@@ -8909,6 +8932,16 @@ async function emailProblemAck(id) {
   if (!maySeeProblem(rec)) return;
   const to = (rec.email || '').trim();
   if (!to) { await uiAlert('There is no email address on this report.'); return; }
+  // This one only ever writes to a customer, so the same switch shuts it. Say so
+  // before the form rather than after it is filled in.
+  const caps = await emailCapabilities();
+  if (!caps.customerSend) {
+    await uiAlert(
+      'Emailing a customer directly is not switched on yet. Open the letter, email it to yourself, and forward it on from your own address.',
+      'Coming soon',
+    );
+    return;
+  }
   const own = (state.profile.email || '').trim();
   let sent = false;
   await uiModal({
