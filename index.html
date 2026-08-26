@@ -995,6 +995,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -3987,7 +3988,9 @@ function chatTranscriptHtml(chat) {
 }
 function buildExportDocument(title, innerHtml, dateStr, footNote) {
   const p = state.profile;
-  const logo = p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:70px;max-width:180px;object-fit:contain">` : '';
+  const logo = p.logoDataUrl
+    ? `<img src="${p.logoDataUrl}" height="56" style="max-height:56px;max-width:180px;width:auto;object-fit:contain">`
+    : '';
   const contact = chatExportContact();
   return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
@@ -9531,6 +9534,260 @@ async function mustChangePassword() {
   } catch (e) { return false; }
 }
 
+// ============ LETTER PDF ============
+// An emailed letter goes out as a PDF, not as HTML in the message body. Email
+// clients are a far dumber rendering target than a browser: Outlook ignores
+// max-height, max-width and object-fit, so a logo with nothing but CSS holding
+// it back arrives at its natural size, and flex header layouts collapse. A
+// letter that may end up in a dispute should look the same to the person
+// holding it as it did here, and a PDF is the only way to promise that.
+//
+// Text, not a screenshot of the page: selectable, searchable, sharp at any
+// zoom, and tens of kilobytes rather than several megabytes.
+
+const PDF_MARGIN = 56;          // ~20mm
+const PDF_BODY = 11;            // pt, body text
+const PDF_RULE = '#333333';
+const PDF_MUTED = '#777777';
+
+// The markdown subset renderMarkdown already understands, reduced to what the
+// built-in PDF fonts can carry: bold, italic, and code in the mono face.
+function pdfInlineRuns(text) {
+  const runs = [];
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\n]+\*)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) runs.push({ text: text.slice(last, m.index) });
+    const t = m[0];
+    if (t.startsWith('**')) runs.push({ text: t.slice(2, -2), bold: true });
+    else if (t.startsWith('`')) runs.push({ text: t.slice(1, -1), code: true });
+    else runs.push({ text: t.slice(1, -1), italic: true });
+    last = m.index + t.length;
+  }
+  if (last < text.length) runs.push({ text: text.slice(last) });
+  return runs.length ? runs : [{ text: '' }];
+}
+
+// Both letter families reduced to one list of blocks, so the renderer below
+// never has to ask which kind it was handed.
+function pdfBlocks(l) {
+  const text = String(l.body || '');
+  const isNote = l.family === 'note' || l.type === 'note';
+
+  // A letter is plain text that someone laid out by hand — an address block, a
+  // sign-off. The screen honours those line breaks (white-space: pre-wrap) and
+  // so must this, or the shape of the letter changes on the way out.
+  if (!isNote) {
+    return text.split('\n').map((line) =>
+      line.trim() === ''
+        ? { kind: 'gap' }
+        : { kind: 'line', runs: pdfInlineRuns(line) });
+  }
+
+  const out = [];
+  for (const line of text.split('\n')) {
+    const head = line.match(/^\s*(#{2,4})\s+(.+?)\s*$/);
+    const bullet = line.match(/^\s*[-*•]\s+(.+)$/);
+    const num = line.match(/^\s*(\d+)\.\s+(.+)$/);
+    if (head) out.push({ kind: head[1].length === 2 ? 'h2' : 'h3', runs: pdfInlineRuns(head[2]) });
+    else if (bullet) out.push({ kind: 'bullet', runs: pdfInlineRuns(bullet[1]) });
+    else if (num) out.push({ kind: 'number', marker: num[1] + '.', runs: pdfInlineRuns(num[2]) });
+    else if (line.trim() === '') out.push({ kind: 'gap' });
+    else out.push({ kind: 'line', runs: pdfInlineRuns(line) });
+  }
+  return out;
+}
+
+function pdfFont(doc, run, size, mono) {
+  const face = (run && run.code) || mono ? 'courier' : 'helvetica';
+  const style = run && run.bold && run.italic ? 'bolditalic'
+    : run && run.bold ? 'bold'
+    : run && run.italic ? 'italic'
+    : 'normal';
+  doc.setFont(face, style);
+  doc.setFontSize(size);
+}
+
+// Greedy word wrap that keeps each word's styling, so a bold phrase inside a
+// sentence stays bold across a line break instead of resetting.
+function pdfWrap(doc, runs, maxWidth, size, forceBold) {
+  const words = [];
+  for (const run of runs) {
+    const style = { bold: !!run.bold || !!forceBold, italic: !!run.italic, code: !!run.code };
+    const parts = String(run.text).split(/(\s+)/);
+    for (const part of parts) {
+      if (part === '') continue;
+      words.push({ text: part, space: /^\s+$/.test(part), ...style });
+    }
+  }
+  const lines = [];
+  let line = [], width = 0;
+  for (const w of words) {
+    pdfFont(doc, w, size);
+    const ww = doc.getTextWidth(w.text);
+    if (w.space && !line.length) continue;               // no leading spaces
+    if (width + ww > maxWidth && line.length && !w.space) {
+      lines.push(line); line = []; width = 0;
+    }
+    line.push(w); width += ww;
+  }
+  if (line.length) lines.push(line);
+  return lines.length ? lines : [[]];
+}
+
+function pdfDrawLine(doc, words, x, y, size) {
+  let cursor = x;
+  for (const w of words) {
+    pdfFont(doc, w, size);
+    doc.text(w.text, cursor, y);
+    cursor += doc.getTextWidth(w.text);
+  }
+}
+
+// The business block, top right, mirroring what the printed sheet shows.
+function pdfContactLines(profile) {
+  const bits = [];
+  if (profile.address) bits.push(String(profile.address).replace(/\n/g, ', '));
+  if (profile.phone) bits.push(profile.phone);
+  if (profile.email) bits.push(profile.email);
+  if (profile.website) bits.push(profile.website);
+  if (profile.abn) bits.push('ABN ' + profile.abn);
+  return bits;
+}
+
+function pdfDrawHeader(doc, profile, pageW) {
+  const right = pageW - PDF_MARGIN;
+  let y = PDF_MARGIN;
+
+  // A logo of unknown proportions. Fit it inside the box rather than stretching
+  // it to fill, and give up on it quietly if the format is one jsPDF cannot
+  // read — a missing logo is a far smaller problem than no letter at all.
+  let logoBottom = y;
+  if (profile.logoDataUrl) {
+    try {
+      const props = doc.getImageProperties(profile.logoDataUrl);
+      const scale = Math.min(160 / props.width, 56 / props.height, 1);
+      const w = props.width * scale, h = props.height * scale;
+      doc.addImage(profile.logoDataUrl, PDF_MARGIN, y, w, h);
+      logoBottom = y + h;
+    } catch (e) { /* unreadable logo: carry on without it */ }
+  }
+
+  doc.setTextColor('#111111');
+  pdfFont(doc, { bold: true }, 12);
+  let ty = y + 11;
+  if (profile.businessName) {
+    doc.text(String(profile.businessName), right, ty, { align: 'right' });
+    ty += 14;
+  }
+  doc.setTextColor('#555555');
+  pdfFont(doc, null, 8.5);
+  for (const bit of pdfContactLines(profile)) {
+    doc.text(String(bit), right, ty, { align: 'right' });
+    ty += 11;
+  }
+
+  const ruleY = Math.max(logoBottom, ty) + 8;
+  doc.setDrawColor(PDF_RULE);
+  doc.setLineWidth(1.4);
+  doc.line(PDF_MARGIN, ruleY, right, ruleY);
+  doc.setTextColor('#1a1a1a');
+  return ruleY;
+}
+
+// Drawn last, once the page count is known, so "Page 1 of 3" can be honest.
+function pdfDrawFooters(doc, note, pageW, pageH) {
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    const y = pageH - PDF_MARGIN + 22;
+    doc.setDrawColor('#cccccc');
+    doc.setLineWidth(0.5);
+    doc.line(PDF_MARGIN, y - 12, pageW - PDF_MARGIN, y - 12);
+    doc.setTextColor(PDF_MUTED);
+    pdfFont(doc, null, 7.5);
+    doc.text(note, PDF_MARGIN, y, { maxWidth: pageW - PDF_MARGIN * 2 - 70 });
+    if (total > 1) {
+      doc.text('Page ' + i + ' of ' + total, pageW - PDF_MARGIN, y, { align: 'right' });
+    }
+  }
+}
+
+function buildLetterPdfDoc(l, profile, dateStr, footNote) {
+  const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const bodyW = pageW - PDF_MARGIN * 2;
+  const bottom = pageH - PDF_MARGIN - 24;   // keep clear of the footer rule
+
+  let y = pdfDrawHeader(doc, profile, pageW) + 26;
+
+  doc.setTextColor('#111111');
+  pdfFont(doc, { bold: true }, 15);
+  for (const line of doc.splitTextToSize(String(l.subject || 'Letter'), bodyW)) {
+    doc.text(line, PDF_MARGIN, y);
+    y += 19;
+  }
+  doc.setTextColor(PDF_MUTED);
+  pdfFont(doc, null, 9);
+  doc.text(String(dateStr || ''), PDF_MARGIN, y + 2);
+  y += 24;
+  doc.setTextColor('#1a1a1a');
+
+  const spec = {
+    line:   { size: PDF_BODY, indent: 0,  before: 0, after: 2,  bold: false },
+    h2:     { size: 13,       indent: 0,  before: 12, after: 4, bold: true },
+    h3:     { size: 11.5,     indent: 0,  before: 9,  after: 3, bold: true },
+    bullet: { size: PDF_BODY, indent: 16, before: 0,  after: 3, bold: false },
+    number: { size: PDF_BODY, indent: 20, before: 0,  after: 3, bold: false },
+  };
+
+  for (const block of pdfBlocks(l)) {
+    if (block.kind === 'gap') { y += 7; continue; }
+    const s = spec[block.kind] || spec.line;
+    y += s.before;
+    const lines = pdfWrap(doc, block.runs, bodyW - s.indent, s.size, s.bold);
+    const lh = s.size * 1.42;
+    lines.forEach((words, idx) => {
+      if (y + lh > bottom) { doc.addPage(); y = PDF_MARGIN; }
+      if (idx === 0 && block.kind === 'bullet') {
+        pdfFont(doc, null, s.size);
+        doc.text('•', PDF_MARGIN + 4, y + lh - 3);
+      }
+      if (idx === 0 && block.kind === 'number') {
+        pdfFont(doc, null, s.size);
+        doc.text(block.marker, PDF_MARGIN, y + lh - 3);
+      }
+      pdfDrawLine(doc, words, PDF_MARGIN + s.indent, y + lh - 3, s.size);
+      y += lh;
+    });
+    y += s.after;
+  }
+
+  pdfDrawFooters(doc, footNote, pageW, pageH);
+  return doc;
+}
+
+// A filename the recipient can file without renaming, and that no filesystem
+// will object to.
+function pdfFilename(subject) {
+  const stem = String(subject || 'Letter')
+    .replace(/[^A-Za-z0-9 ._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'Letter';
+  return stem + '.pdf';
+}
+
+// Returns what send-letter wants: a filename and base64 content. Throws if the
+// library did not load, which the caller turns into a plain sentence.
+function letterPdfAttachment(l, footNote) {
+  if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('The PDF builder did not load. Reload the page and try again.');
+  const doc = buildLetterPdfDoc(l, state.profile, l.date || _exportDateStr(), footNote);
+  const uri = doc.output('datauristring');
+  return { filename: pdfFilename(l.subject), content: uri.slice(uri.indexOf('base64,') + 7) };
+}
+
 // ============ EMAIL ============
 // Sending goes through the send-letter edge function, which holds the Resend key
 // (CLAUDE.md non-negotiable 3). The browser never sees it and never talks to
@@ -9564,13 +9821,13 @@ async function emailCapabilities() {
   return _emailCaps || { configured: true, customerSend: false };
 }
 
-async function sendEmail({ toSelf, to, subject, html, body, replyTo }) {
+async function sendEmail({ toSelf, to, subject, html, body, replyTo, attachments }) {
   let token = SB_ANON;
   try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
   const r = await fetch(EMAIL_ENDPOINT, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + token, apikey: SB_ANON, 'content-type': 'application/json' },
-    body: JSON.stringify({ toSelf: !!toSelf, to, subject, html, body, replyTo }),
+    body: JSON.stringify({ toSelf: !!toSelf, to, subject, html, body, replyTo, attachments }),
   });
   let j = {};
   try { j = await r.json(); } catch (e) {}
@@ -9592,14 +9849,16 @@ function emailReplyFootNote(replyTo) {
     : 'This was sent from an address that is not monitored — replies to it are not received.';
 }
 
-// Everything an operator would want on the letter when it arrives: the same
-// paper-white sheet they would have printed.
-function letterEmailHtml(l, replyTo) {
-  const inner = (l.family === 'note' || l.type === 'note')
-    ? renderMarkdown(l.body)
-    : '<pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;line-height:1.6">'
-      + escapeHtml(l.body) + '</pre>';
-  return buildExportDocument(l.subject || 'Letter', inner, l.date || _exportDateStr(), emailReplyFootNote(replyTo));
+// What the message body says now that the letter travels as a PDF. Short, plain
+// text, and it does not repeat the letter — opening the attachment is the point.
+function letterCoveringNote(l, replyTo) {
+  return [
+    (l.subject || 'Letter') + ' is attached as a PDF.',
+    '',
+    l.date || _exportDateStr(),
+    '',
+    emailReplyFootNote(replyTo),
+  ].join('\n');
 }
 
 async function openEmailLetter(l) {
@@ -9643,6 +9902,7 @@ async function openEmailLetter(l) {
           <input class="input" id="email-reply" type="email" value="${escapeHtml(own)}" placeholder="you@yourbusiness.com.au">
           <small class="email-hint">The letter goes out from a send-only address. Leave this blank and they will have no way to answer it.</small>
         </div>
+        <div class="email-hint" style="margin-top:12px">The letter goes out as a PDF attachment, so it looks the same to whoever opens it.</div>
         <div class="email-note" id="email-note"></div>
       </div>`,
     confirmLabel: 'Send',
@@ -9664,7 +9924,16 @@ async function openEmailLetter(l) {
       note.style.color = 'var(--muted)';
       note.textContent = 'Sending…';
       try {
-        await sendEmail({ toSelf, to, replyTo, subject: l.subject || 'Letter', html: letterEmailHtml(l, replyTo) });
+        const footNote = emailReplyFootNote(replyTo);
+        // Built here rather than in sendEmail: if the PDF cannot be made, say so
+        // before anything is sent rather than posting a letter with no letter.
+        const attachment = letterPdfAttachment(l, footNote);
+        await sendEmail({
+          toSelf, to, replyTo,
+          subject: l.subject || 'Letter',
+          body: letterCoveringNote(l, replyTo),
+          attachments: [attachment],
+        });
         sentTo = toSelf ? 'self' : to;
         return true;
       } catch (e) {

@@ -30,6 +30,11 @@ const ALLOW_CUSTOMER_SEND =
 
 const MAX_BODY = 200_000; // a letter, not an attachment dump
 const MAX_RECIPIENTS = 5;
+// A letter as a PDF runs to tens of kilobytes. This leaves room for a long one
+// with scanned pages while staying far below what Resend will take, so a runaway
+// caller cannot use this endpoint to push megabytes through the account.
+const MAX_ATTACH_B64 = 6_000_000;
+const MAX_ATTACHMENTS = 2;
 
 const cors = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
@@ -125,6 +130,37 @@ Deno.serve(async (req) => {
     return json({ error: 'That letter is too large to email.' }, 413);
   }
 
+  // Attachments. The caller supplies base64 and a name; neither is trusted. A
+  // name is stripped back to characters that cannot walk out of a directory or
+  // disguise the type, and the content must actually be base64 rather than a
+  // payload that only Resend will find out about.
+  const rawAttachments = Array.isArray(payload.attachments) ? payload.attachments : [];
+  if (rawAttachments.length > MAX_ATTACHMENTS) {
+    return json({ error: `At most ${MAX_ATTACHMENTS} attachments.` }, 400);
+  }
+  let attachBytes = 0;
+  const attachments: { filename: string; content: string }[] = [];
+  for (const item of rawAttachments) {
+    const content = typeof (item as Record<string, unknown>)?.content === 'string'
+      ? String((item as Record<string, unknown>).content).replace(/\s+/g, '')
+      : '';
+    if (!content || !/^[A-Za-z0-9+/]+={0,2}$/.test(content)) {
+      return json({ error: 'That attachment could not be read.' }, 400);
+    }
+    attachBytes += content.length;
+    const stem = clean((item as Record<string, unknown>)?.filename, 120)
+      .replace(/[^A-Za-z0-9 ._-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[.\s]+/, '')
+      .trim();
+    // `stem` is empty when the name was nothing but punctuation or spaces.
+    const base = stem || 'letter';
+    attachments.push({ filename: base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`, content });
+  }
+  if (attachBytes > MAX_ATTACH_B64) {
+    return json({ error: 'That attachment is too large to email.' }, 413);
+  }
+
   // Recipients. Sending to yourself ignores whatever the caller supplied.
   let to: string[];
   if (toSelf) {
@@ -162,6 +198,7 @@ Deno.serve(async (req) => {
       subject,
       ...(html ? { html } : { text: body }),
       ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(attachments.length ? { attachments } : {}),
     }),
   });
 

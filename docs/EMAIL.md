@@ -9,6 +9,7 @@ and decides who the letter may go to.
 ```
 index.html  ──POST──▶  send-letter (Supabase edge function)  ──▶  Resend  ──▶  inbox
   sendEmail()            holds RESEND_API_KEY
+  + the PDF
 ```
 
 The function is deployed to the `hangr-consultant` project
@@ -16,6 +17,25 @@ The function is deployed to the `hangr-consultant` project
 letter delivers in a few seconds. If either of the first two ever goes missing
 the function stops before it does anything else and says which one, so a 503
 naming a secret means that secret, not a broken key or a DNS problem.
+
+## The letter travels as a PDF
+
+The message body is a short plain-text covering note; the letter itself is
+attached. This is not decoration. An email client is a far dumber rendering
+target than a browser — Outlook ignores `max-height`, `max-width` and
+`object-fit`, so a logo held back by nothing but CSS arrives at its natural
+size, and a flex header collapses. A letter that may end up in a dispute should
+look the same to the person holding it as it did on screen, and a PDF is the
+only way to promise that.
+
+It is built in the browser with jsPDF as **text, not a screenshot** of the page:
+selectable, searchable, sharp at any zoom, and roughly 7–10 KB rather than the
+several megabytes an image-based PDF would cost. The browser base64s it and
+`send-letter` passes it to Resend as an attachment; at most 2 attachments and
+6 MB of base64 per message, and the filename is stripped back to characters that
+cannot walk out of a directory.
+
+Printed and downloaded copies are unaffected — those never left the browser.
 
 ## The secrets
 
@@ -115,7 +135,8 @@ decision about who reads that mailbox. Nothing in the app depends on it.
 
 1. Sign in to the app.
 2. Generate any letter, then **Email** → **to myself**.
-3. It should arrive from `noreply@hangr.au` within a few seconds.
+3. It should arrive from `noreply@hangr.au` within a few seconds, with the
+   letter attached as a PDF and a short note in the body.
 4. Check the send is listed under Emails in the Resend dashboard.
 
 Then look at **Straight to someone else**: it should be greyed out and tagged
@@ -132,5 +153,6 @@ function with `toSelf: false`; it answers 403 with `code: customer_send_disabled
 | "Sign in to send email." (401) | The session expired. Sign out and back in. |
 | "The email could not be sent. Try again shortly." (502) | Resend rejected it — usually the domain is not verified yet, or `EMAIL_FROM` uses a domain other than `hangr.au`. The real reason is in the function logs (Supabase → Edge Functions → send-letter → Logs). |
 | Nothing arrives, no error | Check spam, then the Emails list in the Resend dashboard. If Resend shows it delivered, it is a receiving-end filter — this is what the DMARC record in [DNS.md](DNS.md) helps with. |
+| "The PDF builder did not load." | jsPDF is loaded from a CDN and did not arrive — usually a network blip or a blocker. Reload the page. Nothing is sent when this happens; the letter is never posted without its attachment. |
 
 The DNS records the sending domain needs are in [DNS.md](DNS.md).
