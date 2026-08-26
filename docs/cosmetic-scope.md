@@ -1,7 +1,17 @@
 # Cosmetic changes — scope for review
 
-Scoped against `index.html` at `94fb45c`. Nothing in here is built. Line references are to
-the working tree at time of writing and will drift as edits land.
+> **Status: all three batches are built and pushed. Nothing is deployed.** They land as three
+> separate commits on `claude/app-cosmetic-improvements-yuikhf`, one per batch, so each can be
+> reviewed or reverted on its own.
+>
+> Where the build diverged from this scope, noted inline below: the facts panel opens on
+> *material* gaps rather than any gap (01); the Settings strip had a second cause, nested scroll
+> containers (04); and item 05 shipped without route B's storage change — manuals are capped at
+> 60,000 characters, and chunked retrieval was built regardless since it works wherever the text
+> lives. A print fix raised after this was written is in the Batch B commit.
+
+Scoped against `index.html` at `94fb45c`. Line references are to the working tree as it was
+before these changes landed.
 
 Six of the eight requests are genuinely cosmetic. **Machinery manuals (05) is not** — it is a
 storage and retrieval change wearing a UI hat, and it is blocked on one decision.
