@@ -639,6 +639,53 @@
   .tr-key { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
   .tr-key strong { font-family: var(--mono); color: var(--accent); font-weight: 400; }
 
+  /* ---- Courses a business builds from its own SOPs ---- */
+  .tr-panel { margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--rule); }
+  .tr-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tr-panel-head h3 { font-size: 16px; font-weight: 500; margin: 0; }
+  .tr-panel-sub { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0 0 16px; max-width: 700px; }
+  .tr-panel-empty { font-size: 13px; color: var(--muted); font-style: italic; margin: 0 0 14px; }
+  .tr-own { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 18px; margin-bottom: 10px; }
+  .tr-own.draft { border-style: dashed; }
+  .tr-own-main { flex: 1; min-width: 220px; }
+  .tr-own-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .tr-own-meta { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tr-own-act { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tr-toggles { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--rule); }
+  .tr-toggles-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .tr-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 13.5px; }
+  .tr-toggle.off { color: var(--muted); text-decoration: line-through; }
+  .tr-toggle.off em { text-decoration: none; font-size: 12px; }
+  .tr-toggle em { color: var(--muted); font-size: 12px; }
+
+  .tr-build { max-width: 720px; }
+  .tr-or { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 12px 0; }
+  .tr-hint { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 6px; }
+  .tr-note { font-size: 13px; color: var(--accent); margin-top: 10px; }
+  .tr-warn { font-size: 12px; color: var(--warn); margin-top: 6px; }
+
+  .tr-edit-title { font-size: 15px; font-weight: 500; margin: 26px 0 12px; }
+  .tr-edit-block { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px; margin-bottom: 10px; }
+  .tr-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tr-edit-act { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tr-edit-act .btn { padding: 4px 8px; font-size: 12px; }
+  .tr-edit-block .input { margin-bottom: 8px; }
+  .tr-edit-opts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .tr-edit-opt { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; }
+  .tr-edit-opt.on { border-color: var(--green); background: var(--paper-2); }
+  .tr-edit-opt input[type=radio] { flex: none; accent-color: var(--green); }
+  .tr-edit-opt .input { margin-bottom: 0; }
+  .tr-problems { background: var(--paper-2); border-left: 3px solid var(--warn); border-radius: 5px; padding: 14px 16px; margin-top: 20px; font-size: 13.5px; }
+  .tr-problems ul { margin: 8px 0 0 18px; }
+  .tr-problems li { margin-bottom: 4px; }
+  .tr-retired-dot { color: var(--muted); }
+
+  @media (max-width: 700px) {
+    .tr-own { flex-direction: column; align-items: stretch; }
+    .tr-own-act { width: 100%; }
+    .tr-edit-opt { flex-wrap: wrap; }
+  }
   .tr-who { max-width: 460px; }
   .tr-foot { font-size: 12px; color: var(--muted); margin-top: 22px; line-height: 1.55; }
 
@@ -868,6 +915,13 @@ const state = {
   letters: [],
   staff: [],
   training: [],
+  // A business's own courses, built from its own SOPs. Drafts live here too —
+  // a generated course is not shown to staff until the owner has read it.
+  customCourses: [],
+  // Built-in courses this business has switched off, by id.
+  hiddenCourses: [],
+  // Transient generation and editing state — not persisted.
+  courseDraft: null,
   // Where a trainee is up to right now: who they are, which module, which page,
   // which answers. Deliberately not persisted — a half-finished quiz is not a
   // training record, and reloading should put you back on the module list.
@@ -1328,6 +1382,8 @@ function buildStateBlob() {
     letters: state.letters,
     staff: state.staff,
     training: state.training,
+    customCourses: state.customCourses,
+    hiddenCourses: state.hiddenCourses,
     documents: state.documents,
     priceLists: state.priceLists,
     staffMode: state.staffMode,
@@ -1369,6 +1425,8 @@ function applyStateBlob(s) {
     if (Array.isArray(s.letters)) state.letters = s.letters;
     if (Array.isArray(s.staff)) state.staff = s.staff;
     if (Array.isArray(s.training)) state.training = s.training;
+    if (Array.isArray(s.customCourses)) state.customCourses = s.customCourses;
+    if (Array.isArray(s.hiddenCourses)) state.hiddenCourses = s.hiddenCourses;
     if (Array.isArray(s.documents)) state.documents = s.documents;
     if (Array.isArray(s.priceLists)) state.priceLists = s.priceLists;
     if (typeof s.staffMode === 'boolean') state.staffMode = s.staffMode;
@@ -1714,7 +1772,7 @@ function clampForAsk(prompt) {
   return p.slice(0, ASK_MAX - tail - 20) + '\n…[trimmed]\n' + p.slice(p.length - tail);
 }
 
-async function askClaudeSafe(prompt, data) {
+async function askClaudeSafe(prompt, data, maxTokens) {
   const p = clampForAsk(prompt);
   let content;
   if (data && data.length) {
@@ -1732,7 +1790,7 @@ async function askClaudeSafe(prompt, data) {
   const r = await fetch(AI_ENDPOINT, {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'apikey': SB_ANON, 'content-type': 'application/json' },
-    body: JSON.stringify({ max_tokens: 3000, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ max_tokens: maxTokens || 3000, messages: [{ role: 'user', content }] })
   });
   let j;
   try { j = await r.json(); } catch (e) { throw new Error('The AI service returned an unexpected response (' + r.status + ').'); }
@@ -2074,6 +2132,24 @@ function factFamily(type) {
 
 // Pull the facts out of the conversation. Never guesses — a fact not stated comes back empty
 // and gets flagged in the panel for the owner to fill.
+// Models wrap JSON in prose and code fences, and a reply that hit the token
+// ceiling arrives cut off mid-object. Slicing to the outermost brace or bracket
+// handles the wrapping; the try/catch handles the truncation, which is the one
+// that actually bites once you start asking for anything long.
+function parseAiJson(raw, shape) {
+  try {
+    let txt = coerceAIResponse(raw).trim();
+    txt = txt.replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+    const open = shape === 'array' ? '[' : '{';
+    const close = shape === 'array' ? ']' : '}';
+    const start = txt.indexOf(open), end = txt.lastIndexOf(close);
+    if (start === -1 || end === -1 || end <= start) return null;
+    return JSON.parse(txt.slice(start, end + 1));
+  } catch (e) {
+    return null;
+  }
+}
+
 async function extractFacts(conversation, type, profile) {
   const fam = factFamily(type);
   if (!fam) return null;
@@ -2102,11 +2178,8 @@ RULES
 
   try {
     const raw = await askClaudeSafe(prompt);
-    let txt = coerceAIResponse(raw).trim();
-    txt = txt.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-    const start = txt.indexOf('{'), end = txt.lastIndexOf('}');
-    if (start === -1 || end === -1) return {};
-    const parsed = JSON.parse(txt.slice(start, end + 1));
+    const parsed = parseAiJson(raw, 'object');
+    if (!parsed) return {};
     const out = {};
     set.forEach(f => { out[f.k] = (typeof parsed[f.k] === 'string' ? parsed[f.k].trim() : ''); });
     return out;
@@ -3644,6 +3717,8 @@ function exportBackup() {
     letters: state.letters,
     staff: state.staff,
     training: state.training,
+    customCourses: state.customCourses,
+    hiddenCourses: state.hiddenCourses,
     documents: state.documents,
     priceLists: state.priceLists,
     claims: state.claims,
@@ -3668,6 +3743,8 @@ function importBackup(file) {
     state.letters = Array.isArray(data.letters) ? data.letters : [];
     state.staff = Array.isArray(data.staff) ? data.staff : [];
     state.training = Array.isArray(data.training) ? data.training : [];
+    state.customCourses = Array.isArray(data.customCourses) ? data.customCourses : [];
+    state.hiddenCourses = Array.isArray(data.hiddenCourses) ? data.hiddenCourses : [];
     state.documents = Array.isArray(data.documents) ? data.documents : [];
     state.claims = Array.isArray(data.claims) ? data.claims : [];
     state.bills = Array.isArray(data.bills) ? data.bills : [];
@@ -4202,8 +4279,9 @@ const HR_LETTER_CHOICES = ['first-warning', 'final-warning', 'show-cause', 'conv
 // record rather than having to go looking for it.
 function staffTrainingHtml(s) {
   const who = { staffId: s.id, staffName: s.name };
-  const done = TRAINING_MODULES.filter(m => { const l = trainingLatest(who, m.id); return l && l.passed; }).length;
-  const total = TRAINING_MODULES.length;
+  const courses = activeCourses();
+  const done = courses.filter(m => { const l = trainingLatest(who, m.id); return l && l.passed; }).length;
+  const total = courses.length;
   const line = done === 0
     ? 'No training courses passed yet'
     : (done === total ? 'All ' + total + ' training courses passed' : done + ' of ' + total + ' training courses passed');
@@ -5424,7 +5502,49 @@ Do not put more customer personal information into a chat than the question actu
 // training record than a bare pass, and the register is meant to be an audit
 // trail rather than a scoreboard.
 
-function trainingModule(id) { return TRAINING_MODULES.find(m => m.id === id) || null; }
+// Two different questions, and conflating them corrupts the record.
+//
+// activeCourses() is "what may a learner start today" — the built-in six minus
+// anything this business has switched off or superseded, plus its own published
+// courses. courseById() is "what was this record about", and must find a course
+// whether or not it is still in use. Someone who passed Tagging last month
+// genuinely passed it, and switching that course off afterwards must not turn
+// their record into a blank row.
+function activeCourses() {
+  const custom = (state.customCourses || []).filter(c => c && c.status === 'published');
+  const replaced = new Set(custom.map(c => c.replaces).filter(Boolean));
+  const hidden = new Set(state.hiddenCourses || []);
+  return TRAINING_MODULES
+    .filter(m => !replaced.has(m.id) && !hidden.has(m.id))
+    .concat(custom)
+    .sort((a, b) => String(a.num || '').localeCompare(String(b.num || '')));
+}
+
+function courseById(id) {
+  return TRAINING_MODULES.find(m => m.id === id) ||
+         (state.customCourses || []).find(c => c && c.id === id) || null;
+}
+
+// Courses that still carry records, so a switched-off course keeps its place on
+// the register and the certificate rather than quietly disappearing.
+function coursesWithHistory() {
+  const active = activeCourses();
+  const seen = new Set(active.map(c => c.id));
+  const extra = [];
+  (state.training || []).forEach(r => {
+    if (seen.has(r.moduleId)) return;
+    seen.add(r.moduleId);
+    const c = courseById(r.moduleId);
+    if (c) extra.push(Object.assign({}, c, { retired: true }));
+  });
+  // Sorted together rather than tacked on the end, so the register still reads
+  // 01, 02, 03… A retired course can share a number with the one that replaced
+  // it; the retired marker and the column tooltip are what tell them apart.
+  return active.concat(extra)
+    .sort((a, b) => String(a.num || '').localeCompare(String(b.num || '')) || (a.retired ? 1 : -1));
+}
+
+function trainingModule(id) { return courseById(id); }
 function trainingPassMark(total) { return Math.ceil(total * TRAINING_PASS_MARK); }
 
 // Latest attempt for one person on one module. staffId is the roster link where
@@ -5493,6 +5613,16 @@ function trainingDateStr(ts) {
 function renderTraining() {
   const screen = $('#screen-training');
   if (!screen) return;
+  // Owner-only build and edit views. Guarded on the capability as well as on the
+  // state, so dropping into staff view mid-edit lands back on the course list
+  // rather than leaving the editor open to someone who cannot use it.
+  const cd = state.courseDraft;
+  if (cd && can('training.manage')) {
+    if (cd.view === 'pick') return renderCoursePicker(screen);
+    if (cd.view === 'edit') return renderCourseEditor(screen);
+  } else if (cd) {
+    state.courseDraft = null;
+  }
   const sess = state.trainingSession;
   if (sess && sess.view === 'read')   return renderTrainingRead(screen);
   if (sess && sess.view === 'quiz')   return renderTrainingQuiz(screen);
@@ -5517,7 +5647,8 @@ function renderTrainingList(screen) {
   if (manage && tab === 'team') return renderTrainingTeam(screen);
 
   const who = trainingKnownWho();
-  const cards = TRAINING_MODULES.map(m => {
+  const courses = activeCourses();
+  const cards = courses.map(m => {
     const last = trainingLatest(who, m.id);
     let chip = '<span class="tr-chip">Not started</span>';
     let label = 'Start';
@@ -5542,9 +5673,9 @@ function renderTrainingList(screen) {
       </div>`;
   }).join('');
 
-  const done = who ? TRAINING_MODULES.filter(m => { const l = trainingLatest(who, m.id); return l && l.passed; }).length : 0;
+  const done = who ? courses.filter(m => { const l = trainingLatest(who, m.id); return l && l.passed; }).length : 0;
   const whoLine = who
-    ? `<div class="tr-whoami">Training as <strong>${escapeHtml(who.staffName)}</strong> &middot; ${done} of ${TRAINING_MODULES.length} passed
+    ? `<div class="tr-whoami">Training as <strong>${escapeHtml(who.staffName)}</strong> &middot; ${done} of ${courses.length} passed
          <button class="btn btn-ghost" id="tr-switch">Not you?</button></div>`
     : '';
 
@@ -5564,6 +5695,7 @@ function renderTrainingList(screen) {
     ${whoLine}
     <div class="tr-list">${cards}</div>
     ${cert}
+    ${coursePanelHtml()}
     <p class="tr-foot">Training is general guidance for people working in an Australian dry cleaning business. It is not legal advice, and completing it does not by itself discharge the business's obligations under the Australian Consumer Law or work health and safety law.</p>`;
 
   screen.querySelectorAll('[data-tr-tab]').forEach(b => b.addEventListener('click', () => {
@@ -5579,6 +5711,7 @@ function renderTrainingList(screen) {
   });
   const cb = document.getElementById('tr-cert');
   if (cb) cb.addEventListener('click', () => printTrainingRecord(trainingKnownWho()));
+  bindCoursePanel(screen);
 }
 
 // Reading with no intention of being marked — no identity needed for that.
@@ -5876,9 +6009,10 @@ function renderTrainingTeam(screen) {
   });
   const people = roster.map(s => ({ staffId: s.id, staffName: s.name })).concat(strays);
 
-  const head = TRAINING_MODULES.map(m => `<th title="${escapeHtml(m.title)}">${escapeHtml(m.num)}</th>`).join('');
+  const courses = coursesWithHistory();
+  const head = courses.map(m => `<th title="${escapeHtml(m.title + (m.retired ? ' — no longer in use' : ''))}">${escapeHtml(m.num)}${m.retired ? '<span class="tr-retired-dot">&middot;</span>' : ''}</th>`).join('');
   const rows = people.map(p => {
-    const cells = TRAINING_MODULES.map(m => {
+    const cells = courses.map(m => {
       const l = trainingLatest(p, m.id);
       if (!l) return '<td class="tr-cell none">&mdash;</td>';
       const n = trainingAttemptCount(p, m.id);
@@ -5886,16 +6020,16 @@ function renderTrainingTeam(screen) {
       return `<td class="tr-cell ${l.passed ? 'ok' : 'no'}" title="${escapeHtml(trainingDateStr(l.completedAt) + tries)}">
                 ${l.passed ? '&#10003;' : '&#10007;'} ${l.percent}%</td>`;
     }).join('');
-    const done = TRAINING_MODULES.filter(m => { const l = trainingLatest(p, m.id); return l && l.passed; }).length;
+    const done = courses.filter(m => { const l = trainingLatest(p, m.id); return l && l.passed; }).length;
     return `<tr>
         <th class="tr-name">${escapeHtml(p.staffName)}${p.stray ? ' <span class="tr-stray">not on staff list</span>' : ''}</th>
         ${cells}
-        <td class="tr-cell total">${done}/${TRAINING_MODULES.length}</td>
+        <td class="tr-cell total">${done}/${courses.length}</td>
         <td class="tr-cell"><button class="btn btn-ghost" data-tr-print="${escapeHtml(p.staffId || '')}" data-tr-print-name="${escapeHtml(p.staffName)}">Print</button></td>
       </tr>`;
   }).join('');
 
-  const key = TRAINING_MODULES.map(m => `<span><strong>${escapeHtml(m.num)}</strong> ${escapeHtml(m.title)}</span>`).join('');
+  const key = courses.map(m => `<span><strong>${escapeHtml(m.num)}</strong> ${escapeHtml(m.title)}${m.retired ? ' <em>(no longer in use)</em>' : ''}</span>`).join('');
 
   screen.innerHTML = trainingHeaderHtml(
     'Who has done what. Every attempt is kept, so a course someone had to sit twice shows as two attempts rather than being tidied away.'
@@ -5953,7 +6087,8 @@ function printTrainingRecord(who) {
     who.staffId ? r.staffId === who.staffId : (!r.staffId && r.staffName === who.staffName));
   if (!mine.length) { uiAlert('There is nothing recorded for ' + (who.staffName || 'this person') + ' yet.', 'Nothing to print'); return; }
 
-  const rows = TRAINING_MODULES.map(m => {
+  const courses = coursesWithHistory();
+  const rows = courses.map(m => {
     const l = mine.filter(r => r.moduleId === m.id).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))[0];
     const n = mine.filter(r => r.moduleId === m.id).length;
     return `<tr>
@@ -5966,11 +6101,11 @@ function printTrainingRecord(who) {
     </tr>`;
   }).join('');
 
-  const passed = TRAINING_MODULES.filter(m =>
+  const passed = courses.filter(m =>
     mine.some(r => r.moduleId === m.id && r.passed)).length;
 
   const inner = `
-    <p><strong>${escapeHtml(who.staffName || 'Staff member')}</strong> has completed <strong>${passed} of ${TRAINING_MODULES.length}</strong> staff training courses.</p>
+    <p><strong>${escapeHtml(who.staffName || 'Staff member')}</strong> has completed <strong>${passed} of ${courses.length}</strong> staff training courses.</p>
     <table style="width:100%;border-collapse:collapse;margin:18px 0;font-size:11pt">
       <thead><tr style="text-align:left;border-bottom:1.5px solid #333">
         <th style="padding:6px 8px">#</th><th style="padding:6px 8px">Course</th>
@@ -5984,6 +6119,657 @@ function printTrainingRecord(who) {
 
   const html = buildExportDocument('Staff training record — ' + (who.staffName || ''), inner, _exportDateStr());
   printHtmlDocument(html);
+}
+
+
+// ===== Courses built from the business's own SOPs =====
+// The six courses above are deliberately generic, because every shop tags,
+// books in and hands back differently. This is how a business replaces them
+// with its own procedure: point at a document already on file, let the model
+// draft a course from it, read and fix that draft, then publish it to staff.
+//
+// Nothing generated reaches a staff member unread. Staff are marked against
+// these answers, so a wrong one teaches the wrong thing — the draft step is the
+// point of the feature, not friction in front of it.
+
+const COURSE_MIN_QUESTIONS = 4;
+const COURSE_MAX_LESSONS = 6;
+const SOP_TEXT_CAP = 14000;   // leaves room for the instructions under ASK_MAX
+
+function newCourseDraft(doc) {
+  return {
+    id: newId('C'),
+    title: '', blurb: '', minutes: 8,
+    reviewed: new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }),
+    source: doc ? ('Our procedure — ' + (doc.title || doc.fileName || 'uploaded document')) : 'Our procedure',
+    sourceDocId: doc ? doc.id : null,
+    sourceText: doc ? (doc.text || '') : '',
+    replaces: null,
+    status: 'draft',
+    num: '',
+    lessons: [], quiz: [],
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+
+function sopTextFor(draft) {
+  const t = (draft.sourceText || '').slice(0, SOP_TEXT_CAP);
+  return t.trim();
+}
+
+// A course that supersedes a built-in takes its number, so the list still reads
+// 01 to 06 rather than growing a gap and a stray 07.
+function nextCourseNum(replaces) {
+  if (replaces) {
+    const b = TRAINING_MODULES.find(m => m.id === replaces);
+    if (b) return b.num;
+  }
+  const used = new Set(TRAINING_MODULES.map(m => m.num)
+    .concat((state.customCourses || []).map(c => c.num).filter(Boolean)));
+  let n = 1;
+  while (used.has(String(n).padStart(2, '0'))) n++;
+  return String(n).padStart(2, '0');
+}
+
+const COURSE_STYLE_RULES = `
+HOW TO WRITE
+- Australian English. Plain, direct, addressed to the person standing at the counter.
+- Formatting is limited: **bold**, ### subheadings, and - bullet lists. NO tables, NO links, NO single-# headings.
+- BE FAITHFUL TO THE PROCEDURE. Use only what the document says. Never invent a step, a rule, a tag name, a button name, a price or a number. If the document does not say it, leave it out.
+- Where the procedure says never to do something, that is the most important content in it. Keep those emphatic.
+- Do not pad. If the document is short, the course is short.`;
+
+function buildCourseOutlinePrompt(draft) {
+  return `You are turning one Australian dry cleaner's own written procedure into a short staff training course.
+
+THEIR PROCEDURE
+Title: ${draft.title || draft.source}
+
+${sopTextFor(draft) || '(no machine-readable text was provided)'}
+${COURSE_STYLE_RULES}
+
+Return ONLY a JSON object, no commentary, no code fences:
+{
+  "title": "short course title, 2-5 words",
+  "blurb": "one sentence saying what this course covers and why it matters",
+  "minutes": 6,
+  "lessons": [ { "h": "page heading", "brief": "one line on what this page must cover" } ]
+}
+
+Between 2 and ${COURSE_MAX_LESSONS} lessons. Split by the natural sections of the procedure — do not invent sections it does not have.
+
+JSON:`;
+}
+
+function buildCourseLessonsPrompt(draft, slice) {
+  return `You are writing pages of a staff training course from an Australian dry cleaner's own written procedure.
+
+THEIR PROCEDURE
+${sopTextFor(draft) || '(no machine-readable text was provided)'}
+${COURSE_STYLE_RULES}
+
+Write the body text for exactly these pages, in this order:
+${slice.map((l, i) => (i + 1) + '. "' + l.h + '" — ' + (l.brief || '')).join('\n')}
+
+Each body is roughly 120 to 220 words. Teach the procedure as it is written, including the specific locations, tag names, button names and wording it uses.
+
+Return ONLY a JSON array, no commentary, no code fences:
+[ { "h": "page heading exactly as given", "body": "the page text" } ]
+
+JSON:`;
+}
+
+function buildCourseQuizPrompt(draft) {
+  // Deliberately built from the finished lesson text rather than the source
+  // document: a question generated from what staff actually read is always
+  // answerable from what staff actually read.
+  const lessons = draft.lessons.map(l => '### ' + l.h + '\n' + l.body).join('\n\n');
+  return `Below is the full text of a short staff training course for an Australian dry cleaner. Write the quiz that goes with it.
+
+THE COURSE
+${lessons.slice(0, SOP_TEXT_CAP)}
+
+Return ONLY a JSON array of 6 questions, no commentary, no code fences:
+[ { "q": "the question", "a": ["option 1","option 2","option 3","option 4"], "correct": 0, "why": "one or two sentences explaining the right answer" } ]
+
+RULES
+- Exactly 4 options per question. "correct" is the 0-based index of the right one.
+- EVERY answer must be verifiable from the course text above. Never ask about something the course does not state.
+- Vary which index is correct.
+- Wrong options must be plausible to someone who has not read properly — not obviously silly.
+- Prefer questions about the things that cost money when they are not known: the steps the procedure says never to skip, and the actions it says never to take.
+- Australian English.
+
+JSON:`;
+}
+
+// Staged rather than one call, because the AI endpoint posts max_tokens: 3000
+// and a whole course does not fit inside that. A reply that hits the ceiling
+// comes back cut off mid-object, which as JSON means it comes back as nothing.
+async function generateCourse(draft, onProgress) {
+  const say = onProgress || function () {};
+
+  say('Reading the procedure…');
+  const outline = parseAiJson(await askClaudeSafe(buildCourseOutlinePrompt(draft)), 'object');
+  if (!outline || !Array.isArray(outline.lessons) || !outline.lessons.length) {
+    throw new Error("Couldn't get a usable outline out of that document. If the text above looked garbled, paste the key parts in and try again.");
+  }
+  draft.title = String(outline.title || draft.title || 'Our procedure').slice(0, 80);
+  draft.blurb = String(outline.blurb || '').slice(0, 300);
+  draft.minutes = Number(outline.minutes) > 0 ? Math.min(60, Math.round(Number(outline.minutes))) : 8;
+
+  const wanted = outline.lessons
+    .filter(l => l && l.h)
+    .slice(0, COURSE_MAX_LESSONS)
+    .map(l => ({ h: String(l.h).slice(0, 120), brief: String(l.brief || '').slice(0, 200) }));
+
+  // Two pages at a time keeps every reply comfortably inside the ceiling.
+  draft.lessons = [];
+  for (let i = 0; i < wanted.length; i += 2) {
+    const slice = wanted.slice(i, i + 2);
+    say('Writing page ' + (i + 1) + (slice.length > 1 ? ' and ' + (i + 2) : '') + ' of ' + wanted.length + '…');
+    const got = parseAiJson(await askClaudeSafe(buildCourseLessonsPrompt(draft, slice)), 'array');
+    const rows = Array.isArray(got) ? got : [];
+    slice.forEach((l, n) => {
+      const match = rows.find(r => r && r.h && String(r.h).trim() === l.h.trim()) || rows[n];
+      draft.lessons.push({ h: l.h, body: (match && match.body) ? String(match.body) : '' });
+    });
+  }
+  // A page the model skipped is left empty rather than dropped, so the owner can
+  // see the gap and write it themselves instead of wondering what is missing.
+
+  say('Writing the questions…');
+  const quiz = parseAiJson(await askClaudeSafe(buildCourseQuizPrompt(draft)), 'array');
+  draft.quiz = (Array.isArray(quiz) ? quiz : [])
+    .filter(q => q && q.q && Array.isArray(q.a))
+    .map(q => ({
+      q: String(q.q).slice(0, 400),
+      a: q.a.slice(0, 4).map(x => String(x == null ? '' : x).slice(0, 300)),
+      correct: (Number(q.correct) >= 0 && Number(q.correct) <= 3) ? Number(q.correct) : 0,
+      why: String(q.why || '').slice(0, 500)
+    }))
+    .filter(q => q.a.length === 4);
+
+  draft.updatedAt = Date.now();
+  return draft;
+}
+
+// Regenerate one page on its own, for when a single page came out thin.
+async function regenerateLesson(draft, index) {
+  const l = draft.lessons[index];
+  if (!l) return;
+  const got = parseAiJson(await askClaudeSafe(buildCourseLessonsPrompt(draft, [{ h: l.h, brief: '' }])), 'array');
+  const rows = Array.isArray(got) ? got : [];
+  if (rows[0] && rows[0].body) { l.body = String(rows[0].body); draft.updatedAt = Date.now(); }
+}
+
+// What stops a broken course reaching a staff member.
+function courseProblems(c) {
+  const out = [];
+  if (!c.title || !c.title.trim()) out.push('It needs a title.');
+  const bodied = (c.lessons || []).filter(l => l.h && l.h.trim() && l.body && l.body.trim());
+  if (!bodied.length) out.push('It needs at least one page with something on it.');
+  (c.lessons || []).forEach((l, i) => {
+    if (l.h && l.h.trim() && (!l.body || !l.body.trim())) out.push('Page ' + (i + 1) + ' (' + l.h + ') is empty.');
+  });
+  const qs = c.quiz || [];
+  if (qs.length < COURSE_MIN_QUESTIONS) out.push('It needs at least ' + COURSE_MIN_QUESTIONS + ' questions — there ' + (qs.length === 1 ? 'is 1' : 'are ' + qs.length) + '.');
+  qs.forEach((q, i) => {
+    if (!q.q || !q.q.trim()) out.push('Question ' + (i + 1) + ' has no question text.');
+    if (!Array.isArray(q.a) || q.a.length !== 4 || q.a.some(x => !String(x || '').trim())) out.push('Question ' + (i + 1) + ' needs all four answers filled in.');
+    if (!(q.correct >= 0 && q.correct <= 3)) out.push('Question ' + (i + 1) + ' has no correct answer marked.');
+    if (!q.why || !q.why.trim()) out.push('Question ' + (i + 1) + ' has no explanation.');
+  });
+  return out;
+}
+
+function saveCourseDraft(draft) {
+  const i = (state.customCourses || []).findIndex(c => c.id === draft.id);
+  const rec = Object.assign({}, draft);
+  delete rec.sourceText;   // the document already holds it; no need for a second copy in the blob
+  rec.updatedAt = Date.now();
+  if (i >= 0) state.customCourses[i] = rec; else state.customCourses.unshift(rec);
+  persistState();
+}
+
+function publishCourse(draft) {
+  const problems = courseProblems(draft);
+  if (problems.length) {
+    uiAlert('This course is not ready to go to staff yet:\n\n' + problems.map(x => '• ' + x).join('\n'), 'Not ready');
+    return false;
+  }
+  draft.status = 'published';
+  draft.num = draft.num || nextCourseNum(draft.replaces);
+  saveCourseDraft(draft);
+  return true;
+}
+
+// ===== Owner-facing: build, edit, publish =====
+
+function coursePanelHtml() {
+  if (!can('training.manage')) return '';
+  const mine = state.customCourses || [];
+  const hidden = new Set(state.hiddenCourses || []);
+  const replaced = new Set(mine.filter(c => c.status === 'published').map(c => c.replaces).filter(Boolean));
+
+  const rows = mine.map(c => {
+    const covers = c.replaces ? (TRAINING_MODULES.find(m => m.id === c.replaces) || {}).title : '';
+    return `
+      <div class="tr-own ${c.status}">
+        <div class="tr-own-main">
+          <div class="tr-own-head">
+            <strong>${escapeHtml(c.title || 'Untitled course')}</strong>
+            <span class="tr-chip ${c.status === 'published' ? 'pass' : ''}">${c.status === 'published' ? 'Live for staff' : 'Draft'}</span>
+          </div>
+          <div class="tr-own-meta">${(c.lessons || []).length} pages &middot; ${(c.quiz || []).length} questions${covers ? ' &middot; replaces ' + escapeHtml(covers) : ''}${c.source ? ' &middot; from ' + escapeHtml(c.source) : ''}</div>
+        </div>
+        <div class="tr-own-act">
+          <button class="btn btn-secondary" data-course-edit="${c.id}">Edit</button>
+          ${c.status === 'published'
+            ? `<button class="btn btn-ghost" data-course-unpub="${c.id}">Unpublish</button>`
+            : `<button class="btn btn-primary" data-course-pub="${c.id}">Publish to staff</button>`}
+          <button class="btn btn-ghost" data-course-export="${c.id}" title="Save this course as a file">Export</button>
+          <button class="btn btn-ghost" data-course-del="${c.id}" style="color:var(--warn)">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const builtins = TRAINING_MODULES.map(m => {
+    const off = hidden.has(m.id);
+    const sup = replaced.has(m.id);
+    return `<div class="tr-toggle ${off || sup ? 'off' : ''}">
+        <span>${escapeHtml(m.num)} ${escapeHtml(m.title)}</span>
+        ${sup
+          ? '<em>replaced by one of ours</em>'
+          : `<button class="btn btn-ghost" data-course-hide="${m.id}">${off ? 'Switch back on' : 'Switch off'}</button>`}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="tr-panel">
+      <div class="tr-panel-head">
+        <h3>Our own courses</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="course-new">Build a course from one of our documents</button>
+          <button class="btn btn-secondary" id="course-import">Import a course</button>
+          <input type="file" id="course-import-file" accept=".json,application/json" style="display:none">
+        </div>
+      </div>
+      <p class="tr-panel-sub">The six courses above are written for dry cleaners generally. Yours are written from your own procedures — where they differ, yours should win. Switch off any built-in course your own replaces, so staff are not taught two different answers to the same question.</p>
+      ${rows || '<p class="tr-panel-empty">None yet. Upload a procedure in Documents, then build a course from it here.</p>'}
+      <div class="tr-toggles">
+        <div class="tr-toggles-label">Built-in courses</div>
+        ${builtins}
+      </div>
+    </div>`;
+}
+
+function bindCoursePanel(screen) {
+  if (!can('training.manage')) return;
+  const q = (sel, fn) => screen.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => fn(b)));
+
+  q('[data-course-edit]', b => openCourseEditor(b.dataset.courseEdit));
+  q('[data-course-pub]', b => {
+    const c = (state.customCourses || []).find(x => x.id === b.dataset.coursePub);
+    if (c && publishCourse(c)) { renderTraining(); }
+  });
+  q('[data-course-unpub]', async b => {
+    const c = (state.customCourses || []).find(x => x.id === b.dataset.courseUnpub);
+    if (!c) return;
+    if (!(await uiConfirm('Staff will stop seeing "' + (c.title || 'this course') + '". Results already recorded against it are kept.', { title: 'Unpublish this course?', confirmLabel: 'Unpublish' }))) return;
+    c.status = 'draft'; saveCourseDraft(c); renderTraining();
+  });
+  q('[data-course-del]', async b => {
+    const c = (state.customCourses || []).find(x => x.id === b.dataset.courseDel);
+    if (!c) return;
+    const held = (state.training || []).filter(r => r.moduleId === c.id).length;
+    const warn = held ? '\n\n' + held + ' recorded result(s) reference this course. They are kept, and will show on the register as no longer in use.' : '';
+    if (!(await uiConfirm('This cannot be undone.' + warn, { title: 'Delete "' + (c.title || 'this course') + '"?', confirmLabel: 'Delete' }))) return;
+    state.customCourses = (state.customCourses || []).filter(x => x.id !== c.id);
+    persistState(); renderTraining();
+  });
+  q('[data-course-export]', b => exportCourse(b.dataset.courseExport));
+  q('[data-course-hide]', b => {
+    const id = b.dataset.courseHide;
+    const set = new Set(state.hiddenCourses || []);
+    if (set.has(id)) set.delete(id); else set.add(id);
+    state.hiddenCourses = Array.from(set);
+    persistState(); renderTraining();
+  });
+
+  const nb = document.getElementById('course-new');
+  if (nb) nb.addEventListener('click', openCourseSourcePicker);
+  const ib = document.getElementById('course-import');
+  const ifile = document.getElementById('course-import-file');
+  if (ib && ifile) {
+    ib.addEventListener('click', () => ifile.click());
+    ifile.addEventListener('change', () => { if (ifile.files && ifile.files[0]) importCourse(ifile.files[0]); ifile.value = ''; });
+  }
+}
+
+// ----- pick or upload the source document -----
+function openCourseSourcePicker() {
+  state.courseDraft = { view: 'pick', doc: null, upload: null, busy: false, note: '' };
+  renderTraining();
+}
+
+function renderCoursePicker(screen) {
+  const cd = state.courseDraft;
+  const docs = (state.documents || []).slice().sort((a, b) =>
+    (b.type === 'SOP / procedure' ? 1 : 0) - (a.type === 'SOP / procedure' ? 1 : 0));
+  const up = cd.upload;
+
+  const opts = ['<option value="">— choose a document —</option>']
+    .concat(docs.map(d => `<option value="${escapeHtml(d.id)}" ${cd.doc === d.id ? 'selected' : ''}>${escapeHtml(d.title)}${d.type ? ' (' + escapeHtml(d.type) + ')' : ''}</option>`)).join('');
+
+  const chosen = docs.find(d => d.id === cd.doc);
+  const text = up ? up.text : (chosen ? (chosen.text || '') : '');
+
+  const replOpts = ['<option value="">— none, this is an extra course —</option>']
+    .concat(TRAINING_MODULES.map(m => `<option value="${m.id}" ${cd.replaces === m.id ? 'selected' : ''}>${escapeHtml(m.num + ' ' + m.title)}</option>`)).join('');
+
+  screen.innerHTML = trainingHeaderHtml('Build a course from one of your own procedures. The app drafts it, you read and fix it, then you publish it to staff.') + `
+    <div class="card tr-build">
+      <label class="label">Which document?</label>
+      <select class="input" id="course-doc">${opts}</select>
+      <div class="tr-or">or</div>
+      <button class="btn btn-secondary" id="course-upload-btn">Upload a procedure now</button>
+      <input type="file" id="course-upload-file" accept=".pdf,.txt,.md,.csv,.rtf,.htm,.html,.doc,.docx" style="display:none">
+      ${cd.note ? `<p class="tr-note">${escapeHtml(cd.note)}</p>` : ''}
+
+      ${text ? `
+        <label class="label" style="margin-top:18px">What the app read from it — check this before generating</label>
+        <textarea class="input" id="course-text" rows="8" placeholder="Paste the procedure text here if what was read looks wrong">${escapeHtml(text)}</textarea>
+        <p class="tr-hint">PDFs made from Word or Publisher often read badly, and <strong>photographs are not read at all</strong>. If your procedure relies on pictures, the course will keep the words and lose the images — describe the key ones here in words.</p>
+      ` : ''}
+
+      <label class="label" style="margin-top:18px">Does this replace one of the built-in courses?</label>
+      <select class="input" id="course-replaces">${replOpts}</select>
+      <p class="tr-hint">Choosing one hides it for your business, so staff get your version rather than both.</p>
+
+      <div class="step-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" id="course-cancel">&larr; Back</button>
+        <button class="btn btn-primary" id="course-generate" ${text && text.trim().length > 80 ? '' : 'disabled'}>Generate the course &rarr;</button>
+      </div>
+    </div>`;
+
+  const docSel = document.getElementById('course-doc');
+  docSel.addEventListener('change', () => { cd.doc = docSel.value; cd.upload = null; cd.note = ''; renderTraining(); });
+  const rep = document.getElementById('course-replaces');
+  rep.addEventListener('change', () => { cd.replaces = rep.value || null; });
+  const ta = document.getElementById('course-text');
+  if (ta) ta.addEventListener('input', () => { cd.editedText = ta.value; });
+
+  const ub = document.getElementById('course-upload-btn');
+  const uf = document.getElementById('course-upload-file');
+  ub.addEventListener('click', () => uf.click());
+  uf.addEventListener('change', async () => {
+    const f = uf.files && uf.files[0];
+    uf.value = '';
+    if (!f) return;
+    cd.note = 'Reading ' + f.name + '…'; renderTraining();
+    try {
+      const r = await readDocFile(f);
+      cd.upload = { text: r.text || '', fileName: f.name };
+      cd.doc = null;
+      cd.note = r.note || '';
+    } catch (e) {
+      cd.upload = { text: '', fileName: f.name };
+      cd.note = "Couldn't read that file. Paste the procedure text in below instead.";
+    }
+    renderTraining();
+  });
+
+  document.getElementById('course-cancel').addEventListener('click', () => { state.courseDraft = null; renderTraining(); });
+  document.getElementById('course-generate').addEventListener('click', () => startCourseGeneration());
+}
+
+async function startCourseGeneration() {
+  const cd = state.courseDraft;
+  const chosen = (state.documents || []).find(d => d.id === cd.doc);
+  const ta = document.getElementById('course-text');
+  const text = (ta ? ta.value : '') || (cd.upload ? cd.upload.text : (chosen ? chosen.text : ''));
+
+  const draft = newCourseDraft(chosen || null);
+  draft.sourceText = text;
+  draft.replaces = cd.replaces || null;
+  if (!chosen && cd.upload) draft.source = 'Our procedure — ' + cd.upload.fileName;
+
+  const wait = uiModal({ title: 'Building the course…', message: 'Reading the procedure…', confirmLabel: 'Working…', cancelLabel: null });
+  const say = (msg) => {
+    const el = document.querySelector('.ui-modal-backdrop .ui-modal p');
+    if (el) el.textContent = msg;
+  };
+  try {
+    await generateCourse(draft, say);
+  } catch (e) {
+    document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+    uiAlert((e && e.message) || 'Something went wrong building the course. Try again in a moment.', "Couldn't build it");
+    return;
+  }
+  document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+  saveCourseDraft(draft);
+  state.courseDraft = { view: 'edit', id: draft.id, sourceText: text };
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+// ----- the editor -----
+function openCourseEditor(id) {
+  const c = (state.customCourses || []).find(x => x.id === id);
+  if (!c) return;
+  state.courseDraft = { view: 'edit', id: id, sourceText: c.sourceText || '' };
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+function renderCourseEditor(screen) {
+  const cd = state.courseDraft;
+  const c = (state.customCourses || []).find(x => x.id === cd.id);
+  if (!c) { state.courseDraft = null; return renderTraining(); }
+
+  const lessons = (c.lessons || []).map((l, i) => `
+    <div class="tr-edit-block" data-lesson="${i}">
+      <div class="tr-edit-head">
+        <span class="tr-q-num">Page ${i + 1}</span>
+        <div class="tr-edit-act">
+          <button class="btn btn-ghost" data-lesson-preview="${i}">${cd.preview === i ? 'Edit' : 'Preview'}</button>
+          <button class="btn btn-ghost" data-lesson-regen="${i}">Rewrite</button>
+          <button class="btn btn-ghost" data-lesson-up="${i}" ${i === 0 ? 'disabled' : ''}>&uarr;</button>
+          <button class="btn btn-ghost" data-lesson-down="${i}" ${i === c.lessons.length - 1 ? 'disabled' : ''}>&darr;</button>
+          <button class="btn btn-ghost" data-lesson-del="${i}" style="color:var(--warn)">Remove</button>
+        </div>
+      </div>
+      <input class="input" data-lesson-h="${i}" value="${escapeHtml(l.h)}" placeholder="Page heading">
+      ${cd.preview === i
+        ? `<div class="card tr-read" style="margin-top:8px">${renderMarkdown(l.body || '')}</div>`
+        : `<textarea class="input" data-lesson-body="${i}" rows="9" placeholder="What this page teaches">${escapeHtml(l.body || '')}</textarea>`}
+      ${!(l.body || '').trim() ? '<p class="tr-warn">This page is empty — write it, rewrite it, or remove it.</p>' : ''}
+    </div>`).join('');
+
+  const quiz = (c.quiz || []).map((q, i) => `
+    <div class="tr-edit-block" data-q="${i}">
+      <div class="tr-edit-head">
+        <span class="tr-q-num">Question ${i + 1}</span>
+        <div class="tr-edit-act">
+          <button class="btn btn-ghost" data-q-del="${i}" style="color:var(--warn)">Remove</button>
+        </div>
+      </div>
+      <textarea class="input" data-q-text="${i}" rows="2" placeholder="The question">${escapeHtml(q.q || '')}</textarea>
+      <div class="tr-edit-opts">
+        ${(q.a || []).map((opt, oi) => `
+          <label class="tr-edit-opt ${q.correct === oi ? 'on' : ''}">
+            <input type="radio" name="corr${i}" value="${oi}" ${q.correct === oi ? 'checked' : ''} data-q-correct="${i}">
+            <input class="input" data-q-opt="${i}:${oi}" value="${escapeHtml(opt)}" placeholder="Answer ${oi + 1}">
+          </label>`).join('')}
+      </div>
+      <label class="label" style="margin-top:8px">Why that is the answer</label>
+      <textarea class="input" data-q-why="${i}" rows="2" placeholder="Shown to staff after they answer">${escapeHtml(q.why || '')}</textarea>
+    </div>`).join('');
+
+  const problems = courseProblems(c);
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 07 &middot; ${c.status === 'published' ? 'Live course' : 'Draft'}</div>
+      <h2>${escapeHtml(c.title || 'Untitled course')}</h2>
+      <p>Read it before you publish it. Staff are marked against these answers, so a question that came out wrong teaches the wrong thing.</p>
+    </div>
+    <div class="card tr-build">
+      <label class="label">Course title</label>
+      <input class="input" id="c-title" value="${escapeHtml(c.title || '')}">
+      <label class="label" style="margin-top:12px">One-line description</label>
+      <textarea class="input" id="c-blurb" rows="2">${escapeHtml(c.blurb || '')}</textarea>
+      <div class="field-row" style="margin-top:12px">
+        <div><label class="label">Minutes</label><input class="input" id="c-mins" type="number" min="1" max="60" value="${Number(c.minutes) || 8}"></div>
+        <div><label class="label">Replaces</label>
+          <select class="input" id="c-repl">
+            ${['<option value="">— none —</option>'].concat(TRAINING_MODULES.map(m =>
+              `<option value="${m.id}" ${c.replaces === m.id ? 'selected' : ''}>${escapeHtml(m.num + ' ' + m.title)}</option>`)).join('')}
+          </select></div>
+      </div>
+    </div>
+
+    <h3 class="tr-edit-title">Pages</h3>
+    ${lessons || '<p class="tr-panel-empty">No pages yet.</p>'}
+    <button class="btn btn-secondary" id="c-add-lesson">+ Add a page</button>
+
+    <h3 class="tr-edit-title">Questions</h3>
+    ${quiz || '<p class="tr-panel-empty">No questions yet.</p>'}
+    <button class="btn btn-secondary" id="c-add-q">+ Add a question</button>
+
+    ${problems.length ? `<div class="tr-problems"><strong>Before this can go to staff:</strong><ul>${problems.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}</ul></div>` : ''}
+
+    <div class="step-actions" style="margin-top:20px">
+      <button class="btn btn-ghost" id="c-back">&larr; Save and close</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${c.status === 'published'
+          ? '<span class="tr-chip pass" style="align-self:center">Live for staff</span>'
+          : `<button class="btn btn-primary" id="c-publish" ${problems.length ? 'disabled' : ''}>Publish to staff</button>`}
+      </div>
+    </div>`;
+
+  // Field edits write straight through, the way the staff cards do.
+  const bindText = (sel, fn) => screen.querySelectorAll(sel).forEach(el =>
+    el.addEventListener('input', () => { fn(el); c.updatedAt = Date.now(); saveCourseDraft(c); }));
+
+  bindText('#c-title', el => { c.title = el.value; });
+  bindText('#c-blurb', el => { c.blurb = el.value; });
+  bindText('#c-mins', el => { c.minutes = Number(el.value) || 8; });
+  bindText('[data-lesson-h]', el => { c.lessons[Number(el.dataset.lessonH)].h = el.value; });
+  bindText('[data-lesson-body]', el => { c.lessons[Number(el.dataset.lessonBody)].body = el.value; });
+  bindText('[data-q-text]', el => { c.quiz[Number(el.dataset.qText)].q = el.value; });
+  bindText('[data-q-why]', el => { c.quiz[Number(el.dataset.qWhy)].why = el.value; });
+  bindText('[data-q-opt]', el => {
+    const [qi, oi] = el.dataset.qOpt.split(':').map(Number);
+    c.quiz[qi].a[oi] = el.value;
+  });
+
+  const repl = document.getElementById('c-repl');
+  repl.addEventListener('change', () => { c.replaces = repl.value || null; saveCourseDraft(c); });
+
+  screen.querySelectorAll('[data-q-correct]').forEach(el => el.addEventListener('change', () => {
+    c.quiz[Number(el.dataset.qCorrect)].correct = Number(el.value);
+    saveCourseDraft(c); renderTraining();
+  }));
+
+  const act = (sel, fn) => screen.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => fn(b)));
+  act('[data-lesson-preview]', b => {
+    const i = Number(b.dataset.lessonPreview);
+    cd.preview = cd.preview === i ? null : i;
+    renderTraining();
+  });
+  act('[data-lesson-del]', async b => {
+    if (!(await uiConfirm('Remove this page?', { confirmLabel: 'Remove' }))) return;
+    c.lessons.splice(Number(b.dataset.lessonDel), 1); saveCourseDraft(c); renderTraining();
+  });
+  act('[data-lesson-up]', b => {
+    const i = Number(b.dataset.lessonUp);
+    c.lessons.splice(i - 1, 0, c.lessons.splice(i, 1)[0]); saveCourseDraft(c); renderTraining();
+  });
+  act('[data-lesson-down]', b => {
+    const i = Number(b.dataset.lessonDown);
+    c.lessons.splice(i + 1, 0, c.lessons.splice(i, 1)[0]); saveCourseDraft(c); renderTraining();
+  });
+  act('[data-lesson-regen]', async b => {
+    const i = Number(b.dataset.lessonRegen);
+    if (!(c.sourceText || cd.sourceText)) { uiAlert('The original procedure text is no longer on hand, so this page cannot be rewritten automatically. Edit it by hand.', 'Nothing to rewrite from'); return; }
+    const wait = uiModal({ title: 'Rewriting the page…', message: c.lessons[i].h, confirmLabel: 'Working…', cancelLabel: null });
+    try {
+      await regenerateLesson(Object.assign(c, { sourceText: c.sourceText || cd.sourceText }), i);
+      saveCourseDraft(c);
+    } catch (e) {
+      document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+      uiAlert((e && e.message) || 'That did not work. Try again, or write the page yourself.', "Couldn't rewrite it");
+      return;
+    }
+    document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+    renderTraining();
+  });
+  act('[data-q-del]', async b => {
+    if (!(await uiConfirm('Remove this question?', { confirmLabel: 'Remove' }))) return;
+    c.quiz.splice(Number(b.dataset.qDel), 1); saveCourseDraft(c); renderTraining();
+  });
+
+  document.getElementById('c-add-lesson').addEventListener('click', () => {
+    c.lessons.push({ h: '', body: '' }); saveCourseDraft(c); renderTraining();
+  });
+  document.getElementById('c-add-q').addEventListener('click', () => {
+    c.quiz.push({ q: '', a: ['', '', '', ''], correct: 0, why: '' }); saveCourseDraft(c); renderTraining();
+  });
+  document.getElementById('c-back').addEventListener('click', () => {
+    saveCourseDraft(c); state.courseDraft = null; renderTraining(); window.scrollTo(0, 0);
+  });
+  const pub = document.getElementById('c-publish');
+  if (pub) pub.addEventListener('click', () => {
+    if (publishCourse(c)) { state.courseDraft = null; renderTraining(); window.scrollTo(0, 0); }
+  });
+}
+
+// ----- handing a course to another operator -----
+function exportCourse(id) {
+  const c = (state.customCourses || []).find(x => x.id === id);
+  if (!c) return;
+  const payload = {
+    app: 'hangr-course', version: 1,
+    title: c.title, blurb: c.blurb, minutes: c.minutes, reviewed: c.reviewed,
+    source: c.source, replaces: c.replaces,
+    lessons: c.lessons, quiz: c.quiz
+  };
+  downloadFile(JSON.stringify(payload, null, 2), sanitizeFileName('hangr-course-' + (c.title || 'course')) + '.json', 'application/json');
+}
+
+function importCourse(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    let data;
+    try { data = JSON.parse(r.result); } catch (e) { uiAlert("That file isn't a Hangr course — it wouldn't open."); return; }
+    if (!data || data.app !== 'hangr-course' || !Array.isArray(data.lessons)) { uiAlert("That file isn't a Hangr course."); return; }
+    // Always lands as a draft. Someone else's procedure is a starting point, not
+    // something to start teaching your staff sight unseen.
+    const c = {
+      id: newId('C'),
+      title: String(data.title || 'Imported course'),
+      blurb: String(data.blurb || ''),
+      minutes: Number(data.minutes) || 8,
+      reviewed: String(data.reviewed || ''),
+      source: String(data.source || 'Imported course'),
+      sourceDocId: null,
+      replaces: typeof data.replaces === 'string' ? data.replaces : null,
+      status: 'draft',
+      num: '',
+      lessons: data.lessons.filter(l => l && typeof l.h === 'string').map(l => ({ h: String(l.h), body: String(l.body || '') })),
+      quiz: (Array.isArray(data.quiz) ? data.quiz : []).filter(q => q && Array.isArray(q.a) && q.a.length === 4)
+        .map(q => ({ q: String(q.q || ''), a: q.a.map(x => String(x == null ? '' : x)), correct: Number(q.correct) || 0, why: String(q.why || '') })),
+      createdAt: Date.now(), updatedAt: Date.now()
+    };
+    state.customCourses.unshift(c);
+    persistState();
+    state.courseDraft = { view: 'edit', id: c.id, sourceText: '' };
+    renderTraining();
+    uiAlert('Imported as a draft. Read it through and adjust it to how you actually work, then publish it.', 'Imported');
+  };
+  r.readAsText(file);
 }
 
 // ============ DOCUMENTS ============
