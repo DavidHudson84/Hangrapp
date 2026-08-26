@@ -275,6 +275,7 @@
   .soon-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-weight: 700; font-size: 68px; letter-spacing: .04em; color: var(--ink); opacity: .05; transform: rotate(-18deg); pointer-events: none; white-space: nowrap; }
   .soon-card { position: relative; max-width: 520px; margin: 0 auto; text-align: center; }
   .soon-badge { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-edge); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; }
+  .soon-tag { display: inline-block; font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-edge); padding: 2px 7px; border-radius: 999px; margin-left: 8px; vertical-align: 1px; }
   .soon-card p { color: var(--muted); font-size: 15px; line-height: 1.6; }
   .soon-sub { font-size: 13px; margin-top: 12px; opacity: .8; }
   #mfa-body code, .legal-body code { background: var(--paper-2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
@@ -9174,8 +9175,12 @@ async function openEmailLetter(l) {
   // Two separate reasons the option can be shut: this login is not allowed to
   // use it, or nobody is yet. They read differently to the person looking.
   const customerAllowed = can('letters.all') && caps.customerSend;
-  const customerReason = can('letters.all')
-    ? 'Coming soon — email it to yourself and forward it on'
+  // Two separate reasons it can be shut, and they read differently: nobody can
+  // use it yet, or this login in particular cannot. Only the first is temporary,
+  // so only the first gets the Coming soon tag.
+  const customerPending = can('letters.all') && !caps.customerSend;
+  const customerReason = customerPending
+    ? 'Email it to yourself and forward it on from your own address'
     : 'Not available on this login';
 
   await uiModal({
@@ -9188,7 +9193,8 @@ async function openEmailLetter(l) {
         </label>
         <label class="email-opt" ${customerAllowed ? '' : 'data-disabled="1"'}>
           <input type="radio" name="email-dest" value="customer" ${customerAllowed ? '' : 'disabled'}>
-          <span><strong>Straight to someone else</strong><small>${customerAllowed
+          <span><strong>Straight to someone else${customerPending
+            ? '<span class="soon-tag">Coming soon</span>' : ''}</strong><small>${customerAllowed
             ? 'The customer, a retailer, or an insurer'
             : escapeHtml(customerReason)}</small></span>
         </label>
