@@ -33,6 +33,11 @@ The API key should be a **Sending access** key restricted to the `hangr.au`
 domain, not a full-access key. Resend shows the key once, at creation; if it is
 lost, delete it and make a new one rather than hunting for it.
 
+Paste the values bare. Surrounding quotes and a trailing newline are stripped by
+the function, so a value copied inside its quotes still works — but the *names*
+must match exactly, character for character. A secret saved as `RESEND_KEY` or
+`FROM_EMAIL` is, as far as the function can tell, not there at all.
+
 ## Two destinations, deliberately different
 
 **To yourself** — always available. A better "download": the letter lands in the
@@ -77,7 +82,7 @@ not switched on yet", which confirms `ALLOW_CUSTOMER_SEND` is doing its job.
 
 | What you see | Almost always |
 |---|---|
-| "Email is not configured yet." (503) | `RESEND_API_KEY` or `EMAIL_FROM` is missing or misspelt in Supabase secrets. |
+| "Email is not configured yet — `RESEND_API_KEY` is missing…" (503) | Exactly what it says: that secret is absent from the function's environment. The message names the missing one, so set it and try again. A secret that exists under a misspelt name reads as absent. |
 | "Sign in to send email." (401) | The session expired. Sign out and back in. |
 | "The email could not be sent. Try again shortly." (502) | Resend rejected it — usually the domain is not verified yet, or `EMAIL_FROM` uses a domain other than `hangr.au`. The real reason is in the function logs (Supabase → Edge Functions → send-letter → Logs). |
 | Nothing arrives, no error | Check spam, then the Emails list in the Resend dashboard. If Resend shows it delivered, it is a receiving-end filter — this is what the DMARC record in [DNS.md](DNS.md) helps with. |
