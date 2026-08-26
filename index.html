@@ -361,6 +361,28 @@
   .doc-add-label { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .doc-add-btns { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
   .doc-retype { font-size: 12px; color: var(--muted); margin: -6px 0 12px; }
+  .doc-attached { font-size: 12px; color: var(--muted); margin: -6px 0 12px; }
+  .doc-attached strong { color: var(--ink-2); }
+  .doc-warn { font-size: 13px; line-height: 1.55; color: var(--warn); border: 1px solid var(--warn); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+  .doc-share { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 12.5px; line-height: 1.5; color: var(--muted); max-width: 70ch; }
+  .doc-share input { flex: none; margin-top: 2px; }
+
+  /* Manuals hang off the machine they belong to — the question is always asked
+     about a machine, never about a document. */
+  .manual-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--rule); }
+  .manual-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .manual-none { font-size: 12px; color: var(--muted); font-style: italic; }
+  .manual-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px 3px 10px; border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--surface); font-size: 12px; }
+  .manual-chip .mc-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+  .manual-chip em { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--warn); font-style: normal; }
+  .manual-chip button { appearance: none; background: none; border: 0; cursor: pointer; color: var(--muted); padding: 2px 4px; line-height: 1; border-radius: 50%; display: inline-flex; }
+  .manual-chip button svg { width: 12px; height: 12px; }
+  .manual-chip button:hover { color: var(--ink); }
+  .manual-chip button.danger:hover { color: var(--warn); }
+  .manual-add { appearance: none; background: none; border: 1px dashed var(--rule-strong); border-radius: 999px; padding: 4px 12px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--sans); }
+  .manual-add:hover { color: var(--accent); border-color: var(--accent); }
+  .mach-unit-name { flex: 1; min-width: 0; }
+  .mach-block .mtitle:has(.mach-unit-name) { display: flex; gap: 8px; align-items: center; }
   .linkish { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
   .linkish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .settings-divider { display: flex; align-items: center; gap: 12px; margin: 28px 0 18px; }
@@ -965,6 +987,10 @@ const state = {
       dryers: { make: '', count: '' },
       pressMode: '', pressMake: '', pressTypes: [],
       finishers: [], finisherMake: '', steamTunnel: false,
+      // Units that are not one of the fixed slots above. Each can carry manuals
+      // of its own, so a dry pan or a water recycler is a first-class machine
+      // rather than a note in a text field.
+      units: [],
       other: ''
     },
     utilities: { electricity: '', gas: '', water: '' },
@@ -2000,6 +2026,39 @@ function retrieveKnowledge(userMessage, profileState, skipStateFiles){
   return out + '\n\n===== end retrieved knowledge =====\n';
 }
 
+// Every machine that can carry a manual, as a flat list of { key, label }. The
+// key is written onto the document, so it must stay stable — an index for the
+// dry cleaning machines, a fixed name for the single-slot units, an id for the
+// custom ones.
+function machineryUnits(m) {
+  if (!m) return [];
+  const out = [];
+  (m.dryCleaning || []).forEach((d, i) => {
+    const name = [d.make, d.model].filter(Boolean).join(' ').trim();
+    out.push({ key: 'dryCleaning:' + i, label: name || ('Dry cleaning machine ' + (i + 1)) });
+  });
+  const one = (key, fallback) => {
+    const o = m[key] || {};
+    const name = [o.make, o.model].filter(Boolean).join(' ').trim();
+    out.push({ key: key, label: name || fallback });
+  };
+  one('boiler', 'Boiler');
+  one('compressor', 'Air compressor');
+  one('washers', 'Washers');
+  one('dryers', 'Dryers');
+  out.push({ key: 'press', label: (m.pressMake || '').trim() || 'Press equipment' });
+  out.push({ key: 'finisher', label: (m.finisherMake || '').trim() || 'Finishing & steam' });
+  (m.units || []).forEach(u => {
+    if (u && u.id) out.push({ key: 'unit:' + u.id, label: (u.label || '').trim() || 'Other machine' });
+  });
+  return out;
+}
+
+function machineryUnitLabel(key) {
+  const hit = machineryUnits(state.profile.machinery).find(u => u.key === key);
+  return hit ? hit.label : '';
+}
+
 function machinerySummary(m) {
   if (!m) return '';
   const parts = [];
@@ -2012,6 +2071,10 @@ function machinerySummary(m) {
   if (m.dryers && (m.dryers.make || m.dryers.count)) parts.push(`Dryers: ${[m.dryers.count, m.dryers.make].filter(Boolean).join(' x ')}`);
   if (m.pressTypes && m.pressTypes.length) parts.push(`Press: ${m.pressMode ? m.pressMode + ' — ' : ''}${m.pressTypes.join(', ')}${m.pressMake ? ' (' + m.pressMake + ')' : ''}`);
   if (m.finishers && m.finishers.length) parts.push(`Finishing: ${m.finishers.join(', ')}${m.finisherMake ? ' (' + m.finisherMake + ')' : ''}`);
+  (m.units || []).forEach(u => {
+    const l = (u && u.label || '').trim();
+    if (l) parts.push(`Other plant: ${l}`);
+  });
   if (m.other) parts.push(`Other: ${m.other}`);
   return parts.join('; ');
 }
@@ -2086,7 +2149,6 @@ function buildSystemPrompt(profile, history, userMessage) {
   const roleRules = rolePromptRules();
   const mayStaff = can('staffRecords');
   const mayMoney = can('financials');
-  const mayDocs = can('documents');
   const mayClaims = can('claims');
 
   // The inventory below tells the model what it knows. Listing the Award's casual
@@ -2120,7 +2182,7 @@ function buildSystemPrompt(profile, history, userMessage) {
   const _q = (userMessage || '').toLowerCase();
   const _isGarment = /garment|fabric|stain|shrink|shrunk|shrinkage|colou?r|dye|bleed|wool|silk|cotton|linen|leather|suede|velvet|bead|sequin|fade|fading|pilling|lining|hem|seam|coat|jacket|dress|suit|trouser|slack|shirt|blouse|skirt|tie|scarf|gown|curtain|drape|blind|press|iron|complaint|damaged/.test(_q);
   const dliDirectory = _isGarment ? DLI_TABS : '';
-  const _docs = mayDocs ? (state.documents || []) : [];
+  const _docs = visibleDocuments();
   let docContext = '';
   if (_docs.length) {
     docContext = '\nDOCUMENTS THE OWNER HAS ON FILE (you can answer questions about these): ' + _docs.map(x => x.title || x.fileName || 'document').join('; ') + '\n';
@@ -3102,8 +3164,31 @@ function makeSelect(attr, category, current) {
   </select>`;
 }
 
+// The manuals filed against one machine, with the control that adds another.
+// A manual for "the boiler" is worth far more than one filed loose in Documents,
+// because the question is always asked about a machine.
+function manualStrip(key, label) {
+  const mine = (state.documents || []).filter(d => d.machineryKey === key);
+  const chips = mine.map(d => `
+    <span class="manual-chip">
+      <span class="mc-title" title="${escapeHtml(d.title)}">${escapeHtml(d.title)}</span>
+      ${d.card ? '' : '<em title="No knowledge card was built — the consultant has only the description">no card</em>'}
+      <button type="button" data-manual-open="${d.id}" title="Read the knowledge card">${icons.doc}</button>
+      <button type="button" class="danger" data-manual-remove="${d.id}" title="Remove this manual">&times;</button>
+    </span>`).join('');
+  return `<div class="manual-strip">
+      <span class="manual-label">Manuals</span>
+      ${chips || '<span class="manual-none">none yet</span>'}
+      <button type="button" class="manual-add" data-manual-add="${escapeHtml(key)}" data-manual-label="${escapeHtml(label)}">+ Add manual</button>
+    </div>`;
+}
+
 function machineryStep() {
   const m = state.profile.machinery;
+  const unitLabel = (key, fallback) => {
+    const hit = machineryUnits(m).find(u => u.key === key);
+    return hit ? hit.label : fallback;
+  };
   const dcRows = m.dryCleaning.map((d, i) => `
     <div class="mach-row" style="margin-bottom:8px">
       <div>${makeSelect(`data-mach-make="dryCleaning:${i}"`, 'dryCleaning', d.make)}
@@ -3112,6 +3197,7 @@ function machineryStep() {
         <input class="input" data-mach-model="dryCleaning:${i}" value="${escapeHtml(d.model)}" placeholder="Model (e.g. L800, 4M)">
         ${m.dryCleaning.length > 1 ? `<button class="btn-remove" data-mach-removedc="${i}" title="Remove">${icons.remove}</button>` : ''}
       </div>
+      ${manualStrip('dryCleaning:' + i, unitLabel('dryCleaning:' + i, 'Dry cleaning machine ' + (i + 1)))}
     </div>`).join('');
 
   const simpleBlock = (label, cat, key) => {
@@ -3121,6 +3207,7 @@ function machineryStep() {
         <div>${makeSelect(`data-mach-make="${key}"`, cat, o.make)}
           ${(o.make && o.make.trim() && !MAKES[cat].includes(o.make)) ? `<input class="input" style="margin-top:6px" data-mach-makeother="${key}" value="${escapeHtml(o.make)}" placeholder="Make">` : ''}</div>
         <input class="input" data-mach-model="${key}" value="${escapeHtml(o.model)}" placeholder="Model / size"></div>
+        ${manualStrip(key, unitLabel(key, label))}
       </div></div>`;
   };
 
@@ -3131,6 +3218,7 @@ function machineryStep() {
         <div>${makeSelect(`data-mach-make="${key}"`, cat, o.make)}
           ${(o.make && o.make.trim() && !MAKES[cat].includes(o.make)) ? `<input class="input" style="margin-top:6px" data-mach-makeother="${key}" value="${escapeHtml(o.make)}" placeholder="Make">` : ''}</div>
         <input class="input" type="number" min="0" data-mach-count="${key}" value="${escapeHtml(o.count)}" placeholder="How many?"></div>
+        ${manualStrip(key, unitLabel(key, label))}
       </div></div>`;
   };
 
@@ -3166,6 +3254,7 @@ function machineryStep() {
         <label class="label">Press brand <span class="opt">optional</span></label>
         ${makeSelect(`data-mach-make="pressMake"`, 'press', m.pressMake)}
         ${(m.pressMake && m.pressMake.trim() && !MAKES.press.includes(m.pressMake)) ? `<input class="input" style="margin-top:6px" data-mach-makeother="pressMake" value="${escapeHtml(m.pressMake)}" placeholder="Brand">` : ''}
+        ${manualStrip('press', unitLabel('press', 'Press equipment'))}
       </div></div>
 
     <div class="mach-block"><div class="mtitle">Finishing &amp; steam</div>
@@ -3174,7 +3263,18 @@ function machineryStep() {
         <label class="label">Finisher brand <span class="opt">optional</span></label>
         ${makeSelect(`data-mach-make="finisherMake"`, 'finisher', m.finisherMake)}
         ${(m.finisherMake && m.finisherMake.trim() && !MAKES.finisher.includes(m.finisherMake)) ? `<input class="input" style="margin-top:6px" data-mach-makeother="finisherMake" value="${escapeHtml(m.finisherMake)}" placeholder="Brand">` : ''}
+        ${manualStrip('finisher', unitLabel('finisher', 'Finishing & steam'))}
       </div></div>
+
+    ${(m.units || []).map((u, i) => `
+      <div class="mach-block"><div class="mtitle">
+          <input class="input mach-unit-name" data-mach-unitname="${i}" value="${escapeHtml(u.label || '')}" placeholder="Name this machine — e.g. Dry pan, Water recycler">
+          <button class="btn-remove" data-mach-removeunit="${i}" title="Remove">${icons.remove}</button>
+        </div>
+        <div class="mbody">${manualStrip('unit:' + u.id, (u.label || '').trim() || 'Other machine')}</div>
+      </div>`).join('')}
+
+    <button type="button" class="mach-add" id="add-unit" style="margin-bottom:16px">+ Add a machine that isn't listed</button>
 
     <div class="field" style="margin-top:8px"><label class="label">Anything else <span class="opt">optional</span></label>
       <input class="input" data-mach-other value="${escapeHtml(m.other)}" placeholder="Conveyor, bagging machine, tagging gun, water recycler…"></div>
@@ -3385,6 +3485,57 @@ function bindOnboardingControls() {
   if (addDc) addDc.addEventListener('click', () => { state.profile.machinery.dryCleaning.push({ make: '', model: '' }); render(); });
   document.querySelectorAll('[data-mach-removedc]').forEach(el => {
     el.addEventListener('click', () => { state.profile.machinery.dryCleaning.splice(+el.dataset.machRemovedc, 1); render(); });
+  });
+  const addUnit = document.getElementById('add-unit');
+  if (addUnit) addUnit.addEventListener('click', () => {
+    state.profile.machinery.units = state.profile.machinery.units || [];
+    state.profile.machinery.units.push({ id: newId('U').slice(1), label: '' });
+    render();
+  });
+  document.querySelectorAll('[data-mach-unitname]').forEach(el => {
+    el.addEventListener('input', () => {
+      state.profile.machinery.units[+el.dataset.machUnitname].label = el.value;
+      persistState();
+    });
+  });
+  document.querySelectorAll('[data-mach-removeunit]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const u = state.profile.machinery.units[+el.dataset.machRemoveunit];
+      const held = (state.documents || []).filter(d => d.machineryKey === 'unit:' + u.id);
+      if (held.length && !(await uiConfirm('Remove this machine? Its ' + held.length + ' manual' + (held.length === 1 ? '' : 's') + ' will be kept in Documents, but no longer attached to a machine.'))) return;
+      held.forEach(d => { d.machineryKey = null; });
+      state.profile.machinery.units.splice(+el.dataset.machRemoveunit, 1);
+      render();
+    });
+  });
+  // Adding a manual is the same document flow, arriving with the type and the
+  // machine already filled in — you land on the upload rather than on a form
+  // you have to describe from scratch.
+  document.querySelectorAll('[data-manual-add]').forEach(el => {
+    el.addEventListener('click', () => {
+      const key = el.dataset.manualAdd, label = el.dataset.manualLabel || '';
+      state.docDraft = Object.assign(emptyDocDraft('Equipment manual'), {
+        machineryKey: key, machineryLabel: label,
+        title: label ? label + ' manual' : ''
+      });
+      state.onboardingStep = Math.max(0, ONBOARDING_STEPS.findIndex(x => x.id === 'documents'));
+      render();
+    });
+  });
+  document.querySelectorAll('[data-manual-open]').forEach(el => {
+    el.addEventListener('click', () => {
+      const d = (state.documents || []).find(x => x.id === el.dataset.manualOpen);
+      if (d) uiAlert(d.card || d.text || 'No knowledge card was built for this manual.', d.title || 'Manual');
+    });
+  });
+  document.querySelectorAll('[data-manual-remove]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const d = (state.documents || []).find(x => x.id === el.dataset.manualRemove);
+      if (!d) return;
+      if (!(await uiConfirm('Delete "' + (d.title || 'this manual') + '"? This cannot be undone.'))) return;
+      state.documents = state.documents.filter(x => x.id !== d.id);
+      render();
+    });
   });
   const machOther = document.querySelector('[data-mach-other]');
   if (machOther) machOther.addEventListener('input', (e) => { state.profile.machinery.other = e.target.value; persistState(); });
@@ -7215,8 +7366,19 @@ function docType(key) { return DOC_TYPES.find(t => t.key === key) || null; }
 // so an older record never renders a blank tag.
 function docTypeLabel(key) { const t = docType(key); return t ? t.label : (key || 'Document'); }
 const DOC_TEXT_CAP = 20000; // characters of source text sent to build the card / kept on file
+// A manual is a different animal: 20k characters is roughly a cover page, a
+// contents page and the safety warnings, which is the half with no operational
+// value. Manuals get more room, and are retrieved by section rather than from
+// the top (see docChunks / retrieveDocuments).
+//
+// This is still a cap, not "the whole manual". Everything here lives in the one
+// JSON blob that is rewritten on every autosave, so the ceiling is a deliberate
+// trade. Storing full manual text outside the blob is the next step if these
+// start getting truncated often.
+const DOC_MANUAL_CAP = 60000;
+function docCapFor(type) { return type === 'Equipment manual' ? DOC_MANUAL_CAP : DOC_TEXT_CAP; }
 
-function emptyDocDraft(type) { return { title: '', type: type || '', background: '', text: '', fileName: '', size: 0, reading: false, readNote: '' }; }
+function emptyDocDraft(type) { return { title: '', type: type || '', background: '', text: '', fileName: '', size: 0, reading: false, readNote: '', machineryKey: null, machineryLabel: '' }; }
 
 // Best-effort in-browser text read. Text-like files read cleanly; PDFs are attempted
 // (uncompressed + FlateDecode via the browser's built-in DecompressionStream) and fall back
@@ -7314,7 +7476,7 @@ const DOC_CARD_FOCUS = {
 };
 
 function buildDocCardPrompt(d) {
-  const text = (d.text || '').slice(0, DOC_TEXT_CAP);
+  const text = (d.text || '').slice(0, docCapFor(d.type));
   return `You are building a compact KNOWLEDGE CARD from a business document belonging to an Australian dry cleaning operator. The consultant will use this card later to answer the owner's questions about the document, so it must be faithful and specific.
 
 DOCUMENT
@@ -7351,9 +7513,15 @@ async function saveDocument() {
   } catch (e) {
     card = '';
   }
+  const cap = docCapFor(d.type);
   const doc = {
     id: newId('D'), title: d.title.trim(), type: d.type || 'Other',
-    background: d.background.trim(), text: (d.text || '').slice(0, DOC_TEXT_CAP),
+    background: d.background.trim(), text: (d.text || '').slice(0, cap),
+    // How much was dropped, so the truncation can be admitted rather than hidden.
+    truncatedFrom: (d.text || '').length > cap ? (d.text || '').length : 0,
+    machineryKey: d.machineryKey || null,
+    machineryLabel: (d.machineryLabel || '').trim(),
+    staffVisible: d.staffVisible !== false,
     card: card, fileName: d.fileName || '', size: d.size || 0,
     createdAt: Date.now(), uploadedAt: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
   };
@@ -7363,25 +7531,88 @@ async function saveDocument() {
   render();
 }
 
-// Score the owner's question against each document; return the best match's card for grounding.
+// Documents are held whole, but a manual is answered from one section of it. A
+// flat prefix slice always handed over the opening pages, so "what is fault E17
+// on the L800" got the cover and the safety warnings. Split the text into
+// paragraph-aligned chunks so the section that answers the question can be found.
+const DOC_CHUNK_CHARS = 1400;
+function docChunks(d) {
+  const text = (d.text || '');
+  if (!text) return [];
+  if (d._chunks && d._chunkedFrom === text.length) return d._chunks;
+  const paras = text.split(/\n\s*\n/);
+  const chunks = [];
+  let cur = '';
+  for (const para of paras) {
+    // A single paragraph longer than a chunk is hard-split rather than dropped.
+    if (para.length > DOC_CHUNK_CHARS) {
+      if (cur) { chunks.push(cur); cur = ''; }
+      for (let i = 0; i < para.length; i += DOC_CHUNK_CHARS) chunks.push(para.slice(i, i + DOC_CHUNK_CHARS));
+      continue;
+    }
+    if ((cur + '\n\n' + para).length > DOC_CHUNK_CHARS) { chunks.push(cur); cur = para; }
+    else { cur = cur ? cur + '\n\n' + para : para; }
+  }
+  if (cur) chunks.push(cur);
+  // Cached on the record so a long manual is not re-split on every question.
+  try { Object.defineProperty(d, '_chunks', { value: chunks, enumerable: false, writable: true, configurable: true });
+        Object.defineProperty(d, '_chunkedFrom', { value: text.length, enumerable: false, writable: true, configurable: true }); } catch (e) {}
+  return chunks;
+}
+
+function _scoreText(text, toks) {
+  const hay = (text || '').toLowerCase();
+  let sc = 0;
+  for (const t of toks) if (hay.indexOf(t) !== -1) sc += (t.length > 6 ? 2 : 1);
+  return sc;
+}
+
+// Score the owner's question against each document, then against the sections
+// inside the best matches, and hand over the card plus the sections that hit.
 function retrieveDocuments(q) {
-  const docs = state.documents || [];
+  const docs = visibleDocuments();
   if (!docs.length) return '';
-  const toks = (q || '').toLowerCase().split(/[^a-z0-9']+/).filter(t => t.length > 2);
+  const toks = [...new Set((q || '').toLowerCase().split(/[^a-z0-9']+/).filter(t => t.length > 2))];
+  if (!toks.length) return '';
+
   const scored = [];
   for (const d of docs) {
-    const hay = ((d.title || '') + ' ' + (d.type || '') + ' ' + (d.background || '') + ' ' + (d.card || '') + ' ' + (d.text || '')).toLowerCase();
-    let sc = 0;
-    for (const t of toks) if (hay.indexOf(t) !== -1) sc += 1;
-    if (sc > 0) scored.push([sc, d]);
+    const head = (d.title || '') + ' ' + (d.type || '') + ' ' + (d.background || '') + ' ' + (d.machineryLabel || '');
+    let sc = _scoreText(head, toks) * 3 + _scoreText(d.card || '', toks);
+    // A manual attached to a machine wins when the question names that machine —
+    // its make, its model, or what it is called on the floor.
+    if (d.machineryLabel) {
+      const nameToks = d.machineryLabel.toLowerCase().split(/[^a-z0-9']+/).filter(t => t.length > 2);
+      if (nameToks.some(t => toks.includes(t))) sc += 8;
+    }
+    const chunks = docChunks(d);
+    const ranked = chunks.map((c, i) => [_scoreText(c, toks), i]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]);
+    if (ranked.length) sc += ranked[0][0];
+    if (sc > 0) scored.push({ d, sc, ranked, chunks });
   }
   if (!scored.length) return '';
-  scored.sort((a, b) => b[0] - a[0]);
-  const picked = scored.slice(0, 2).map(x => x[1]);
-  const cap = picked.length > 1 ? 4500 : 8000;
-  return picked.map(d => {
-    const body = d.card || d.text || '';
-    return '===== ' + (d.title || 'Document') + (d.type ? ' (' + d.type + ')' : '') + ' =====\n' + body.slice(0, cap);
+  scored.sort((a, b) => b.sc - a.sc);
+
+  const picked = scored.slice(0, 2);
+  const cardCap = picked.length > 1 ? 2000 : 3000;
+  const chunkBudget = picked.length > 1 ? 2 : 3;
+  return picked.map(({ d, ranked, chunks }) => {
+    let out = '===== ' + (d.title || 'Document') + (d.type ? ' (' + docTypeLabel(d.type) + ')' : '');
+    if (d.machineryLabel) out += ' — ' + d.machineryLabel;
+    out += ' =====\n';
+    if (d.card) out += d.card.slice(0, cardCap) + '\n';
+    const takeIdx = ranked.slice(0, chunkBudget).map(x => x[1]).sort((a, b) => a - b);
+    if (takeIdx.length) {
+      out += '\n--- the sections of this document that match the question ---\n';
+      out += takeIdx.map(i => '[section ' + (i + 1) + ' of ' + chunks.length + ']\n' + chunks[i]).join('\n\n');
+    } else if (!d.card) {
+      out += (d.text || '').slice(0, 3000);
+    }
+    if (d.truncatedFrom) {
+      out += '\n\n[NOTE: only the first ' + (d.text || '').length.toLocaleString() + ' of ' +
+             d.truncatedFrom.toLocaleString() + ' characters of this document are on file. If the answer would be in a later part, say so rather than guessing.]';
+    }
+    return out;
   }).join('\n\n');
 }
 
@@ -7402,7 +7633,7 @@ function documentsBodyHtml() {
         <div class="lib-item">
           <div class="lib-main" data-doc-view="${doc.id}">
             <div class="lib-subject">${escapeHtml(doc.title)}</div>
-            <div class="lib-meta"><span class="lib-tag">${escapeHtml(docTypeLabel(doc.type))}</span> &nbsp; ${escapeHtml(doc.uploadedAt || '')}${doc.card ? '' : ' · card not built'}</div>
+            <div class="lib-meta"><span class="lib-tag">${escapeHtml(docTypeLabel(doc.type))}</span> &nbsp; ${escapeHtml(doc.uploadedAt || '')}${doc.machineryLabel ? ' · ' + escapeHtml(doc.machineryLabel) : ''}${doc.card ? '' : ' · card not built'}${doc.truncatedFrom ? ' · part only' : ''}</div>
           </div>
           <button class="btn btn-secondary" data-doc-ask="${doc.id}">Ask about this</button>
           <button class="btn btn-ghost" data-doc-remove="${doc.id}" style="color:var(--warn)">Delete</button>
@@ -7417,17 +7648,23 @@ function documentsBodyHtml() {
         <span class="facts-count">${d.fileName ? escapeHtml(d.fileName) : 'no file chosen'}</span>
       </div>
       ${dt ? `<div class="doc-retype">Wrong kind of document? <button type="button" class="linkish" id="doc-retype">Pick a different type</button></div>` : ''}
+      ${d.machineryKey ? `<div class="doc-attached">Filing against <strong>${escapeHtml(d.machineryLabel || 'a machine')}</strong> <button type="button" class="linkish" id="doc-detach">detach</button></div>` : ''}
       <div class="upload-zone" id="doc-upload" style="margin-bottom:14px">
         ${icons.upload}
         <p><strong style="color:var(--ink)">Click to choose a file</strong> — text, Word-exported text, CSV or PDF</p>
         <input type="file" id="doc-input" accept=".pdf,.txt,.md,.markdown,.csv,.tsv,.json,.log,.rtf,.htm,.html,.xml,.yaml,.yml" style="display:none">
       </div>
       ${d.readNote ? `<div class="facts-note" style="margin-bottom:12px">${escapeHtml(d.readNote)}</div>` : ''}
+      ${(d.text || '').length > docCapFor(d.type) ? `<div class="doc-warn">This is ${(d.text || '').length.toLocaleString()} characters and ${docCapFor(d.type).toLocaleString()} can be kept, so the last ${((d.text || '').length - docCapFor(d.type)).toLocaleString()} will not be saved. If the part you care about is near the end — the fault codes, the service schedule — cut the text down to those sections before saving.</div>` : ''}
+      ${dt && dt.key === 'Equipment manual' ? `<div class="facts-note" style="margin-bottom:12px">Worth keeping above all: the fault and error code table, service intervals, consumables and part numbers, and the safety and lockout steps. A scanned manual has no text layer to read — if nothing came through, photograph or type those sections in.</div>` : ''}
       <div class="staff-field"><label>Title</label><input data-docf="title" value="${escapeHtml(d.title)}" placeholder="${dt ? escapeHtml(dt.button) + ' — 2026' : 'e.g. Business insurance policy 2026'}"></div>
       <div class="staff-field" style="margin-top:12px"><label>Background — what is this and what should the consultant know about it?</label>
         <textarea data-docf="background" rows="2" placeholder="${dt ? escapeHtml(dt.hint) : 'What is this, and what should the consultant know about it?'}">${escapeHtml(d.background)}</textarea></div>
       <div class="staff-field" style="margin-top:12px"><label>Document text — read automatically where possible; paste here if a PDF didn't read</label>
         <textarea data-docf="text" rows="6" placeholder="The text the consultant will learn from">${escapeHtml(d.text)}</textarea></div>
+      ${dt && DOC_STAFF_SAFE.has(dt.key) ? `
+      <label class="doc-share"><input type="checkbox" id="doc-staffvis" ${d.staffVisible === false ? '' : 'checked'}>
+        <span>Let staff logins be answered from this. Operational documents are worth more on the floor than locked to the owner — turn it off if this one is not for everyone.</span></label>` : ''}
       <div class="facts-actions">
         <button class="btn btn-primary" id="doc-save" ${state.docBusy ? 'disabled' : ''}>${state.docBusy ? 'Building knowledge…' : 'Save & build knowledge base'}</button>
         <button class="btn btn-ghost" id="doc-cancel" ${state.docBusy ? 'disabled' : ''}>Cancel</button>
@@ -7460,6 +7697,12 @@ function bindDocumentControls() {
   }));
   const moreBtn = document.getElementById('doc-more');
   if (moreBtn) moreBtn.addEventListener('click', () => { state.docTypesExpanded = true; render(); });
+  const detachBtn = document.getElementById('doc-detach');
+  if (detachBtn) detachBtn.addEventListener('click', () => {
+    state.docDraft.machineryKey = null; state.docDraft.machineryLabel = ''; render();
+  });
+  const staffVis = document.getElementById('doc-staffvis');
+  if (staffVis) staffVis.addEventListener('change', () => { state.docDraft.staffVisible = staffVis.checked; });
   const retypeBtn = document.getElementById('doc-retype');
   if (retypeBtn) retypeBtn.addEventListener('click', () => {
     state.docDraft.type = '';
@@ -8460,7 +8703,11 @@ const ROLE_CAPS = {
   owner:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess', 'training.manage'],
   admin:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
   manager: ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents'],
-  staff:   ['chat', 'problems', 'letters.own', 'priceLists'],
+  // 'documents' here means "may be answered from documents at all" — which ones
+  // is decided per document by docVisibleToRole. A manual is no use to the owner
+  // sitting in an office while the person at the machine cannot be told what the
+  // fault code means; a lease and an insurance policy are another matter.
+  staff:   ['chat', 'problems', 'letters.own', 'priceLists', 'documents'],
 };
 
 // Which sections each capability unlocks. A section with no entry is open to all.
@@ -8557,6 +8804,22 @@ function kbAllowed(key) {
 // createdBy pre-dates ownership, so it stays hidden from staff and visible to
 // manager and above. That is the safe direction — no existing transcript becomes
 // newly readable by a staff login.
+// Operational paperwork — the manual for the machine someone is standing at, the
+// procedure they follow — is what staff need and what they are safe to have.
+// Commercial and legal documents stay with the people who run the business.
+const DOC_STAFF_SAFE = new Set(['Equipment manual', 'SOP / procedure']);
+function docVisibleToRole(doc, role) {
+  if (!doc) return false;
+  if (role !== 'staff') return true;
+  if (doc.staffVisible === false) return false;
+  return DOC_STAFF_SAFE.has(doc.type);
+}
+function visibleDocuments() {
+  if (!can('documents')) return [];
+  const role = effectiveRole();
+  return (state.documents || []).filter(d => docVisibleToRole(d, role));
+}
+
 function visibleChats() {
   const all = state.chats || [];
   if (can('chats.all')) return all;
