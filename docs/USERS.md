@@ -22,9 +22,19 @@ in three places, not one:
 
 ## Adding someone
 
-Users → Add someone. Enter their email, pick a role, hand over the temporary
-password. They choose their own the first time they sign in and the temporary one
-stops working.
+Users → Add someone. Enter their email, their name, pick a role, hand over the
+temporary password. They choose their own the first time they sign in and the
+temporary one stops working.
+
+Creating the login also creates their **staff record** and ties the two together
+(`staff.userId`). That link is what lets Training recognise them the first time
+they sign in instead of asking them to pick their name off a dropdown — see
+`docs/TRAINING.md`. If the person is already on the staff list, pick their name
+under **Staff record** instead of creating a second one.
+
+Every user row shows which staff record it is tied to and how that person's
+training is going, and the same dropdown re-ties a row that was created before
+this existed, or fixes one tied to the wrong person.
 
 There is no invite email. Counter staff often have no work inbox they check, and
 an invite link would need Supabase's SMTP pointed at Resend first. The owner is
@@ -52,6 +62,11 @@ The browser copy of a rule is a suggestion, and this one hands out access.
 - Removing someone deletes the membership *and* the login, so no orphan account
   is left able to sign in and reach an empty app.
 
+Removing someone does **not** delete their staff record or their training
+history — those belong to the business. The browser releases the `staff.userId`
+link on the way out, so the record can be re-tied to whoever replaces them and
+does not sit unpickable behind a dead account.
+
 ## Known gap — worth reading before you add staff
 
 `businesses` has an RLS policy allowing **any member** to UPDATE the row, and the
@@ -73,6 +88,7 @@ staff logins as trusted-but-limited rather than untrusted.
 |---|---|
 | `index.html` → `ROLE_CAPS`, `SECTION_CAP` | what each role may open |
 | `index.html` → `renderUsers()` | the screen |
+| `index.html` → `linkUserToStaff()` | tying a login to a roster record |
 | `supabase/functions/manage-access/index.ts` | every rule that matters |
 | `supabase/migrations/20260826_manager_role.sql` | made `manager` a legal role |
 
