@@ -51,23 +51,39 @@ Postgres can fetch it itself. This is how it was loaded the first time.
 ```sql
 create extension if not exists http with schema extensions;
 
-update public.businesses
-   set data = (select content::jsonb
-                 from extensions.http_get('https://raw.githubusercontent.com/'
-                   || 'DavidHudson84/Hangrapp/claude/mock-dry-cleaner-setup-7pp5sc'
-                   || '/mock/blob.json')),
+with fetched as (
+  select content from extensions.http_get(
+    'https://raw.githubusercontent.com/DavidHudson84/Hangrapp/<COMMIT-SHA>/mock/blob.json')
+),
+checked as (
+  select content, encode(extensions.digest(convert_to(content,'UTF8'),'sha256'),'hex') as sha
+    from fetched
+)
+update public.businesses b
+   set data = (select content::jsonb from checked where sha = '<SHA256 OF blob.json>'),
        name = 'Main Street Dry Cleaners'
- where id = (select business_id from public.memberships
-              where user_id = '9fd9feee-078b-4811-81ce-8c1558efa005');
+ where b.id = (select business_id from public.memberships
+                where user_id = '9fd9feee-078b-4811-81ce-8c1558efa005')
+   and exists (select 1 from checked where sha = '<SHA256 OF blob.json>');
 
 drop extension http;
 ```
 
-Check the sha256 of what comes back against `sha256sum mock/blob.json` before
-committing to it. A truncated or cached response is still valid JSON and still
-loads — it is just quietly missing half the library, which you would not notice
-until a demo. Drop the extension afterwards; it lets the database make outbound
-HTTP requests and there is no reason to leave that switched on.
+Two things that are not optional.
+
+**Use the commit SHA in the URL, not the branch name.** `raw.githubusercontent.com`
+caches a branch path for a few minutes, so a fetch straight after a push returns
+the *previous* blob. A commit path is immutable and always fresh. Get it with
+`git rev-parse HEAD`.
+
+**Keep the checksum guard.** `sha256sum mock/blob.json` gives the expected value.
+A stale or truncated response is still valid JSON and still loads — it is just
+quietly the wrong blob, and you would not find out until a demo. The guard is
+what caught exactly that on the first load here: the update matched no rows
+rather than writing a cached copy.
+
+Drop the extension afterwards. It lets the database make outbound HTTP requests
+and there is no reason to leave that switched on.
 
 **The portable way.** Generate the SQL and paste it into the Supabase SQL editor
 in numeric order:
