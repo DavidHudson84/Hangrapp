@@ -569,6 +569,133 @@
   .mach-add { appearance: none; background: none; border: 1px dashed var(--rule-strong); border-radius: 6px; padding: 8px 12px; color: var(--muted); font-size: 13px; cursor: pointer; font-family: var(--sans); margin-top: 4px; }
   .mach-add:hover { border-color: var(--accent); color: var(--accent); }
   .seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 6px; overflow: hidden; }
+
+  /* ---- Staff training ---- */
+  .staff-training { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  .staff-training-line { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+  .tr-tabs { margin-bottom: 20px; }
+  .tr-whoami { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .tr-whoami strong { color: var(--ink); font-weight: 500; }
+  .tr-list { display: flex; flex-direction: column; gap: 12px; }
+  .tr-card { display: flex; gap: 18px; align-items: flex-start; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 20px 22px; }
+  .tr-card-num { font-family: var(--mono); font-size: 22px; color: var(--accent); line-height: 1; padding-top: 2px; flex: none; }
+  .tr-card-main { flex: 1; min-width: 0; }
+  .tr-card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .tr-card-head h3 { font-size: 16px; font-weight: 500; margin: 0; }
+  .tr-card-main p { font-size: 13.5px; color: var(--muted); margin: 0 0 8px; line-height: 1.55; }
+  .tr-card-meta { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tr-card-act { display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; }
+  .tr-chip { font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: var(--paper-2); color: var(--muted); white-space: nowrap; }
+  .tr-chip.pass { background: rgba(92,158,115,.16); color: var(--green); }
+  .tr-chip.fail { background: rgba(224,120,95,.16); color: var(--warn); }
+
+  .tr-read { line-height: 1.65; }
+  .tr-read h2 { font-size: 17px; font-weight: 500; margin: 22px 0 8px; }
+  .tr-read h2:first-child { margin-top: 0; }
+  .tr-read h3 { font-size: 15px; font-weight: 600; margin: 20px 0 7px; color: var(--accent); letter-spacing: .01em; }
+  .tr-read ul, .tr-read ol { margin: 6px 0 6px 20px; }
+  .tr-read li { margin-bottom: 5px; }
+
+  .tr-q { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 20px 22px; margin-bottom: 12px; }
+  .tr-q-num { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .tr-q-text { font-size: 15px; line-height: 1.5; margin-bottom: 14px; }
+  .tr-opts { display: flex; flex-direction: column; gap: 8px; }
+  .tr-opt { display: flex; gap: 11px; align-items: flex-start; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; font-size: 14px; line-height: 1.45; transition: border-color .12s ease, background .12s ease; }
+  .tr-opt:hover { border-color: var(--rule-strong); }
+  .tr-opt.on { border-color: var(--accent); background: var(--paper-2); }
+  .tr-opt input { margin-top: 3px; flex: none; accent-color: var(--accent); }
+
+  .tr-score { text-align: center; padding: 30px 24px; border-radius: 8px; border: 1px solid var(--rule); background: var(--surface); }
+  .tr-score.pass { border-color: rgba(92,158,115,.5); }
+  .tr-score.fail { border-color: rgba(224,120,95,.45); }
+  .tr-score-big { font-family: var(--mono); font-size: 40px; line-height: 1; margin-bottom: 8px; }
+  .tr-score.pass .tr-score-big { color: var(--green); }
+  .tr-score.fail .tr-score-big { color: var(--warn); }
+  .tr-score-word { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+  .tr-score-sub { font-size: 13.5px; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.55; }
+
+  .tr-review { border-left: 3px solid var(--rule-strong); padding: 14px 0 14px 16px; margin-bottom: 14px; }
+  .tr-review.ok { border-left-color: var(--green); }
+  .tr-review.no { border-left-color: var(--warn); }
+  .tr-review-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tr-review-mark { font-size: 14px; }
+  .tr-review.ok .tr-review-mark { color: var(--green); }
+  .tr-review.no .tr-review-mark { color: var(--warn); }
+  .tr-review .tr-q-text { font-size: 14px; margin-bottom: 8px; }
+  .tr-review-ans { font-size: 13.5px; margin-bottom: 6px; }
+  .tr-yours.ok { color: var(--green); }
+  .tr-yours.no { color: var(--warn); text-decoration: line-through; opacity: .85; }
+  .tr-right { color: var(--ink); margin-top: 3px; }
+  .tr-why { font-size: 13px; color: var(--muted); line-height: 1.55; background: var(--paper-2); padding: 10px 12px; border-radius: 5px; }
+
+  .tr-table th.tr-name { text-align: left; white-space: nowrap; }
+  .tr-table .tr-cell { text-align: center; white-space: nowrap; font-family: var(--mono); font-size: 11px; }
+  .tr-table .tr-cell.ok { color: var(--green); }
+  .tr-table .tr-cell.no { color: var(--warn); }
+  .tr-table .tr-cell.none { color: var(--muted); }
+  .tr-table .tr-cell.total { color: var(--ink); }
+  .tr-stray { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+  .tr-key { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+  .tr-key strong { font-family: var(--mono); color: var(--accent); font-weight: 400; }
+
+  /* ---- Courses a business builds from its own SOPs ---- */
+  .tr-panel { margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--rule); }
+  .tr-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tr-panel-head h3 { font-size: 16px; font-weight: 500; margin: 0; }
+  .tr-panel-sub { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0 0 16px; max-width: 700px; }
+  .tr-panel-empty { font-size: 13px; color: var(--muted); font-style: italic; margin: 0 0 14px; }
+  .tr-own { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 18px; margin-bottom: 10px; }
+  .tr-own.draft { border-style: dashed; }
+  .tr-own-main { flex: 1; min-width: 220px; }
+  .tr-own-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .tr-own-meta { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tr-own-act { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tr-toggles { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--rule); }
+  .tr-toggles-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .tr-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 13.5px; }
+  .tr-toggle.off { color: var(--muted); text-decoration: line-through; }
+  .tr-toggle.off em { text-decoration: none; font-size: 12px; }
+  .tr-toggle em { color: var(--muted); font-size: 12px; }
+
+  .tr-build { max-width: 720px; }
+  .tr-or { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 12px 0; }
+  .tr-hint { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 6px; }
+  .tr-note { font-size: 13px; color: var(--accent); margin-top: 10px; }
+  .tr-warn { font-size: 12px; color: var(--warn); margin-top: 6px; }
+
+  .tr-edit-title { font-size: 15px; font-weight: 500; margin: 26px 0 12px; }
+  .tr-edit-block { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px; margin-bottom: 10px; }
+  .tr-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .tr-edit-act { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tr-edit-act .btn { padding: 4px 8px; font-size: 12px; }
+  .tr-edit-block .input { margin-bottom: 8px; }
+  .tr-edit-opts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .tr-edit-opt { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; }
+  .tr-edit-opt.on { border-color: var(--green); background: var(--paper-2); }
+  .tr-edit-opt input[type=radio] { flex: none; accent-color: var(--green); }
+  .tr-edit-opt .input { margin-bottom: 0; }
+  .tr-problems { background: var(--paper-2); border-left: 3px solid var(--rule-strong); border-radius: 5px; padding: 14px 16px; margin-top: 20px; font-size: 13.5px; }
+  .tr-problems.block { border-left-color: var(--warn); }
+  .tr-problems ul { margin: 8px 0 0 18px; }
+  .tr-problems li { margin-bottom: 4px; }
+  .tr-retired-dot { color: var(--muted); }
+
+  @media (max-width: 700px) {
+    .tr-own { flex-direction: column; align-items: stretch; }
+    .tr-own-act { width: 100%; }
+    .tr-edit-opt { flex-wrap: wrap; }
+  }
+  .tr-who { max-width: 460px; }
+  .tr-foot { font-size: 12px; color: var(--muted); margin-top: 22px; line-height: 1.55; }
+
+  @media (max-width: 700px) {
+    .tr-card { flex-direction: column; gap: 12px; padding: 18px; }
+    .tr-card-act { flex-direction: row; flex-wrap: wrap; width: 100%; }
+    .tr-card-act .btn { flex: 1; }
+    .tr-score-big { font-size: 34px; }
+  }
   .seg button { appearance: none; background: var(--paper); border: none; padding: 8px 14px; font-size: 13px; color: var(--muted); cursor: pointer; font-family: var(--sans); }
   .seg button.on { background: var(--accent); color: #fff; }
 
@@ -795,6 +922,18 @@ const state = {
   problems: [],
   letters: [],
   staff: [],
+  training: [],
+  // A business's own courses, built from its own SOPs. Drafts live here too —
+  // a generated course is not shown to staff until the owner has read it.
+  customCourses: [],
+  // Built-in courses this business has switched off, by id.
+  hiddenCourses: [],
+  // Transient generation and editing state — not persisted.
+  courseDraft: null,
+  // Where a trainee is up to right now: who they are, which module, which page,
+  // which answers. Deliberately not persisted — a half-finished quiz is not a
+  // training record, and reloading should put you back on the module list.
+  trainingSession: null,
   pendingImage: null,
   currentLetter: null,
   currentProblem: null,
@@ -999,7 +1138,8 @@ const TABS = [
   { id: 'letters',    num: '03', label: 'Letters' },
   { id: 'staff',      num: '04', label: 'Staff' },
   { id: 'claims',     num: '05', label: 'Claims' },
-  { id: 'bills',      num: '06', label: 'Bill Compare' }
+  { id: 'bills',      num: '06', label: 'Bill Compare' },
+  { id: 'training',   num: '08', label: 'Training' }
 ];
 
 const STATES = ['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
@@ -1082,9 +1222,34 @@ function scheduleCloudSave(blob) {
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
     try {
+      await mergeTrainingBeforeSave(blob);
       await sb.from('businesses').update({ data: blob, name: state.profile.businessName || null }).eq('id', currentBusinessId);
     } catch (e) { /* offline — localStorage still holds the latest */ }
   }, 1000);
+}
+
+// Every save writes the whole blob back, so the last device to write wins. That
+// was harmless while one owner used one machine. Training breaks the assumption
+// on purpose: several people record results, often on the counter iPad and the
+// back-office computer in the same afternoon, and a stale device would quietly
+// erase a completion someone earned ten minutes ago.
+//
+// So training is the one key we merge rather than overwrite. A completion record
+// is never edited once written, which makes a union by id safe and order-blind —
+// whoever writes second keeps both sets. It narrows the race to the gap between
+// this read and the update below rather than closing it; the real fix is a
+// server-side jsonb append, and that needs a migration.
+async function mergeTrainingBeforeSave(blob) {
+  if (!Array.isArray(blob.training)) return;
+  const { data, error } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
+  if (error || !data) return;
+  const remote = (data.data && Array.isArray(data.data.training)) ? data.data.training : [];
+  if (!remote.length) return;
+  const byId = new Map();
+  remote.concat(blob.training).forEach(r => { if (r && r.id) byId.set(r.id, r); });
+  const merged = Array.from(byId.values()).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+  blob.training = merged;
+  state.training = merged;
 }
 
 async function loadCloud() {
@@ -1352,6 +1517,9 @@ function buildStateBlob() {
     problems: state.problems,
     letters: state.letters,
     staff: state.staff,
+    training: state.training,
+    customCourses: state.customCourses,
+    hiddenCourses: state.hiddenCourses,
     documents: state.documents,
     priceLists: state.priceLists,
     staffMode: state.staffMode,
@@ -1393,6 +1561,9 @@ function applyStateBlob(s) {
     if (Array.isArray(s.problems)) state.problems = s.problems;
     if (Array.isArray(s.letters)) state.letters = s.letters;
     if (Array.isArray(s.staff)) state.staff = s.staff;
+    if (Array.isArray(s.training)) state.training = s.training;
+    if (Array.isArray(s.customCourses)) state.customCourses = s.customCourses;
+    if (Array.isArray(s.hiddenCourses)) state.hiddenCourses = s.hiddenCourses;
     if (Array.isArray(s.documents)) state.documents = s.documents;
     if (Array.isArray(s.priceLists)) state.priceLists = s.priceLists;
     if (typeof s.staffMode === 'boolean') state.staffMode = s.staffMode;
@@ -1804,7 +1975,7 @@ function clampForAsk(prompt) {
   return p.slice(0, ASK_MAX - tail - 20) + '\n…[trimmed]\n' + p.slice(p.length - tail);
 }
 
-async function askClaudeSafe(prompt, data) {
+async function askClaudeSafe(prompt, data, maxTokens) {
   const p = clampForAsk(prompt);
   let content;
   if (data && data.length) {
@@ -1822,7 +1993,7 @@ async function askClaudeSafe(prompt, data) {
   const r = await fetch(AI_ENDPOINT, {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token, 'apikey': SB_ANON, 'content-type': 'application/json' },
-    body: JSON.stringify({ max_tokens: 3000, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ max_tokens: maxTokens || 3000, messages: [{ role: 'user', content }] })
   });
   let j;
   try { j = await r.json(); } catch (e) { throw new Error('The AI service returned an unexpected response (' + r.status + ').'); }
@@ -2164,6 +2335,24 @@ function factFamily(type) {
 
 // Pull the facts out of the conversation. Never guesses — a fact not stated comes back empty
 // and gets flagged in the panel for the owner to fill.
+// Models wrap JSON in prose and code fences, and a reply that hit the token
+// ceiling arrives cut off mid-object. Slicing to the outermost brace or bracket
+// handles the wrapping; the try/catch handles the truncation, which is the one
+// that actually bites once you start asking for anything long.
+function parseAiJson(raw, shape) {
+  try {
+    let txt = coerceAIResponse(raw).trim();
+    txt = txt.replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+    const open = shape === 'array' ? '[' : '{';
+    const close = shape === 'array' ? ']' : '}';
+    const start = txt.indexOf(open), end = txt.lastIndexOf(close);
+    if (start === -1 || end === -1 || end <= start) return null;
+    return JSON.parse(txt.slice(start, end + 1));
+  } catch (e) {
+    return null;
+  }
+}
+
 async function extractFacts(conversation, type, profile) {
   const fam = factFamily(type);
   if (!fam) return null;
@@ -2192,11 +2381,8 @@ RULES
 
   try {
     const raw = await askClaudeSafe(prompt);
-    let txt = coerceAIResponse(raw).trim();
-    txt = txt.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-    const start = txt.indexOf('{'), end = txt.lastIndexOf('}');
-    if (start === -1 || end === -1) return {};
-    const parsed = JSON.parse(txt.slice(start, end + 1));
+    const parsed = parseAiJson(raw, 'object');
+    if (!parsed) return {};
     const out = {};
     set.forEach(f => { out[f.k] = (typeof parsed[f.k] === 'string' ? parsed[f.k].trim() : ''); });
     return out;
@@ -2627,7 +2813,8 @@ function renderScreens() {
     problems: renderProblems,
     staff: renderStaff,
     claims: renderClaims,
-    bills: renderBills
+    bills: renderBills,
+    training: renderTraining
   };
   // Settle which tab we are on before the markup is built, or the screen that
   // gets rendered is not the one marked active. A saved tab can name a section
@@ -3728,6 +3915,9 @@ function exportBackup() {
     chats: state.chats,
     letters: state.letters,
     staff: state.staff,
+    training: state.training,
+    customCourses: state.customCourses,
+    hiddenCourses: state.hiddenCourses,
     documents: state.documents,
     priceLists: state.priceLists,
     claims: state.claims,
@@ -3751,6 +3941,9 @@ function importBackup(file) {
     state.activeChatId = state.chats[0] ? state.chats[0].id : null;
     state.letters = Array.isArray(data.letters) ? data.letters : [];
     state.staff = Array.isArray(data.staff) ? data.staff : [];
+    state.training = Array.isArray(data.training) ? data.training : [];
+    state.customCourses = Array.isArray(data.customCourses) ? data.customCourses : [];
+    state.hiddenCourses = Array.isArray(data.hiddenCourses) ? data.hiddenCourses : [];
     state.documents = Array.isArray(data.documents) ? data.documents : [];
     state.claims = Array.isArray(data.claims) ? data.claims : [];
     state.bills = Array.isArray(data.bills) ? data.bills : [];
@@ -4281,8 +4474,27 @@ const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Casual'];
 // HR letters an owner starts from a staff record (not the garment/claim letters).
 const HR_LETTER_CHOICES = ['first-warning', 'final-warning', 'show-cause', 'conversion', 'hours-change', 'redundancy'];
 
+// A one-line read on where this person is up to, so the owner sees it on the
+// record rather than having to go looking for it.
+function staffTrainingHtml(s) {
+  const who = { staffId: s.id, staffName: s.name };
+  const courses = activeCourses();
+  const done = courses.filter(m => { const l = trainingLatest(who, m.id); return l && l.passed; }).length;
+  const total = courses.length;
+  const line = done === 0
+    ? 'No training courses passed yet'
+    : (done === total ? 'All ' + total + ' training courses passed' : done + ' of ' + total + ' training courses passed');
+  return `<div class="staff-training">
+      <span class="staff-training-line">${escapeHtml(line)}</span>
+      <button class="btn btn-ghost" data-staff-training="${s.id}">View training &rarr;</button>
+    </div>`;
+}
+
 function newStaff() {
-  return { id: newId('S'), name: '', role: '', classification: '', employmentType: '', startDate: '', site: '', notes: '' };
+  // userId links this record to a login, stamped the first time that person picks
+  // their own name in Training. Null for anyone without a login of their own,
+  // which on a shared counter device is most of the team.
+  return { id: newId('S'), name: '', role: '', classification: '', employmentType: '', startDate: '', site: '', notes: '', userId: null };
 }
 function addStaff() { state.staff.unshift(newStaff()); render(); }
 async function removeStaff(id) {
@@ -4360,6 +4572,7 @@ function renderStaff() {
         <select class="select" data-staff-letter="${s.id}" style="max-width:240px">${hrOpts}</select>
         <button class="btn btn-primary" data-staff-draft="${s.id}">Create letter &rarr;</button>
       </div>
+      ${staffTrainingHtml(s)}
       ${staffLettersHtml(s.id)}
     </div>`).join('');
 
@@ -4372,6 +4585,11 @@ function renderStaff() {
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-secondary" id="staff-add">+ Add staff member</button></div>
     <div class="staff-list">${cards}</div>
     <p style="font-size:12px;color:var(--muted);margin-top:16px">HR letters follow a fair-process structure (Fair Work Act / MA000096). They are general information, not a substitute for advice on a specific termination or dispute.</p>`;
+
+  document.querySelectorAll('[data-staff-training]').forEach(b => b.addEventListener('click', () => {
+    state.trainingSession = { view: 'list', tab: can('training.manage') ? 'team' : 'mine' };
+    goToTab('training');
+  }));
 
   const addBtn = document.getElementById('staff-add');
   if (addBtn) addBtn.addEventListener('click', addStaff);
@@ -4433,6 +4651,2395 @@ function draftLetterFromStaff(staffId, type) {
   draftStandaloneLetter({ type: type, subject: subject, facts: facts, staffId: staffId });
 }
 
+
+// ============ STAFF TRAINING ============
+// The app has carried a serious knowledge base since day one and never shown a
+// word of it to a human — it exists to be spliced into a prompt. This section
+// turns the parts a counter assistant actually needs into five short courses,
+// each a read followed by a quiz, and keeps a dated record of who has done what.
+//
+// Content is authored here rather than generated, on purpose. A score is only
+// worth showing an insurer if the same questions come back the same way every
+// time, and a generated question cannot promise that.
+//
+// Lesson bodies go through renderMarkdown(), which handles bold, italic, ## and
+// ### headings and simple lists — no tables, no links, no H1. Write to that.
+
+const TRAINING_PASS_MARK = 0.8;
+
+const TRAINING_MODULES = [
+{
+  id: 'acl',
+  num: '01',
+  title: 'The law at the counter',
+  blurb: 'What the Australian Consumer Law actually promises a customer, why the sign on the wall does not override it, and what to say when someone brings a garment back unhappy.',
+  minutes: 10,
+  reviewed: 'August 2026',
+  source: 'Australian Consumer Law — Service Guarantees',
+  lessons: [
+    { h: 'What we actually promise',
+      body: `Every job that goes across this counter carries an automatic promise, whether or not anyone says it out loud. It comes from **section 60 of the Australian Consumer Law**, and it is short: the service will be carried out with **due care and skill**.
+
+Read that carefully, because it is narrower than people assume.
+
+- We promise a **competent, careful job** — the right process for the fabric, the care label followed, obvious risks noticed.
+- We do **not** promise a perfect outcome on every garment. Some stains do not come out. Some fabrics fail. That is not automatically our problem.
+
+Two more guarantees sit alongside it:
+
+- **Section 61** — the service is fit for a purpose the customer told us about. If someone says "I need this for Saturday's wedding", that purpose is now part of the deal.
+- **Section 62** — where no time was agreed, the work is done in a reasonable time.
+
+### Why this matters to you
+When something goes wrong, the question a tribunal asks is never "did they have a sign up". It is "did they take due care and skill". If the process was right and the fault was in the garment, we have a real answer. If we used the wrong process, missed something obvious, or lost the item, we owe the customer a remedy and arguing about it only costs us more.` },
+
+    { h: 'The sign on the wall does not do what people think',
+      body: `This is the single most misunderstood thing in the industry, so learn it properly.
+
+Under **section 64 of the ACL**, any term that tries to exclude, restrict or water down a consumer guarantee is **void**. Not weakened — void. It has no legal effect at all.
+
+That includes the classic counter signs:
+
+- "We take no responsibility for damage."
+- "All garments cleaned at owner's risk."
+- "No liability accepted for buttons, trims or fastenings."
+
+None of those remove a customer's rights. Worse, telling a customer that a sign *has* removed their rights is itself misleading conduct under the same Act, which is its own problem.
+
+### So what does work
+Plenty — as long as it is about a **genuine, specific risk in that particular item** rather than a blanket escape hatch:
+
+- an undisclosed pre-existing condition
+- a missing or incorrect care label
+- an inherent weakness in the fabric
+- beading or trims we flagged, and the customer accepted, before we took the item
+
+That is not excluding the guarantee. That is informed consent about something we did not cause.
+
+### The line to hold
+**You can disclaim risk that is inherent to the garment. You cannot disclaim our own poor workmanship.** Get that distinction the wrong way round and no amount of signage will help.` },
+
+    { h: 'Minor or major — and who gets to pick',
+      body: `When we have breached the guarantee, the size of the failure decides **who chooses the remedy**. This is where a lot of money gets given away unnecessarily.
+
+### A minor failure
+Something that can be put right within a reasonable time — a garment that needs re-cleaning, a press that has to be done again.
+
+Here **we** choose. We can offer to fix it, redo it, or refund. The customer does not get to demand cash because they would prefer cash. If we offer to fix it within a reasonable time and they refuse and go elsewhere, that is their choice, not our bill.
+
+### A major failure
+The garment is destroyed, lost, or so badly damaged that no reasonable person would have accepted the service knowing the outcome.
+
+Here **the customer** chooses. They can reject the service, get back what they paid, and claim compensation for the reduced value of the item. That is **sections 267 and 268**.
+
+### Why you need to know the difference
+Almost every complaint that arrives at the counter is a minor failure being presented as a major one. A dress that needs re-cleaning is not a destroyed dress. Knowing which one you are actually looking at is what stops a re-clean turning into a four-figure payout — and equally, it stops us fighting a case we were always going to lose.` },
+
+    { h: 'What a damaged garment is actually worth',
+      body: `When we do owe compensation, the figure is **not** what a new one costs.
+
+The measure is the item's **current depreciated value** — what that garment was worth on the day it was damaged, given its age and condition. This is the same basis the **International Fair Claims Guide** uses, which is what insurers and assessors work from.
+
+### In practice
+Garments have a published life expectancy. A wool suit is reckoned on a few years, a shirt considerably less. Once you know the age, you take a percentage of the replacement cost, not the whole thing.
+
+A four-year-old jacket that cost 400 dollars new is not a 400 dollar cheque. It is a fraction of that, and there is a table that says which fraction.
+
+### Why you need to know this at the counter
+Not so you can quote a figure — **do not quote a figure**. Settlement is not a counter decision.
+
+You need to know it so you do not accidentally promise a replacement. "We'll replace it" is a sentence that costs the business real money and cannot be walked back. The right answer is that we will assess it properly and come back to them, because that is true and it is also the only answer that keeps the number in the right place.` },
+
+    { h: 'The first thirty seconds',
+      body: `The owner is usually not the person taking the complaint. You are. What you say in the first thirty seconds decides how the whole thing goes.
+
+### Say something like this
+"I'm sorry, that's not the result we want either. Let me take the details and have a proper look at it, and we'll come back to you."
+
+Then: take the garment, write down what they say happened, note the docket number, and put it aside for assessment.
+
+That is it. Calm, taking it seriously, no verdict.
+
+### Never say
+- **Never admit fault on the spot.** "Oh, we must have shrunk it" is an admission, and you almost certainly do not yet know whether it is true.
+- **Never promise a refund or a replacement.** You are not the person who decides that, and once it is said it cannot be unsaid.
+- **Never blame the customer.** Even when the garment plainly failed through wear, "you've worn this out" turns a solvable claim into a fight and a bad review.
+
+### Why this works
+Most claims are not lost on the cleaning. They are lost on the first conversation — either because someone promised too much, or because someone was dismissive and the customer dug in. Neither happens if you take the details and say you will come back to them.` }
+  ],
+  quiz: [
+    { q: 'Under section 60 of the Australian Consumer Law, what exactly does a dry cleaner guarantee?',
+      a: ['A perfect result on every garment',
+          'That the service will be carried out with due care and skill',
+          'That every stain will be removed',
+          'Nothing, provided a disclaimer sign is displayed'],
+      correct: 1,
+      why: 'Section 60 guarantees due care and skill — a competent, careful job. It does not guarantee a perfect outcome, and it cannot be switched off by a sign.' },
+
+    { q: 'A customer points at the "All garments cleaned at owner’s risk" sign and asks what it means. What is the accurate answer?',
+      a: ['It removes the customer’s right to claim for any damage',
+          'It applies only to garments over a certain value',
+          'It has no legal effect on their consumer guarantees, which cannot be excluded',
+          'It transfers liability to the manufacturer'],
+      correct: 2,
+      why: 'Section 64 makes any term that tries to exclude or restrict a consumer guarantee void. A blanket sign does not remove the customer’s statutory rights.' },
+
+    { q: 'Which of these can we legitimately ask a customer to accept the risk on?',
+      a: ['Any damage at all, if they sign the docket',
+          'A specific, inherent risk in that item — such as perished silk that may split — explained before we take it',
+          'Damage caused by using the wrong solvent',
+          'Anything, as long as the sign is displayed at the counter'],
+      correct: 1,
+      why: 'At-risk acceptance is informed consent about a genuine risk inherent to that garment. It never covers our own poor workmanship.' },
+
+    { q: 'A jacket needs re-cleaning because it came back with a mark still on it. Who chooses the remedy?',
+      a: ['The customer, who can demand a cash refund',
+          'We do — it is a minor failure that can be put right in a reasonable time',
+          'Nobody; the customer must accept the garment as is',
+          'The insurer'],
+      correct: 1,
+      why: 'For a minor failure — one that can be fixed within a reasonable time — the supplier chooses the remedy. The customer only gets to choose when the failure is major.' },
+
+    { q: 'When does the customer get to choose the remedy?',
+      a: ['Whenever they are unhappy with the result',
+          'Only if they paid by card',
+          'When the failure is major — the item is lost, destroyed, or so damaged no reasonable person would have accepted the service',
+          'Only if they complain within 24 hours'],
+      correct: 2,
+      why: 'Sections 267 and 268: on a major failure the customer can reject the service, recover what they paid, and claim compensation for the reduced value of the item.' },
+
+    { q: 'A four-year-old coat that cost 400 dollars new is damaged beyond repair and it is our fault. What is the correct basis for compensation?',
+      a: ['400 dollars, the full replacement cost',
+          'The cleaning fee only',
+          'The coat’s current depreciated value, based on its age and condition',
+          'Whatever the customer says it is worth'],
+      correct: 2,
+      why: 'Fair compensation is the item’s depreciated value on the day it was damaged — the basis the International Fair Claims Guide and insurers use — not the cost of a new one.' },
+
+    { q: 'A customer returns a shrunken jumper and is visibly upset. Which response is correct?',
+      a: ['"That looks like our fault, we’ll replace it."',
+          '"That’s wear and tear, there’s nothing we can do."',
+          '"I’m sorry — let me take the details and have a proper look, and we’ll come back to you."',
+          '"You should have told us it was delicate."'],
+      correct: 2,
+      why: 'Take the details, take it seriously, give no verdict. Never admit fault, promise a remedy, or blame the customer at the counter — none of those are yours to decide, and each of them makes the claim worse.' },
+
+    { q: 'Why does it matter that you never say "we’ll replace it" at the counter?',
+      a: ['Because replacement is never owed under the ACL',
+          'Because it commits the business to a figure before anyone has assessed the garment, and it cannot be taken back',
+          'Because only the manufacturer can authorise a replacement',
+          'Because the customer must claim on their own insurance first'],
+      correct: 1,
+      why: 'A promise made at the counter sticks. Assessment decides whether anything is owed and how much — and the correct amount is depreciated value, not a new garment.' }
+  ]
+},
+{
+  id: 'intake',
+  num: '02',
+  title: 'Taking garments in',
+  blurb: 'Good intake is a documentation exercise. Most disputes are not lost on the cleaning — they are lost because nobody wrote down what the garment looked like before it went in.',
+  minutes: 10,
+  reviewed: 'August 2026',
+  source: 'Intake Procedures & Customer Service Best Practice',
+  lessons: [
+    { h: 'Check it in front of the customer',
+      body: `Every item gets looked at **at the counter, in front of the customer, before the docket is written**. Not in the back. Not later. Then.
+
+There are two reasons and both matter.
+
+1. Anything you find becomes a conversation instead of a claim. "There's a small tear on this seam — I'll note it" takes four seconds and ends the argument before it starts.
+2. If you find it later, you are the only witness, and the customer's memory of a perfect garment is very hard to beat.
+
+### What you are looking for
+Work the garment quickly but properly:
+
+- existing stains and marks
+- holes, tears, thin patches
+- fraying hems and cuffs
+- missing or loose buttons, broken zips and clasps
+- pilling
+- colour loss, fading, sun damage along folds
+- weak or slipping seams
+- any previous repair or alteration
+
+### And check the pockets
+Every pocket, every time. Pens, lipsticks, tissues and coins do enormous damage in a machine — and not just to that garment. One pen destroys a whole load.` },
+
+    { h: 'Write it down properly',
+      body: `Finding the damage is only half of it. What protects the business is **what you wrote**.
+
+Note three things every time: **type, location, severity**.
+
+- Good: "small oil mark, front right hem"
+- Good: "3cm fray, left cuff edge"
+- Useless: "marked"
+- Useless: "some damage"
+
+"Marked" tells a future assessor nothing. It does not prove the mark that came back is the mark you saw, and it does not prove where it was.
+
+### Where it goes
+On the ticket **and** in the system record. The record has to outlive the paper docket, because the paper docket will not be there in three months when the claim turns up.
+
+### Why this is worth the ten seconds
+Pre-existing damage tagging is the cheapest risk protection in the whole business. If a weak seam was there on the way in and you noted it, you have a defence when it opens on the way out. If you did not note it, you do not.
+
+The International Fair Claims Guide — the standard assessors and insurers actually use — specifically weighs the garment's condition and age at intake when it decides who wears the cost. A better intake note is a better outcome, every time.` },
+
+    { h: 'At-risk acceptance, done properly',
+      body: `Some items should only be taken in on the basis that the customer carries the risk:
+
+- no care label, or the label has been cut out
+- aged or sun-degraded fabric
+- delicate beading, sequins or trims
+- vintage pieces
+- anything where the safe cleaning method is genuinely uncertain
+- anything the customer wants cleaned **against** the label
+
+### How to do it
+**Say the specific risk out loud, in plain English, first.**
+
+"This silk has perished along the fold lines and it may split when it's cleaned. I can clean it, but I can't promise it will survive. Are you happy for me to try?"
+
+Then record that they accepted — a signed at-risk line on the docket, a ticked field in the system, or a text or email confirming it.
+
+### Specific beats blanket, every time
+A blanket "all items at owner's risk" stamped on every ticket is weak, and after the last module you know why. A **named risk on a particular garment that the customer verbally accepted** is strong.
+
+### What it does and does not cover
+At-risk acceptance is informed consent. It is not an indemnity.
+
+It protects us where the risk was genuinely inherent to the item. It does **not** protect us if we then over-process the garment or run it through the wrong solvent — the due care and skill guarantee still applies to how we handle it.
+
+Disclaim the perished silk splitting. Do not assume that disclaimer covers us shrinking it.` },
+
+    { h: 'Photograph the ones that matter',
+      body: `For anything valuable, photograph it at intake. Set a sensible threshold and stick to it — many operators use around 200 to 300 dollars — and always photograph:
+
+- wedding gowns
+- designer pieces
+- leather, suede and fur
+- heavily embellished or gilded garments
+- anything you have already flagged with pre-existing damage
+
+### How
+Whole garment, then close-ups of any damage, trims, fastenings and the care label. Store them against the order — in the system, or a dated folder keyed to the docket number. A photo nobody can find later is not evidence.
+
+### Tell the customer you are doing it
+It is not sneaky and it should not look sneaky. "I'll just take a couple of photos so we've both got a record of how it came in" reassures people. It signals you are taking their item seriously, and it protects them as much as us.
+
+### Why it is worth it
+A timestamped photo ends the "it wasn't like that when I dropped it off" conversation before it starts. On high-value claims, assessors give real weight to dated visual evidence. Thirty seconds of phone time against a potential four-figure claim is not a close call.` },
+
+    { h: 'Special instructions have to reach the plant',
+      body: `Customers regularly want something non-standard:
+
+- **no press** — pleating, delicate finishes, athletic wear
+- **hang only**, no fold
+- **individual cleaning** — high-value or heavily soiled items cleaned alone
+- starch level
+- spot treat only
+- box and preserve, for gowns
+
+### Capture it in both places
+Write it on the docket **and** into the system record, so it travels to the plant. A verbal instruction passed to a colleague at the counter is an instruction that will be lost.
+
+### When the instruction conflicts with the safe method
+If what they are asking for is riskier than the labelled or safe method, note that you advised them and record their decision. At that point it has become an at-risk acceptance, and you already know how to do one of those.
+
+### Why it matters
+Getting "no press" wrong on a 400 dollar pleated skirt is a claim that is very hard to defend, because the customer told us and there is no excuse available. Treat the instructions field as part of the contract, because that is what it is.` }
+  ],
+  quiz: [
+    { q: 'When should a garment be checked for pre-existing damage?',
+      a: ['In the plant, before cleaning',
+          'At the counter, in front of the customer, before the docket is written',
+          'Only if the customer mentions a problem',
+          'At assembly, when it is being bagged'],
+      correct: 1,
+      why: 'Checking in front of the customer turns anything you find into a conversation rather than a claim. Found later, you are the only witness.' },
+
+    { q: 'Which of these is a properly written pre-existing damage note?',
+      a: ['"Marked"',
+          '"Some damage"',
+          '"Small oil mark, front right hem"',
+          '"Customer says it was already dirty"'],
+      correct: 2,
+      why: 'Type, location and severity. "Marked" does not prove the mark that came back is the one you saw, or where it was.' },
+
+    { q: 'Where does a pre-existing damage note need to end up?',
+      a: ['On the paper docket only',
+          'In the staff member’s memory',
+          'On the ticket and in the system record',
+          'On the garment tag only'],
+      correct: 2,
+      why: 'The record has to outlive the paper docket — which will be long gone by the time a claim arrives months later.' },
+
+    { q: 'A customer brings in a vintage silk blouse with no care label. What is the correct approach?',
+      a: ['Refuse it outright',
+          'Clean it normally and say nothing',
+          'Name the specific risk out loud, then record that the customer accepted it',
+          'Stamp "at owner’s risk" on the ticket and move on'],
+      correct: 2,
+      why: 'A named, item-specific risk the customer verbally accepted is strong. A blanket stamp on every ticket is weak and does not reflect informed consent.' },
+
+    { q: 'We took a garment in at owner’s risk because the fabric was perished. It then shrinks badly because it went through the wrong process. Are we covered?',
+      a: ['Yes — the customer accepted the risk',
+          'No — at-risk acceptance covers the inherent risk, not our own poor process',
+          'Yes, provided they signed the docket',
+          'Only if the shrinkage is under 5 per cent'],
+      correct: 1,
+      why: 'At-risk acceptance is informed consent about an inherent risk. The due care and skill guarantee still applies to how we handle the item.' },
+
+    { q: 'Which item should always be photographed at intake?',
+      a: ['Every shirt in a bulk order',
+          'A wedding gown',
+          'Anything the customer seems anxious about',
+          'Nothing — photos slow the counter down'],
+      correct: 1,
+      why: 'Gowns, designer pieces, leather and suede, heavily embellished items and anything already flagged with pre-existing damage all get photographed.' },
+
+    { q: 'A customer asks for "no press" on a pleated skirt. What do you do?',
+      a: ['Remember it and tell the presser later',
+          'Write it on the docket and into the system record so it reaches the plant',
+          'Note it only if the garment is over 200 dollars',
+          'Explain that we press everything'],
+      correct: 1,
+      why: 'A verbal instruction passed along at the counter gets lost between intake and processing. It needs to be recorded in both places.' },
+
+    { q: 'Why check every pocket, every time?',
+      a: ['To find items the customer might claim went missing, and because one pen can ruin an entire load',
+          'Because the ACL requires it',
+          'Only on trousers and jackets',
+          'It is a courtesy, not a requirement'],
+      correct: 0,
+      why: 'Pens, lipsticks and tissues cause damage well beyond the garment they were in — and a customer’s missing keys become our problem the moment we did not look.' }
+  ]
+},
+{
+  id: 'tagging',
+  num: '03',
+  title: 'Tagging garments',
+  blurb: 'Every garment that comes in is about to be separated from its owner, its docket and every other garment in the order. The tag is the only thing that gets it back.',
+  minutes: 8,
+  reviewed: 'August 2026',
+  // The one module with no knowledge base source behind it. Written from general
+  // industry practice, and the owner should read it against their own system —
+  // heat seal, pin tags and POS labels all work differently — before it goes live.
+  source: 'General industry practice — review against our own tagging system',
+  lessons: [
+    { h: 'Why we tag at all',
+      body: `The moment a garment leaves the counter it stops being "Mrs Patel's navy coat" and becomes one of two hundred navy items in the plant. It will be sorted by process, not by owner. It will be cleaned with strangers' clothes, pressed by someone who never met the customer, and assembled hours or days later by a third person.
+
+The tag is the only thread running through all of that.
+
+Get tagging right and the worst thing that happens is a garment is late. Get it wrong and you have a lost item — which is a **major failure** under the ACL, which means the customer picks the remedy, which means you are paying depreciated value on something nobody can even find.
+
+### The two jobs a tag does
+1. **Identity** — which order this piece belongs to.
+2. **Count** — how many pieces that order is supposed to have.
+
+The second one is the one people forget, and it is the one that catches a missing garment before the customer does.` },
+
+    { h: 'One lot, every piece',
+      body: `### One lot number per customer per order
+Everything that came in together carries the same lot. Not one per garment type, not one per rack — one per order. That is what lets you reassemble it.
+
+If a customer drops off twice in a day, that is two orders and two lots. Merging them because it seems tidier is how half an order goes home and half does not.
+
+### Tag every piece
+Not every garment — every **piece**. This is where orders come apart:
+
+- belts and sashes
+- suit trousers **and** the jacket **and** the waistcoat
+- detachable liners and hoods
+- fur collars that unclip
+- scarves, ties and pocket squares
+- spare buttons that came with the item
+
+A three-piece suit is three tagged pieces, not one. A belt that goes through the machine untagged is a belt nobody can match to anything.
+
+### Count it in front of the customer
+Say the number out loud as you write it. "That's five pieces — two shirts, trousers, jacket, and the belt." It takes two seconds, the customer agrees to the number then and there, and the count is now on the docket rather than in dispute.` },
+
+    { h: 'Where the tag goes',
+      body: `The rule underneath all of this: **a tag must never leave a mark the customer can see.**
+
+### The safe places
+Work to an inside seam, a facing, or an existing label:
+
+- **Shirts and blouses** — inside the collar band, or the inside of the tail hem
+- **Trousers** — inside the waistband, at the back
+- **Jackets and coats** — inside the lining at the hem, or the inside back neck
+- **Skirts and dresses** — inside the waistband or the side seam allowance
+- **Knitwear** — the care label itself, never the knit
+- **Ties** — the keeper loop or the back tipping, never the face
+
+### Never
+- through **face fabric** anywhere it will show
+- through **leather or suede** — a pin hole in a hide is permanent, and you cannot press it out
+- through **coated, laminated or PU fabrics** — the coating splits and the split spreads
+- through **silk or fine knits** — a pin pulls a thread and the pull runs
+- through **sequins, beading or embroidery** — you will lose the thread that holds them
+- through a **seam under tension** — the hole opens
+
+On any of those, tag the care label, or use a safety pin through an existing hole such as a button placket, or bag and tag the item separately.
+
+### If in doubt
+Ask. A thirty-second question is cheaper than a permanent hole in a 900 dollar jacket.` },
+
+    { h: 'Pins, staples and heat seals',
+      body: `Whatever system we use, the failure modes are the same.
+
+### Heat seal tags
+Fast and secure, and the usual choice. But heat is heat:
+
+- never heat seal directly onto **face fabric**
+- never onto **synthetics that will melt** — acetate, some linings, sportswear
+- never onto **coated fabrics**
+- go onto the care label or a seam allowance where the heat has somewhere to go
+
+### Pin tags
+Flexible, and forgiving on most woven fabrics. But a pin makes a hole, and on the wrong fabric the hole is permanent. Re-read the never list from the last page before you reach for one.
+
+### Staples
+Fast, and the most damaging option in the building. Staples rust, they tear when the garment is handled, and they leave two holes rather than one. If we use them at all, they go through the care label and nothing else.
+
+### Before you tag anything
+**Empty the pockets first.** Tagging is the last point where anyone will look. Once it is tagged it goes to sorting, and the pen in the inside pocket goes with it.` },
+
+    { h: 'When it goes wrong',
+      body: `Tags come off. Fabric moves, heat seals lift, pins snag. What matters is what happens next.
+
+### If you find an untagged garment
+**Do not guess and do not re-tag it with a plausible lot number.** A wrongly re-tagged garment is worse than an untagged one — it will go home with the wrong customer, and now you have two problems and one of them is a privacy problem.
+
+Set it aside in the designated place and tell someone. Almost every untagged garment is matched within a day by the order that is short a piece, which is exactly why the piece count exists.
+
+### If an order is short at assembly
+Stop and check before it is bagged. Look at the count on the docket against what is on the rack. A missing piece found at assembly is a garment still in the building. A missing piece found by the customer is a claim.
+
+### If a customer says a piece is missing
+Take the details, check the docket count, and check the untagged rack. Do not tell them it is lost and do not tell them it is not. It is an assessment like any other, and the answer comes back to them.
+
+### The one-line version
+The tag is not paperwork. It is the only reason the right garment goes home with the right person.` }
+  ],
+  quiz: [
+    { q: 'How many lot numbers does one customer’s single drop-off get?',
+      a: ['One per garment',
+          'One per order — every piece that came in together carries the same lot',
+          'One per garment type',
+          'One per rack it ends up on'],
+      correct: 1,
+      why: 'One lot per customer per order is what allows the order to be reassembled. Splitting or merging lots is how half an order goes home.' },
+
+    { q: 'A customer brings in a two-piece suit and a belt. How many pieces get tagged?',
+      a: ['One — it is one order',
+          'Two — the jacket and trousers; belts do not need tagging',
+          'Three — jacket, trousers and belt',
+          'Two — the suit counts as one piece plus the belt'],
+      correct: 2,
+      why: 'Every piece gets a tag, including belts, sashes, liners, detachable hoods and waistcoats. An untagged belt is a belt nobody can match to an order.' },
+
+    { q: 'Where should a tag go on a leather jacket?',
+      a: ['Pinned through the lining hem or the care label — never through the hide',
+          'Pinned through the collar',
+          'Stapled to the cuff',
+          'Heat sealed to the front panel'],
+      correct: 0,
+      why: 'A pin hole in leather or suede is permanent and cannot be pressed out. Tag the care label or the lining, or bag and tag the item separately.' },
+
+    { q: 'Which of these is a safe place to tag a shirt?',
+      a: ['Through the front placket, between the buttons',
+          'Inside the collar band or the inside tail hem',
+          'On the cuff, where it is easy to find',
+          'Through the chest pocket'],
+      correct: 1,
+      why: 'Tags go to an inside seam, facing or existing label — somewhere that will never show. The underlying rule is that a tag must not leave a mark the customer can see.' },
+
+    { q: 'Which fabric must never be heat sealed directly?',
+      a: ['Cotton drill',
+          'Wool suiting',
+          'An acetate lining or a coated fabric',
+          'Denim'],
+      correct: 2,
+      why: 'Synthetics such as acetate will melt and coated fabrics will split. Heat seal onto the care label or a seam allowance instead.' },
+
+    { q: 'When is the last practical moment to check a garment’s pockets?',
+      a: ['At assembly',
+          'Before tagging — after that it goes straight to sorting',
+          'In the machine room',
+          'When the customer collects'],
+      correct: 1,
+      why: 'Tagging is the last point where anyone handles the garment individually. Anything still in a pocket goes into the machine with it.' },
+
+    { q: 'You find an untagged jacket on the rack. What do you do?',
+      a: ['Re-tag it with the lot number of the order it most likely belongs to',
+          'Clean it and hold it until someone asks',
+          'Set it aside in the designated place and tell someone',
+          'Bag it with the nearest order'],
+      correct: 2,
+      why: 'Guessing a lot number sends the garment home with the wrong customer, which is worse than it being untagged. It will usually be matched within a day by the order that is short a piece.' },
+
+    { q: 'Why is the piece count on the docket worth saying out loud to the customer?',
+      a: ['It is a legal requirement',
+          'It agrees the number at intake, so a short order is caught at assembly rather than disputed later',
+          'It speeds up the counter',
+          'It determines the price'],
+      correct: 1,
+      why: 'An agreed count means a missing piece is found at assembly, while the garment is still in the building — instead of being found by the customer, which makes it a claim.' }
+  ]
+},
+{
+  id: 'reading',
+  num: '04',
+  title: 'Reading the garment',
+  blurb: 'Most claims and write-offs are decided before the garment goes anywhere near a machine — at the counter, by whoever looked at it. Here is what to look for.',
+  minutes: 12,
+  reviewed: 'August 2026',
+  source: 'Garment Categories and Risk Profiles, and the DLI Textile Analysis Bulletins',
+  lessons: [
+    { h: 'The care label is a starting point, not gospel',
+      body: `Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong — mislabelled imports, labels cut out because they itched, labels that describe the face fabric and ignore the trim.
+
+### How to use a label
+Read it, and treat it as the manufacturer's opinion rather than a guarantee.
+
+- If the label says dry clean only and the fabric is obviously fine to wet clean, the label still sets the expectation. Departing from it is a decision, not a default.
+- **Once we depart from the label, liability shifts to us.** That is the whole point of the rule. If we followed a reasonable label and the garment failed anyway, we have a genuine answer. If we ignored it, we own the outcome.
+- If the label is missing, that is not a free hand. **No label means at-risk, every time.** Say so and record it.
+
+### Check the trim, not just the fabric
+The label describes the main fabric. It very often says nothing about the leather trim on the cuffs, the plastic buttons, or the glued-on appliqué — all of which will react differently to the process the label recommends.` },
+
+    { h: 'Sewn or glued',
+      body: `On anything embellished, this is the single most important question you can ask, and you can usually answer it by looking closely for ten seconds.
+
+### Why it decides everything
+- **Sewn** embellishments — beads and sequins stitched through the fabric — usually survive solvent. Not always, but usually.
+- **Glued** embellishments — anything held on with adhesive, including most flat stones, foil prints, flock and heat-applied motifs — very often do not. Solvent dissolves the adhesive and the decoration comes off in the machine, sometimes taking the print with it.
+
+### How to tell
+Look at the reverse of the fabric behind the decoration. Stitching shows through. Glue does not — you will see a stiff patch or a shiny film instead.
+
+### What to do
+Glued embellishment is an at-risk conversation, every time. Name it: "These stones are glued rather than stitched, and the cleaning solvent can soften that adhesive. I can clean it, but some of them may come off."
+
+The same question applies to **coated and laminated fabrics** — vinyl, PU, anything with a plastic-feeling face or a metallic finish. Those coatings crack, peel and go tacky, and they were never really designed to be cleaned.` },
+
+    { h: 'Fabrics that need a second look',
+      body: `### Wool
+Shrinks and felts with heat and agitation. Check for existing pilling and for shine on the seat, elbows and cuffs — that shine is worn fibre and it will not come back.
+
+### Silk
+Weakens with age, light and perspiration. Look along fold lines and at the underarms. Perished silk splits when it is handled, and it will split for us rather than for the customer.
+
+### Leather and suede
+The highest-claim material family there is. A garment is built from many skin panels from different animals, dyed in different lots — so colour variation, veins, scars and coarse patches are inherent to the material, not faults we caused. Check the panels against each other in daylight and note anything obvious before it goes.
+
+### Fusible interfacing
+The stiffener glued inside collars, cuffs, plackets and jacket fronts. When the adhesive fails you get **bubbling** — a rippled, blistered look through the collar or lapel. It very often only shows up after cleaning, because the process is what reveals a bond that had already gone. Check collars and lapels in raking light on the way in, and note any rippling you can already see.
+
+### Vinyl, PU and metallics
+Assume they will not survive. Coatings crack, peel, discolour and stick to themselves. At-risk, always.` },
+
+    { h: 'Age and wear',
+      body: `A lot of what comes back as a complaint is a garment that was already finished before we saw it. Learn to spot it on the way in.
+
+### Thin and worn areas
+Hold the fabric up to the light. Thin patches at the seat, elbows, knees and inside thighs are worn fabric. The next thing that happens to them is a hole, and the cleaning process is often what finishes the job.
+
+### Wear shine
+A flat, glazed sheen on high-contact areas — the seat, cuffs, elbows. The fibre surface has been abraded flat. It cannot be reversed by cleaning and it is not caused by cleaning.
+
+### Pilling
+Little balls of tangled fibre on the surface, worst where the garment rubs against itself or a bag strap. Normal for blends and soft wools, and worth noting because customers frequently believe we caused it.
+
+### Fraying hems and cuffs
+Especially on unsecured edges. Cleaning will move a fray along. Note the existing extent.
+
+### Seam and yarn slippage
+Yarns pulling apart at a seam, leaving a gappy, laddered look. It is a construction and fit issue — a garment worn too tight — and it will get worse in the machine.
+
+### Insect damage
+Small, irregular holes, often in clusters, usually on wool and often in areas that were stored rather than worn. Not our doing, but very commonly blamed on us, so note it.` },
+
+    { h: 'Colour risk',
+      body: `Dye problems are the fastest way to turn one garment into a whole load of ruined garments.
+
+### What to look for
+- **Deep, saturated colours** — especially reds, blacks and indigo — on anything that has not been cleaned before
+- **Denim**, which streaks and crocks readily
+- **Black and white in one garment**, or a light garment being cleaned alongside a dark one
+- **Colour variation between panels** already visible — a sign the pieces were cut from different dye bolts, which is a manufacturing matter and not ours
+- **Sun fading** along shoulders, one side of a garment, or the exposed edge of a curtain
+
+### The test worth doing
+On anything you are unsure about, damp a white cloth and press it firmly against an inside seam allowance. If colour transfers, that dye is not fast, and it needs to be cleaned alone if at all.
+
+### Soft furnishings
+Curtains deserve their own warning. Sun-rotted curtains **will** split when they are handled. The fabric was already gone and our process merely revealed it — but we will wear the blame unless it was flagged at intake. Check the leading edge and the section that faced the window, and put it in writing.` }
+  ],
+  quiz: [
+    { q: 'A garment has no care label. What does that mean for how we take it in?',
+      a: ['We can clean it however we judge best, with no extra step',
+          'We must refuse it',
+          'It is an at-risk item — name the risk and record the customer’s acceptance',
+          'We follow the label of a similar garment'],
+      correct: 2,
+      why: 'A missing label is a textbook trigger for at-risk acceptance. It is not a free hand, and it is not a reason to refuse.' },
+
+    { q: 'What happens to liability when we depart from the care label?',
+      a: ['Nothing — labels are only advisory',
+          'It shifts to us',
+          'It shifts to the manufacturer',
+          'It is shared equally with the customer'],
+      correct: 1,
+      why: 'Following a reasonable label gives us a genuine answer if the garment fails anyway. Departing from it means we own the outcome.' },
+
+    { q: 'A dress is covered in flat stones. How do you tell whether they are a problem?',
+      a: ['By their colour',
+          'By checking the reverse of the fabric — stitching shows through, glue leaves a stiff or shiny patch',
+          'By how heavy the dress is',
+          'By the price tag'],
+      correct: 1,
+      why: 'Sewn or glued is the single most important question on an embellished garment. Sewn usually survives solvent; glued very often does not.' },
+
+    { q: 'What is fusible interfacing bubbling, and where does it show?',
+      a: ['Dye bleeding from the lining, seen at the hem',
+          'The glued stiffener inside collars, cuffs and lapels failing, giving a rippled or blistered look',
+          'Shrinkage across the shoulders',
+          'A pressing fault caused by too much steam'],
+      correct: 1,
+      why: 'It is an adhesive failure in the garment’s construction, and cleaning usually reveals a bond that had already gone rather than causing it.' },
+
+    { q: 'A pair of trousers has a flat, glazed sheen across the seat. What is it?',
+      a: ['A pressing fault we caused',
+          'Wear shine — abraded fibre from use, which cleaning cannot reverse and did not cause',
+          'Dye migration',
+          'Residue from the solvent'],
+      correct: 1,
+      why: 'Wear shine is the fibre surface abraded flat by contact. It is not reversible and it is not a cleaning fault — but it is very often blamed on the cleaner.' },
+
+    { q: 'Colour variation is already visible between the panels of a new jacket. What does that usually indicate?',
+      a: ['The garment has been cleaned too often',
+          'The panels were cut from different dye bolts — a manufacturing matter',
+          'Sun damage',
+          'The customer has spilled something'],
+      correct: 1,
+      why: 'Different dye bolts across panels is an inherent manufacturing variation. Noting it at intake is what stops it being blamed on the clean.' },
+
+    { q: 'You are unsure whether a deep red garment’s dye is fast. What is the practical check?',
+      a: ['Smell the fabric',
+          'Damp a white cloth and press it firmly against an inside seam allowance to see if colour transfers',
+          'Hold it up to the light',
+          'Check the care label for a colour code'],
+      correct: 1,
+      why: 'A transfer test on a hidden seam allowance tells you whether the dye is loose before it has a chance to ruin a whole load.' },
+
+    { q: 'A customer brings in long curtains that faced a west-facing window for years. What is the risk to flag?',
+      a: ['They will shrink',
+          'The colour will run',
+          'Sun-rotted fabric will split when handled — the damage is already there, the process just reveals it',
+          'They will pill'],
+      correct: 2,
+      why: 'Sun degradation destroys the fibre before we ever see it. Unless it is flagged and recorded at intake, we wear the blame for revealing it.' }
+  ]
+},
+{
+  id: 'fault',
+  num: '05',
+  title: 'Whose fault is it?',
+  blurb: 'Most garment faults are not the cleaner’s. Knowing which is which is what stops us paying for damage we did not cause — and stops us fighting one we did.',
+  minutes: 10,
+  reviewed: 'August 2026',
+  source: 'DLI Textile Analysis Bulletins and the International Fair Claims Guide',
+  lessons: [
+    { h: 'Three possible answers',
+      body: `When a garment comes back with a problem, there are only ever three answers, and the industry has spent decades working out which is which.
+
+### The manufacturer
+The garment was made in a way that was never going to survive normal care. Bad adhesive, unstable dye, incompatible trim, a construction that fails under its own weight. The fault was built in, and cleaning is simply what revealed it.
+
+### The consumer
+The garment was worn out, damaged, stored badly, or exposed to something at home. Wear, abrasion, perspiration, insects, sun, a spill that was never mentioned.
+
+### The cleaner
+We used the wrong process, over-processed, missed something obvious, or lost the item.
+
+### Why you need the framework, not the answers
+You are not going to memorise 149 bulletins. What you need is the habit of asking **which of the three this is** rather than assuming it is the third one — because the industry data says the third one is the least common of the three, and the counter instinct is to assume it is us.
+
+The full analysis lives in the app. Ask Hangr about any specific fault and it will give you the bulletin, the cause and the verdict.` },
+
+    { h: 'The classics that are not our fault',
+      body: `These come up constantly and they are almost always the garment, not the clean.
+
+### Fusible bubbling
+Rippled, blistered collars, cuffs and lapels. The glue holding the interfacing failed. **Manufacturer.** Cleaning revealed a bond that had already gone.
+
+### Colour loss across different panels
+Panels of the same garment ending up visibly different shades. They were cut from different dye bolts. **Manufacturer.**
+
+### Wear shine
+Glazed sheen on the seat, elbows and cuffs. Abraded fibre. **Consumer.** Not reversible and not caused by us.
+
+### Insect holes
+Small irregular holes in clusters, usually wool, usually in stored garments. **Consumer.**
+
+### Perspiration damage
+Weakened, discoloured or split fabric at the underarms and along the waistband. Body salts and oils degrade fibre and dye over time — often invisible until cleaning removes what was masking it. **Consumer.**
+
+### Distressed and pre-washed denim
+Garments deliberately manufactured with weakened, abraded fabric. They continue doing what they were designed to look like. **Manufacturer, by design.**
+
+### Loss of a synthetic suede finish
+Flock coating crumbling off a fake-suede garment. The binder was softened by light, body oils or solvent. **Manufacturer** — the material was never compatible.
+
+### Colour loss from wear
+Fading concentrated where the garment rubs — collar edges, cuff folds, bag-strap lines. **Consumer.**` },
+
+    { h: 'And the ones that are',
+      body: `Being straight about this matters as much as the rest, because a claim we should pay and fight anyway costs more than the garment.
+
+It is likely ours when:
+
+- the **wrong process** was used for the fabric — a wet clean on something that needed solvent, or the reverse
+- the garment was **over-processed** — too hot, too long, too much agitation
+- a **spotting agent** was used wrongly, leaving a ring, a bleached patch or weakened fibre
+- **colour transferred from another garment** in the same load, because a risky item was not cleaned separately
+- an **obvious risk was missed at intake** — the glued embellishment nobody looked at
+- a garment was **damaged in pressing** — scorch, an impression, a broken button
+- the item was **lost**
+
+### The honest test
+Ask: would a careful operator, doing this job properly, have got a different result?
+
+If the answer is yes, it is ours and the sooner that is established the cheaper it is. If the answer is no, we have a genuine position and there is a bulletin that supports it.` },
+
+    { h: 'What you do with any of this at the counter',
+      body: `Almost nothing. That is the point.
+
+You now know enough to recognise a fault that is very unlikely to be ours. That knowledge is for **writing a better note**, not for delivering a verdict across the counter.
+
+### Why not just tell them
+Three reasons.
+
+1. **You might be wrong.** Fusible bubbling and press damage can look similar to an untrained eye, and so can insect holes and abrasion holes. The assessment exists for a reason.
+2. **It sounds like an excuse**, even when it is true. "That's the manufacturer's fault" from the person who has just returned a ruined jacket is heard as a brush-off, and the customer digs in.
+3. **It commits us.** A verdict given at the counter is very hard to move away from later, in either direction.
+
+### So what you actually do
+Take the details. Write down what you can see, in the same type-location-severity language you use at intake. Note anything relevant from the intake record — was it flagged, was it at-risk, was there a photo. Then:
+
+"Let me take this and have it properly assessed, and we'll come back to you."
+
+### Then let the assessment do the work
+Hangr will take the fault, the fabric, the garment's age and the intake record and give a considered position — and if it holds, it will draft the letter that explains it to the customer. That letter is worth a great deal more than a sentence at the counter, and it does not put you in the middle of it.` }
+  ],
+  quiz: [
+    { q: 'When a garment fault appears, what are the three possible answers?',
+      a: ['The customer, the insurer, or the cleaner',
+          'The manufacturer, the consumer, or the cleaner',
+          'The fabric, the machine, or the operator',
+          'Wear, water, or heat'],
+      correct: 1,
+      why: 'Manufacturer, consumer or cleaner. The habit worth building is asking which of the three it is, rather than assuming it is us.' },
+
+    { q: 'A jacket collar comes back rippled and blistered. What is the most likely verdict?',
+      a: ['Cleaner — over-pressing',
+          'Consumer — the jacket was stored badly',
+          'Manufacturer — the fusible interfacing adhesive has failed',
+          'Cleaner — the wrong solvent'],
+      correct: 2,
+      why: 'Fusible bubbling is an adhesive failure built into the garment. Cleaning reveals a bond that had already gone rather than causing it.' },
+
+    { q: 'A wool coat has small irregular holes in clusters, mostly where it was stored. What is the likely cause?',
+      a: ['Insect damage — a consumer matter',
+          'Solvent burn',
+          'A manufacturing defect in the weave',
+          'Abrasion from the machine'],
+      correct: 0,
+      why: 'Clustered irregular holes in stored wool are the classic insect signature — commonly blamed on the cleaner, which is exactly why it gets noted at intake.' },
+
+    { q: 'Which of these is most likely to be our fault?',
+      a: ['Fading along the collar edge and cuff folds',
+          'Colour from a dark garment transferring onto a light one in the same load',
+          'A glazed sheen across the seat of a pair of trousers',
+          'Panels of a jacket in slightly different shades'],
+      correct: 1,
+      why: 'Cross-contamination in a load means a risky item was not identified and cleaned separately. The other three are wear or manufacturing matters.' },
+
+    { q: 'What is the honest test for whether a fault is ours?',
+      a: ['Whether the customer is insistent',
+          'Whether the garment was expensive',
+          'Whether a careful operator, doing the job properly, would have got a different result',
+          'Whether it was flagged at intake'],
+      correct: 2,
+      why: 'That question separates a process failure from an inherent one — and a claim we should pay is cheaper paid than fought.' },
+
+    { q: 'You are fairly confident a returned garment failed because of a manufacturing defect. What do you say to the customer?',
+      a: ['"That’s a manufacturing fault, you’ll need to take it back to the shop."',
+          '"Let me take this and have it properly assessed, and we’ll come back to you."',
+          '"That’s not our fault."',
+          '"We can replace it if you like."'],
+      correct: 1,
+      why: 'Even when you are right, a verdict at the counter sounds like an excuse, commits the business, and may be wrong. Take the details and let the assessment do the work.' },
+
+    { q: 'Why does knowing the common fault patterns still matter, if you are not going to tell the customer?',
+      a: ['It does not — it is background only',
+          'So you can write a better, more specific note for the assessment',
+          'So you can decide whether to accept the claim',
+          'So you can set the settlement figure'],
+      correct: 1,
+      why: 'The knowledge goes into the note, in the same type-location-severity language used at intake. A specific note is what makes a defensible assessment possible.' },
+
+    { q: 'Distressed denim comes back with a tear in a deliberately abraded area. Whose responsibility is that likely to be?',
+      a: ['The cleaner — the process finished it off',
+          'The manufacturer — the garment was made with weakened fabric by design',
+          'The consumer — they wore it too hard',
+          'Nobody; it is unassessable'],
+      correct: 1,
+      why: 'Distressed and pre-washed denim is manufactured with deliberately weakened fabric, and it goes on behaving that way. It is a design consequence, not a cleaning fault.' }
+  ]
+},
+{
+  id: 'using-hangr',
+  num: '06',
+  title: 'How to use Hangr',
+  blurb: 'If you have never used something like this before, start here. It is not Google and it is not a search box — it is closer to asking a very well-read colleague.',
+  minutes: 8,
+  reviewed: 'August 2026',
+  source: 'How this app works',
+  lessons: [
+    { h: 'What this thing actually is',
+      body: `Hangr is a consultant you type at. That is the whole idea.
+
+It is **not a search engine**. You do not type keywords at it and pick through results. You ask it a question the way you would ask a colleague who happened to have read every industry bulletin, the Award, the Consumer Law and our own price list, and it answers in plain English.
+
+### What it already knows
+You do not have to explain the basics every time. It has been told:
+
+- our business name, our sites and where we are
+- what services we offer and what equipment we run
+- our price lists, if they have been loaded
+- any documents that have been uploaded
+- the whole dry cleaning knowledge base — consumer law, garment faults, stain chemistry, safety
+
+So "what do I charge for a wedding dress" is a sensible question. It knows which price list you mean.
+
+### What it is not
+It is not the last word. It gives very good general guidance, and it can still be wrong about a specific situation. On anything that really matters — a big claim, a legal question, a dispute heading somewhere formal — it is a starting point for the owner, not a decision.` },
+
+    { h: 'Asking a question',
+      body: `Find **Chat** in the menu on the left. There is a box at the bottom of the screen. Type in it and press **Send**, or just press **Enter**.
+
+If you want a new line inside your question rather than sending it, hold **Shift** and press Enter.
+
+### Write like you talk
+Full sentences. Plain English. Describe the situation the way you would describe it to someone standing next to you.
+
+Do not worry about spelling, grammar, or sounding professional. It genuinely does not matter and it will not change the answer.
+
+### Vague in, vague out
+This is the single biggest difference between a useful answer and a useless one.
+
+**Not much use:**
+- "stain"
+- "wool"
+- "customer complaint"
+
+**Much better:**
+- "A customer's cream wool coat has a red wine stain on the front, about the size of a 50 cent piece. It happened last night. How should I treat it?"
+- "A customer says the jumper we cleaned has shrunk. It's a lambswool crew neck, about two years old, and the label said dry clean only. What do I do?"
+- "What's our price for a two-piece suit?"
+
+The difference is detail — what the garment is, what happened, how old it is, what the label said. The more of that you give it, the more specific the answer comes back.` },
+
+    { h: 'Keep talking to it',
+      body: `A chat is a conversation, not a series of separate questions. It remembers everything you have said in **that** chat.
+
+So you can just carry on:
+
+- "What if it's silk instead?"
+- "The customer's not happy with that, what else can I offer?"
+- "Can you say that more simply?"
+- "What do I actually say to them?"
+
+You do not have to repeat the background. That is the main advantage over searching.
+
+### Starting a fresh one
+When you move on to a completely different subject, press **New chat** at the top of the left-hand menu. That gives it a clean slate so the last customer's problem does not get mixed into the next one.
+
+Your old chats stay in the list on the left. Click one to go back to it — useful when the same customer comes back a week later.
+
+### If the answer is too long
+Ask for less. "Give me the short version" or "just tell me what to say to the customer" both work. It will match whatever you ask for.` },
+
+    { h: 'Showing it a garment',
+      body: `You can send it a photo, which is often faster than describing something.
+
+Press the **Photo** button next to the box, pick or take a picture, and it attaches to your next message. You will see a small preview above the box confirming it is attached, with a **Remove** button if you grabbed the wrong one.
+
+Then type your question and send as normal.
+
+### What to photograph
+- the damage itself, close enough to see clearly
+- the **care label** — this one is worth doing almost every time
+- the whole garment, for context
+- anything you cannot find the words for
+
+### A good photo question
+"This came back from the machine like this. It's a viscose blouse, the label is in the second photo. What's happened here?"
+
+### One at a time
+Send one photo per message. If you need to show it the damage and the label, send the damage, get the answer, then send the label with a follow-up.` },
+
+    { h: 'What it will not tell you, and why',
+      body: `If you are signed in as counter staff, there are subjects Hangr will politely decline:
+
+- **pay rates, the Award, rosters, warnings, anything about a named employee** — that is the owner's business, not the app's
+- **what the business earns, what bills cost, margins** — same
+- **customer claims and what we have paid out** — same
+
+### This is not a fault and it is not about you
+It is set up that way on purpose. Those subjects involve other people's private information — including other staff members' pay and performance — and the app does not hand that out on a counter login. Your own login is protected by exactly the same rule.
+
+If you need an answer on one of those, ask the owner. That is the right path, not a workaround.
+
+### Everything else, ask freely
+Garments, stains, complaints, what to say to a customer, at-risk decisions, prices from our own price list, safety, how to handle something you have not seen before. All of that is what it is for, and there is no such thing as a stupid question — asking beats guessing on a garment you cannot replace.` },
+
+    { h: 'Getting an answer out of the app',
+      body: `Sometimes an answer needs to leave the screen.
+
+### Save a single answer as a PDF
+Under any answer there is a **Save this advice as a PDF** button. It turns that one answer into a tidy one-page note on our letterhead — good for pinning up, or handing to whoever is on the next shift.
+
+### Export a whole chat
+The **Export chat** button at the top of the chat gives you the full conversation, or a summary of it, as a PDF or a Word document.
+
+### Letters
+When a conversation is heading somewhere that needs writing to a customer, Hangr will offer a button to draft the letter — a defence letter, a settlement, an at-risk authorisation at intake. Press it, fill in the details it asks for, and it writes it.
+
+The letter is a **draft**. It goes to the owner to check and send. Do not send one to a customer yourself unless you have been told you can.
+
+### One last thing
+Do not put more customer personal information into a chat than the question actually needs. A first name and the garment is almost always enough. It is good privacy practice and it costs nothing.` }
+  ],
+  quiz: [
+    { q: 'What is the best way to think about Hangr?',
+      a: ['A search engine — type keywords and pick from the results',
+          'A colleague who has read the industry material and knows our business, who you ask in plain English',
+          'A database of our customer records',
+          'A messaging app for contacting the owner'],
+      correct: 1,
+      why: 'It is a consultant you type at. Ask it a full question the way you would ask a well-read colleague, rather than feeding it keywords.' },
+
+    { q: 'Which of these will get you the most useful answer?',
+      a: ['"stain"',
+          '"wool coat problem"',
+          '"A customer’s cream wool coat has a red wine stain on the front, about the size of a 50 cent piece, from last night. How should I treat it?"',
+          '"help"'],
+      correct: 2,
+      why: 'Detail is what makes the answer specific — what the garment is, what happened, when, and what the label said. Vague in, vague out.' },
+
+    { q: 'You have asked about a wool jumper and now want to know what would change if it were silk. What do you do?',
+      a: ['Start a new chat and explain the whole situation again',
+          'Just ask "what if it’s silk instead?" — it remembers the conversation',
+          'Send a photo instead',
+          'Ask the owner'],
+      correct: 1,
+      why: 'A chat is a conversation. It keeps the context of everything said in that chat, so follow-up questions need no repetition.' },
+
+    { q: 'When should you press "New chat"?',
+      a: ['After every question',
+          'When you move on to a completely different subject',
+          'Only at the start of a shift',
+          'Never — it deletes your history'],
+      correct: 1,
+      why: 'A new chat gives a clean slate so one customer’s problem does not bleed into the next. Old chats stay in the list on the left and can be reopened.' },
+
+    { q: 'What is almost always worth photographing when you send a picture of a problem garment?',
+      a: ['The customer’s docket',
+          'The care label',
+          'The rack it was hanging on',
+          'The price list'],
+      correct: 1,
+      why: 'The care label tells it what the garment is meant to tolerate, which changes the answer more than almost anything else you can show it.' },
+
+    { q: 'You ask about a colleague’s pay rate and Hangr declines to answer. What is going on?',
+      a: ['The app is broken and should be reported',
+          'You have asked it the wrong way and should rephrase',
+          'Staffing and pay are deliberately not available on a counter login, because they involve other people’s private information',
+          'You need to attach a photo'],
+      correct: 2,
+      why: 'Pay, rosters, financials and claim payouts are withheld on a staff login by design. It protects everyone’s information, including your own. Ask the owner instead.' },
+
+    { q: 'Hangr offers to draft a settlement letter to a customer. What do you do with it?',
+      a: ['Send it to the customer straight away',
+          'Print it and hand it to the customer at the counter',
+          'Treat it as a draft for the owner to check and send',
+          'Delete it — only the owner can generate letters'],
+      correct: 2,
+      why: 'Letters are drafts. They go to the owner to check and send unless you have specifically been told otherwise.' },
+
+    { q: 'How much customer personal information should go into a chat?',
+      a: ['As much as possible, so the answer is accurate',
+          'Only what the question actually needs — usually a first name and the garment',
+          'Their full name, address and phone number every time',
+          'None at all, ever'],
+      correct: 1,
+      why: 'Give it what the question needs and no more. A first name and the garment is almost always enough, and it is good privacy practice.' }
+  ]
+}
+];
+
+// ===== Records and progress =====
+// Every attempt is kept, pass or fail. A fail followed by a pass is a better
+// training record than a bare pass, and the register is meant to be an audit
+// trail rather than a scoreboard.
+
+// Two different questions, and conflating them corrupts the record.
+//
+// activeCourses() is "what may a learner start today" — the built-in six minus
+// anything this business has switched off or superseded, plus its own published
+// courses. courseById() is "what was this record about", and must find a course
+// whether or not it is still in use. Someone who passed Tagging last month
+// genuinely passed it, and switching that course off afterwards must not turn
+// their record into a blank row.
+function activeCourses() {
+  const custom = (state.customCourses || []).filter(c => c && c.status === 'published');
+  const replaced = new Set(custom.map(c => c.replaces).filter(Boolean));
+  const hidden = new Set(state.hiddenCourses || []);
+  return TRAINING_MODULES
+    .filter(m => !replaced.has(m.id) && !hidden.has(m.id))
+    .concat(custom)
+    .sort((a, b) => String(a.num || '').localeCompare(String(b.num || '')));
+}
+
+function courseById(id) {
+  return TRAINING_MODULES.find(m => m.id === id) ||
+         (state.customCourses || []).find(c => c && c.id === id) || null;
+}
+
+// Courses that still carry records, so a switched-off course keeps its place on
+// the register and the certificate rather than quietly disappearing.
+function coursesWithHistory() {
+  const active = activeCourses();
+  const seen = new Set(active.map(c => c.id));
+  const extra = [];
+  (state.training || []).forEach(r => {
+    if (seen.has(r.moduleId)) return;
+    seen.add(r.moduleId);
+    const c = courseById(r.moduleId);
+    if (c) extra.push(Object.assign({}, c, { retired: true }));
+  });
+  // Sorted together rather than tacked on the end, so the register still reads
+  // 01, 02, 03… A retired course can share a number with the one that replaced
+  // it; the retired marker and the column tooltip are what tell them apart.
+  return active.concat(extra)
+    .sort((a, b) => String(a.num || '').localeCompare(String(b.num || '')) || (a.retired ? 1 : -1));
+}
+
+function trainingModule(id) { return courseById(id); }
+function trainingPassMark(total) { return Math.ceil(total * TRAINING_PASS_MARK); }
+
+// Latest attempt for one person on one module. staffId is the roster link where
+// there is one; people not on the roster fall back to matching on name.
+function trainingLatest(who, moduleId) {
+  if (!who) return null;
+  const rows = (state.training || []).filter(r =>
+    r.moduleId === moduleId &&
+    (who.staffId ? r.staffId === who.staffId : (!r.staffId && r.staffName === who.staffName)));
+  if (!rows.length) return null;
+  return rows.slice().sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))[0];
+}
+
+function trainingAttemptCount(who, moduleId) {
+  if (!who) return 0;
+  return (state.training || []).filter(r =>
+    r.moduleId === moduleId &&
+    (who.staffId ? r.staffId === who.staffId : (!r.staffId && r.staffName === who.staffName))).length;
+}
+
+// Who the app thinks is sitting in front of it. A real login that has already
+// claimed a roster record is recognised outright; everyone else picks a name,
+// which is what makes this work on the one iPad the whole counter shares.
+function trainingKnownWho() {
+  const sess = state.trainingSession;
+  if (sess && sess.who) return sess.who;
+  if (!state.staffMode && state.currentUserId) {
+    const mine = (state.staff || []).find(s => s.userId && s.userId === state.currentUserId);
+    if (mine) return { staffId: mine.id, staffName: mine.name || 'Unnamed' };
+  }
+  return null;
+}
+
+function trainingSetWho(who, claimLogin) {
+  state.trainingSession = Object.assign({}, state.trainingSession, { who });
+  // Only stamp the login onto the roster record for a real staff login. In staff
+  // view the uid belongs to the owner doing the previewing, not to the trainee.
+  if (claimLogin && who.staffId && !state.staffMode && state.currentUserId) {
+    const rec = (state.staff || []).find(s => s.id === who.staffId);
+    if (rec && !rec.userId) { rec.userId = state.currentUserId; persistState(); }
+  }
+}
+
+// Deterministic shuffle. Question and option order change between attempts so
+// nobody learns that the answer is always C, but stay put across a re-render so
+// a half-answered quiz does not rearrange itself under the trainee.
+function trainingShuffle(n, seed) {
+  const idx = Array.from({ length: n }, (_, i) => i);
+  let s = 0;
+  for (let i = 0; i < String(seed).length; i++) s = (s * 31 + String(seed).charCodeAt(i)) >>> 0;
+  for (let i = n - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    const j = s % (i + 1);
+    const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+  }
+  return idx;
+}
+
+function trainingDateStr(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch (e) { return ''; }
+}
+
+// ===== Screen =====
+function renderTraining() {
+  const screen = $('#screen-training');
+  if (!screen) return;
+  // Owner-only build and edit views. Guarded on the capability as well as on the
+  // state, so dropping into staff view mid-edit lands back on the course list
+  // rather than leaving the editor open to someone who cannot use it.
+  const cd = state.courseDraft;
+  if (cd && can('training.manage')) {
+    if (cd.view === 'pick') return renderCoursePicker(screen);
+    if (cd.view === 'edit') return renderCourseEditor(screen);
+  } else if (cd) {
+    state.courseDraft = null;
+  }
+  const sess = state.trainingSession;
+  if (sess && sess.view === 'read')   return renderTrainingRead(screen);
+  if (sess && sess.view === 'quiz')   return renderTrainingQuiz(screen);
+  if (sess && sess.view === 'result') return renderTrainingResult(screen);
+  if (sess && sess.view === 'who')    return renderTrainingWho(screen);
+  return renderTrainingList(screen);
+}
+
+function trainingHeaderHtml(sub) {
+  return `
+    <div class="screen-header">
+      <div class="ix">Module 08</div>
+      <h2>Staff Training</h2>
+      <p>${sub}</p>
+    </div>`;
+}
+
+function renderTrainingList(screen) {
+  const manage = can('training.manage');
+  const tab = (state.trainingSession && state.trainingSession.tab) || 'mine';
+
+  if (manage && tab === 'team') return renderTrainingTeam(screen);
+
+  const who = trainingKnownWho();
+  const courses = activeCourses();
+  const cards = courses.map(m => {
+    const last = trainingLatest(who, m.id);
+    let chip = '<span class="tr-chip">Not started</span>';
+    let label = 'Start';
+    if (last) {
+      chip = last.passed
+        ? `<span class="tr-chip pass">Passed ${last.percent}% &middot; ${escapeHtml(trainingDateStr(last.completedAt))}</span>`
+        : `<span class="tr-chip fail">Not passed &middot; ${last.percent}%</span>`;
+      label = last.passed ? 'Do it again' : 'Try again';
+    }
+    return `
+      <div class="tr-card">
+        <div class="tr-card-num">${escapeHtml(m.num)}</div>
+        <div class="tr-card-main">
+          <div class="tr-card-head"><h3>${escapeHtml(m.title)}</h3>${chip}</div>
+          <p>${escapeHtml(m.blurb)}</p>
+          <div class="tr-card-meta">${m.lessons.length} pages to read &middot; ${m.quiz.length} questions &middot; about ${m.minutes} minutes</div>
+        </div>
+        <div class="tr-card-act">
+          <button class="btn btn-primary" data-tr-start="${m.id}">${label} &rarr;</button>
+          ${last ? `<button class="btn btn-ghost" data-tr-review="${m.id}">Just read it</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const done = who ? courses.filter(m => { const l = trainingLatest(who, m.id); return l && l.passed; }).length : 0;
+  const whoLine = who
+    ? `<div class="tr-whoami">Training as <strong>${escapeHtml(who.staffName)}</strong> &middot; ${done} of ${courses.length} passed
+         <button class="btn btn-ghost" id="tr-switch">Not you?</button></div>`
+    : '';
+
+  const cert = (who && done > 0)
+    ? `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+         <button class="btn btn-secondary" id="tr-cert">Print my training record</button>
+       </div>`
+    : '';
+
+  screen.innerHTML = trainingHeaderHtml(
+    'Six short courses on the things you need to know at the counter. Read the pages, answer the questions, and the result goes on your record. You can take any of them again as many times as you like.'
+  ) + `
+    ${manage ? `<div class="tr-tabs"><div class="seg">
+        <button class="on" data-tr-tab="mine">My training</button>
+        <button data-tr-tab="team">Team progress</button>
+      </div></div>` : ''}
+    ${whoLine}
+    <div class="tr-list">${cards}</div>
+    ${cert}
+    ${coursePanelHtml()}
+    <p class="tr-foot">Training is general guidance for people working in an Australian dry cleaning business. It is not legal advice, and completing it does not by itself discharge the business's obligations under the Australian Consumer Law or work health and safety law.</p>`;
+
+  screen.querySelectorAll('[data-tr-tab]').forEach(b => b.addEventListener('click', () => {
+    state.trainingSession = Object.assign({}, state.trainingSession, { tab: b.dataset.trTab });
+    renderTraining();
+  }));
+  screen.querySelectorAll('[data-tr-start]').forEach(b => b.addEventListener('click', () => startTraining(b.dataset.trStart, false)));
+  screen.querySelectorAll('[data-tr-review]').forEach(b => b.addEventListener('click', () => startTraining(b.dataset.trReview, true)));
+  const sw = document.getElementById('tr-switch');
+  if (sw) sw.addEventListener('click', () => {
+    state.trainingSession = { view: 'who', moduleId: null, tab: 'mine' };
+    renderTraining();
+  });
+  const cb = document.getElementById('tr-cert');
+  if (cb) cb.addEventListener('click', () => printTrainingRecord(trainingKnownWho()));
+  bindCoursePanel(screen);
+}
+
+// Reading with no intention of being marked — no identity needed for that.
+function startTraining(moduleId, readOnly) {
+  const m = trainingModule(moduleId);
+  if (!m) return;
+  if (!readOnly && !trainingKnownWho()) {
+    state.trainingSession = { view: 'who', moduleId, tab: 'mine' };
+    renderTraining();
+    return;
+  }
+  state.trainingSession = Object.assign({}, state.trainingSession, {
+    view: 'read', moduleId, page: 0, readOnly: !!readOnly, answers: null, result: null
+  });
+  renderTraining();
+}
+
+function renderTrainingWho(screen) {
+  const roster = (state.staff || []).filter(s => (s.name || '').trim());
+  const moduleId = state.trainingSession ? state.trainingSession.moduleId : null;
+
+  if (!roster.length) {
+    screen.innerHTML = trainingHeaderHtml('Before anyone can be marked off, the app needs to know who they are.') + `
+      <div class="empty">
+        <div class="icon">${icons.letter}</div>
+        <h3>Nobody on the staff list yet</h3>
+        <p>Training results are recorded against a person, and the people come from the staff list. Add the team in Staff first — a name is enough to get started — and the courses will be ready for them.</p>
+        ${can('staffRecords') ? '<button class="btn btn-primary" id="tr-go-staff">Go to Staff &rarr;</button>' : '<p style="font-size:13px">Ask the owner to add you to the staff list.</p>'}
+      </div>
+      <div style="margin-top:14px"><button class="btn btn-ghost" id="tr-who-back">&larr; Back to the courses</button></div>`;
+    const g = document.getElementById('tr-go-staff');
+    if (g) g.addEventListener('click', () => { state.trainingSession = null; goToTab('staff'); });
+    document.getElementById('tr-who-back').addEventListener('click', () => { state.trainingSession = null; renderTraining(); });
+    return;
+  }
+
+  const opts = ['<option value="">— choose your name —</option>']
+    .concat(roster.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`))
+    .concat(['<option value="__other">I\'m not on this list</option>']).join('');
+
+  screen.innerHTML = trainingHeaderHtml('Before you start, tell us who you are so the result goes on the right record.') + `
+    <div class="card tr-who">
+      <label class="label">Who is doing this training?</label>
+      <select class="input" id="tr-who-pick">${opts}</select>
+      <div id="tr-who-other" style="display:none;margin-top:12px">
+        <label class="label">Your name</label>
+        <input class="input" id="tr-who-name" placeholder="Jane Smith">
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">You'll still be marked off, but ask the owner to add you to the staff list so your record sits with everyone else's.</p>
+      </div>
+      <div class="step-actions" style="margin-top:18px">
+        <button class="btn btn-ghost" id="tr-who-back">&larr; Back</button>
+        <button class="btn btn-primary" id="tr-who-go" disabled>Start the course &rarr;</button>
+      </div>
+    </div>`;
+
+  const pick = document.getElementById('tr-who-pick');
+  const other = document.getElementById('tr-who-other');
+  const nameEl = document.getElementById('tr-who-name');
+  const go = document.getElementById('tr-who-go');
+  const refresh = () => {
+    const isOther = pick.value === '__other';
+    other.style.display = isOther ? '' : 'none';
+    go.disabled = isOther ? !nameEl.value.trim() : !pick.value;
+  };
+  pick.addEventListener('change', refresh);
+  nameEl.addEventListener('input', refresh);
+  document.getElementById('tr-who-back').addEventListener('click', () => {
+    state.trainingSession = { view: 'list', tab: 'mine' };
+    renderTraining();
+  });
+  go.addEventListener('click', () => {
+    if (pick.value === '__other') {
+      trainingSetWho({ staffId: null, staffName: nameEl.value.trim() }, false);
+    } else {
+      const rec = roster.find(s => s.id === pick.value);
+      if (!rec) return;
+      trainingSetWho({ staffId: rec.id, staffName: rec.name }, true);
+    }
+    if (moduleId) startTraining(moduleId, false); else renderTraining();
+  });
+}
+
+function renderTrainingRead(screen) {
+  const sess = state.trainingSession;
+  const m = trainingModule(sess.moduleId);
+  if (!m) { state.trainingSession = null; return renderTraining(); }
+  const page = Math.max(0, Math.min(sess.page || 0, m.lessons.length - 1));
+  const lesson = m.lessons[page];
+  const last = page === m.lessons.length - 1;
+  const pct = Math.round(((page + 1) / m.lessons.length) * 100);
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(m.num)}</div>
+      <h2>${escapeHtml(m.title)}</h2>
+    </div>
+    <div class="step-progress">
+      <div class="step-progress-head">
+        <div class="step-progress-now">${escapeHtml(lesson.h)}</div>
+        <div class="step-progress-count">Page ${page + 1} of ${m.lessons.length}</div>
+      </div>
+      <div class="step-progress-track"><div class="step-progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="card tr-read">${renderMarkdown(lesson.body)}</div>
+    <div class="step-actions">
+      <button class="btn btn-ghost" id="tr-quit">&larr; All courses</button>
+      <div style="display:flex;gap:8px">
+        ${page > 0 ? '<button class="btn btn-secondary" id="tr-prev">Back</button>' : ''}
+        ${last
+          ? (sess.readOnly
+              ? '<button class="btn btn-primary" id="tr-quit2">Done</button>'
+              : `<button class="btn btn-primary" id="tr-toquiz">Take the ${m.quiz.length} questions &rarr;</button>`)
+          : '<button class="btn btn-primary" id="tr-next">Next &rarr;</button>'}
+      </div>
+    </div>
+    <p class="tr-foot">Source: ${escapeHtml(m.source)}. Reviewed ${escapeHtml(m.reviewed)}.</p>`;
+
+  const quit = () => { state.trainingSession = { view: 'list', tab: 'mine', who: sess.who }; renderTraining(); };
+  document.getElementById('tr-quit').addEventListener('click', quit);
+  const q2 = document.getElementById('tr-quit2'); if (q2) q2.addEventListener('click', quit);
+  const pv = document.getElementById('tr-prev');
+  if (pv) pv.addEventListener('click', () => { sess.page = page - 1; renderTraining(); window.scrollTo(0, 0); });
+  const nx = document.getElementById('tr-next');
+  if (nx) nx.addEventListener('click', () => { sess.page = page + 1; renderTraining(); window.scrollTo(0, 0); });
+  const tq = document.getElementById('tr-toquiz');
+  if (tq) tq.addEventListener('click', () => {
+    sess.view = 'quiz';
+    sess.attemptId = newId('A');
+    sess.answers = {};
+    renderTraining();
+    window.scrollTo(0, 0);
+  });
+}
+
+function renderTrainingQuiz(screen) {
+  const sess = state.trainingSession;
+  const m = trainingModule(sess.moduleId);
+  if (!m) { state.trainingSession = null; return renderTraining(); }
+  const order = trainingShuffle(m.quiz.length, sess.attemptId);
+  const answers = sess.answers || (sess.answers = {});
+  const answered = Object.keys(answers).length;
+  const pct = Math.round((answered / m.quiz.length) * 100);
+
+  const qs = order.map((qi, n) => {
+    const q = m.quiz[qi];
+    const oOrder = trainingShuffle(q.a.length, sess.attemptId + ':' + qi);
+    const opts = oOrder.map(oi => `
+      <label class="tr-opt ${answers[qi] === oi ? 'on' : ''}">
+        <input type="radio" name="trq${qi}" value="${oi}" ${answers[qi] === oi ? 'checked' : ''}>
+        <span>${escapeHtml(q.a[oi])}</span>
+      </label>`).join('');
+    return `
+      <div class="tr-q" data-tr-q="${qi}">
+        <div class="tr-q-num">Question ${n + 1} of ${m.quiz.length}</div>
+        <div class="tr-q-text">${escapeHtml(q.q)}</div>
+        <div class="tr-opts">${opts}</div>
+      </div>`;
+  }).join('');
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(m.num)}</div>
+      <h2>${escapeHtml(m.title)} — questions</h2>
+      <p>Answer all ${m.quiz.length}. You need ${trainingPassMark(m.quiz.length)} right to pass, and you can take it again as many times as you need.</p>
+    </div>
+    <div class="step-progress">
+      <div class="step-progress-head">
+        <div class="step-progress-now">${answered} of ${m.quiz.length} answered</div>
+        <div class="step-progress-count">Pass mark ${trainingPassMark(m.quiz.length)}/${m.quiz.length}</div>
+      </div>
+      <div class="step-progress-track"><div class="step-progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    ${qs}
+    <div class="step-actions">
+      <button class="btn btn-ghost" id="tr-back-read">&larr; Back to the reading</button>
+      <button class="btn btn-primary" id="tr-submit" ${answered === m.quiz.length ? '' : 'disabled'}>
+        ${answered === m.quiz.length ? 'Mark my answers' : `${m.quiz.length - answered} still to answer`}
+      </button>
+    </div>`;
+
+  screen.querySelectorAll('.tr-q input[type=radio]').forEach(r => r.addEventListener('change', () => {
+    const qi = Number(r.closest('[data-tr-q]').dataset.trQ);
+    answers[qi] = Number(r.value);
+    const y = window.scrollY;
+    renderTraining();
+    window.scrollTo(0, y);
+  }));
+  document.getElementById('tr-back-read').addEventListener('click', () => { sess.view = 'read'; renderTraining(); });
+  document.getElementById('tr-submit').addEventListener('click', () => submitTrainingQuiz());
+}
+
+function submitTrainingQuiz() {
+  const sess = state.trainingSession;
+  const m = trainingModule(sess.moduleId);
+  const who = trainingKnownWho();
+  if (!m || !who) return;
+  const marked = m.quiz.map((q, qi) => ({ q: qi, choice: sess.answers[qi], correct: sess.answers[qi] === q.correct }));
+  const score = marked.filter(a => a.correct).length;
+  const total = m.quiz.length;
+  const rec = {
+    id: newId('T'),
+    staffId: who.staffId || null,
+    staffName: who.staffName || '',
+    userId: (!state.staffMode && state.currentUserId) ? state.currentUserId : null,
+    moduleId: m.id,
+    attempt: trainingAttemptCount(who, m.id) + 1,
+    score, total,
+    percent: Math.round((score / total) * 100),
+    passed: score >= trainingPassMark(total),
+    answers: marked,
+    completedAt: Date.now()
+  };
+  state.training.unshift(rec);
+  persistState();
+  sess.view = 'result';
+  sess.result = rec;
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+function renderTrainingResult(screen) {
+  const sess = state.trainingSession;
+  const m = trainingModule(sess.moduleId);
+  const rec = sess.result;
+  if (!m || !rec) { state.trainingSession = null; return renderTraining(); }
+
+  const review = rec.answers.map((a, n) => {
+    const q = m.quiz[a.q];
+    return `
+      <div class="tr-review ${a.correct ? 'ok' : 'no'}">
+        <div class="tr-review-head">
+          <span class="tr-review-mark">${a.correct ? '&#10003;' : '&#10007;'}</span>
+          <span class="tr-q-num">Question ${n + 1}</span>
+        </div>
+        <div class="tr-q-text">${escapeHtml(q.q)}</div>
+        <div class="tr-review-ans">
+          ${a.correct
+            ? `<div class="tr-yours ok">Your answer: ${escapeHtml(q.a[a.choice])}</div>`
+            : `<div class="tr-yours no">You said: ${escapeHtml(q.a[a.choice])}</div>
+               <div class="tr-right">The answer: ${escapeHtml(q.a[q.correct])}</div>`}
+        </div>
+        <div class="tr-why">${escapeHtml(q.why)}</div>
+      </div>`;
+  }).join('');
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(m.num)}</div>
+      <h2>${escapeHtml(m.title)} — result</h2>
+    </div>
+    <div class="tr-score ${rec.passed ? 'pass' : 'fail'}">
+      <div class="tr-score-big">${rec.score} / ${rec.total}</div>
+      <div class="tr-score-word">${rec.passed ? 'Passed' : 'Not passed yet'}</div>
+      <div class="tr-score-sub">${rec.passed
+        ? `Recorded for ${escapeHtml(rec.staffName)} on ${escapeHtml(trainingDateStr(rec.completedAt))}.`
+        : `You need ${trainingPassMark(rec.total)} to pass. Have a read of the ones you missed below and take it again — there is no limit and the attempt is on your record either way.`}</div>
+    </div>
+    <h3 style="margin:22px 0 10px">Every question, and why</h3>
+    ${review}
+    <div class="step-actions">
+      <button class="btn btn-ghost" id="tr-done">&larr; All courses</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary" id="tr-reread">Read it again</button>
+        <button class="btn ${rec.passed ? 'btn-secondary' : 'btn-primary'}" id="tr-retake">Take the questions again</button>
+        ${rec.passed ? '<button class="btn btn-primary" id="tr-cert2">Print my training record</button>' : ''}
+      </div>
+    </div>`;
+
+  document.getElementById('tr-done').addEventListener('click', () => {
+    state.trainingSession = { view: 'list', tab: 'mine', who: sess.who };
+    renderTraining(); window.scrollTo(0, 0);
+  });
+  document.getElementById('tr-reread').addEventListener('click', () => {
+    sess.view = 'read'; sess.page = 0; sess.result = null;
+    renderTraining(); window.scrollTo(0, 0);
+  });
+  document.getElementById('tr-retake').addEventListener('click', () => {
+    sess.view = 'quiz'; sess.attemptId = newId('A'); sess.answers = {}; sess.result = null;
+    renderTraining(); window.scrollTo(0, 0);
+  });
+  const c2 = document.getElementById('tr-cert2');
+  if (c2) c2.addEventListener('click', () => printTrainingRecord(trainingKnownWho()));
+}
+
+// ===== The register, for whoever holds training.manage =====
+function renderTrainingTeam(screen) {
+  const roster = (state.staff || []).filter(s => (s.name || '').trim());
+  // Anyone who has taken something without being on the roster still belongs in
+  // the register — otherwise their attempts silently vanish from the owner's view.
+  const strays = [];
+  (state.training || []).forEach(r => {
+    if (r.staffId && roster.some(s => s.id === r.staffId)) return;
+    if (strays.some(x => x.staffName === r.staffName && x.staffId === (r.staffId || null))) return;
+    strays.push({ staffId: r.staffId || null, staffName: r.staffName || 'Unnamed', stray: true });
+  });
+  const people = roster.map(s => ({ staffId: s.id, staffName: s.name })).concat(strays);
+
+  const courses = coursesWithHistory();
+  const head = courses.map(m => `<th title="${escapeHtml(m.title + (m.retired ? ' — no longer in use' : ''))}">${escapeHtml(m.num)}${m.retired ? '<span class="tr-retired-dot">&middot;</span>' : ''}</th>`).join('');
+  const rows = people.map(p => {
+    const cells = courses.map(m => {
+      const l = trainingLatest(p, m.id);
+      if (!l) return '<td class="tr-cell none">&mdash;</td>';
+      const n = trainingAttemptCount(p, m.id);
+      const tries = n > 1 ? ` (${n} attempts)` : '';
+      return `<td class="tr-cell ${l.passed ? 'ok' : 'no'}" title="${escapeHtml(trainingDateStr(l.completedAt) + tries)}">
+                ${l.passed ? '&#10003;' : '&#10007;'} ${l.percent}%</td>`;
+    }).join('');
+    const done = courses.filter(m => { const l = trainingLatest(p, m.id); return l && l.passed; }).length;
+    return `<tr>
+        <th class="tr-name">${escapeHtml(p.staffName)}${p.stray ? ' <span class="tr-stray">not on staff list</span>' : ''}</th>
+        ${cells}
+        <td class="tr-cell total">${done}/${courses.length}</td>
+        <td class="tr-cell"><button class="btn btn-ghost" data-tr-print="${escapeHtml(p.staffId || '')}" data-tr-print-name="${escapeHtml(p.staffName)}">Print</button></td>
+      </tr>`;
+  }).join('');
+
+  const key = courses.map(m => `<span><strong>${escapeHtml(m.num)}</strong> ${escapeHtml(m.title)}${m.retired ? ' <em>(no longer in use)</em>' : ''}</span>`).join('');
+
+  screen.innerHTML = trainingHeaderHtml(
+    'Who has done what. Every attempt is kept, so a course someone had to sit twice shows as two attempts rather than being tidied away.'
+  ) + `
+    <div class="tr-tabs"><div class="seg">
+      <button data-tr-tab="mine">My training</button>
+      <button class="on" data-tr-tab="team">Team progress</button>
+    </div></div>
+    ${people.length ? `
+    <div class="table-scroll">
+      <table class="claims-table tr-table">
+        <thead><tr><th class="tr-name">Person</th>${head}<th>Done</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="tr-key">${key}</div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary" id="tr-csv">Export the register (CSV)</button>
+    </div>`
+    : `<div class="empty">
+        <div class="icon">${icons.letter}</div>
+        <h3>Nothing recorded yet</h3>
+        <p>Add your team in Staff, then have each person work through the courses on this screen. Their results land here as they go.</p>
+      </div>`}
+    <p class="tr-foot">A training record helps show a system was in place. It does not by itself discharge the business's obligations under the Australian Consumer Law or work health and safety law.</p>`;
+
+  screen.querySelectorAll('[data-tr-tab]').forEach(b => b.addEventListener('click', () => {
+    state.trainingSession = Object.assign({}, state.trainingSession, { tab: b.dataset.trTab, view: 'list' });
+    renderTraining();
+  }));
+  screen.querySelectorAll('[data-tr-print]').forEach(b => b.addEventListener('click', () =>
+    printTrainingRecord({ staffId: b.dataset.trPrint || null, staffName: b.dataset.trPrintName })));
+  const csv = document.getElementById('tr-csv');
+  if (csv) csv.addEventListener('click', exportTrainingCsv);
+}
+
+function exportTrainingCsv() {
+  const head = ['Date', 'Person', 'Course', 'Attempt', 'Score', 'Out of', 'Percent', 'Result'];
+  const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const rows = (state.training || []).slice()
+    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+    .map(r => {
+      const m = trainingModule(r.moduleId);
+      return [trainingDateStr(r.completedAt), r.staffName, m ? m.title : r.moduleId,
+              r.attempt, r.score, r.total, r.percent, r.passed ? 'Passed' : 'Not passed'].map(esc).join(',');
+    });
+  downloadFile([head.map(esc).join(','), ...rows].join('\n'), 'hangr-training-register.csv', 'text/csv');
+}
+
+// The completion record. Reuses the letterhead the chat and letter exports use,
+// so it comes out on the business's own branding without any extra plumbing.
+function printTrainingRecord(who) {
+  if (!who) return;
+  const mine = (state.training || []).filter(r =>
+    who.staffId ? r.staffId === who.staffId : (!r.staffId && r.staffName === who.staffName));
+  if (!mine.length) { uiAlert('There is nothing recorded for ' + (who.staffName || 'this person') + ' yet.', 'Nothing to print'); return; }
+
+  const courses = coursesWithHistory();
+  const rows = courses.map(m => {
+    const l = mine.filter(r => r.moduleId === m.id).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))[0];
+    const n = mine.filter(r => r.moduleId === m.id).length;
+    return `<tr>
+      <td>${escapeHtml(m.num)}</td>
+      <td>${escapeHtml(m.title)}</td>
+      <td>${l ? escapeHtml(trainingDateStr(l.completedAt)) : '&mdash;'}</td>
+      <td>${l ? l.score + '/' + l.total + ' (' + l.percent + '%)' : '&mdash;'}</td>
+      <td>${l ? (l.passed ? 'Passed' : 'Not passed') : 'Not attempted'}</td>
+      <td>${n || '&mdash;'}</td>
+    </tr>`;
+  }).join('');
+
+  const passed = courses.filter(m =>
+    mine.some(r => r.moduleId === m.id && r.passed)).length;
+
+  const inner = `
+    <p><strong>${escapeHtml(who.staffName || 'Staff member')}</strong> has completed <strong>${passed} of ${courses.length}</strong> staff training courses.</p>
+    <table style="width:100%;border-collapse:collapse;margin:18px 0;font-size:11pt">
+      <thead><tr style="text-align:left;border-bottom:1.5px solid #333">
+        <th style="padding:6px 8px">#</th><th style="padding:6px 8px">Course</th>
+        <th style="padding:6px 8px">Last attempt</th><th style="padding:6px 8px">Score</th>
+        <th style="padding:6px 8px">Result</th><th style="padding:6px 8px">Attempts</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="font-size:10pt;color:#555">Pass mark is ${Math.round(TRAINING_PASS_MARK * 100)}%. Every attempt is recorded, and courses may be retaken without limit.</p>
+    <p style="font-size:10pt;color:#555">This record shows that the named person completed internal training on the topics listed. It is a record of training undertaken. It is not a qualification, and it does not by itself discharge the business's obligations under the Australian Consumer Law or work health and safety law.</p>`;
+
+  const html = buildExportDocument('Staff training record — ' + (who.staffName || ''), inner, _exportDateStr());
+  printHtmlDocument(html);
+}
+
+
+// ===== Courses built from the business's own SOPs =====
+// The six courses above are deliberately generic, because every shop tags,
+// books in and hands back differently. This is how a business replaces them
+// with its own procedure: point at a document already on file, let the model
+// draft a course from it, read and fix that draft, then publish it to staff.
+//
+// Nothing generated reaches a staff member unread. Staff are marked against
+// these answers, so a wrong one teaches the wrong thing — the draft step is the
+// point of the feature, not friction in front of it.
+
+const COURSE_MIN_QUESTIONS = 4;
+const COURSE_MAX_LESSONS = 8;
+const COURSE_TARGET_QUESTIONS = 8;   // matches the built-in six
+const SOP_TEXT_CAP = 14000;          // leaves room for the instructions under ASK_MAX
+// The quiz prompt carries the whole finished course, which on a long procedure is
+// bigger than the source was. ASK_MAX is 30000 on the way in and the 3000-token
+// ceiling only applies on the way out, so this can be generous — and it has to be,
+// or the last pages fall off the prompt and never get a question.
+const COURSE_QUIZ_TEXT_CAP = 20000;
+
+function newCourseDraft(doc) {
+  return {
+    id: newId('C'),
+    title: '', blurb: '', minutes: 8,
+    reviewed: new Date().toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }),
+    source: doc ? ('Our procedure — ' + (doc.title || doc.fileName || 'uploaded document')) : 'Our procedure',
+    sourceDocId: doc ? doc.id : null,
+    sourceText: doc ? (doc.text || '') : '',
+    replaces: null,
+    status: 'draft',
+    num: '',
+    lessons: [], quiz: [],
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+
+function sopTextFor(draft) {
+  const t = (draft.sourceText || '').slice(0, SOP_TEXT_CAP);
+  return t.trim();
+}
+
+// A course that supersedes a built-in takes its number, so the list still reads
+// 01 to 06 rather than growing a gap and a stray 07.
+function nextCourseNum(replaces) {
+  if (replaces) {
+    const b = TRAINING_MODULES.find(m => m.id === replaces);
+    if (b) return b.num;
+  }
+  const used = new Set(TRAINING_MODULES.map(m => m.num)
+    .concat((state.customCourses || []).map(c => c.num).filter(Boolean)));
+  let n = 1;
+  while (used.has(String(n).padStart(2, '0'))) n++;
+  return String(n).padStart(2, '0');
+}
+
+const COURSE_STYLE_RULES = `
+HOW TO WRITE
+- Australian English. Plain, direct, addressed to the person standing at the counter.
+- Formatting is limited: **bold**, ### subheadings, and - bullet lists. NO tables, NO links, NO single-# headings.
+- BE FAITHFUL TO THE PROCEDURE. Use only what the document says. Never invent a step, a rule, a tag name, a button name, a price or a number. If the document does not say it, leave it out.
+- Where the procedure says never to do something, that is the most important content in it. Keep those emphatic.
+- Do not pad. If the document is short, the course is short.`;
+
+function buildCourseOutlinePrompt(draft) {
+  return `You are turning one Australian dry cleaner's own written procedure into a short staff training course.
+
+THEIR PROCEDURE
+Title: ${draft.title || draft.source}
+
+${sopTextFor(draft) || '(no machine-readable text was provided)'}
+${COURSE_STYLE_RULES}
+
+Return ONLY a JSON object, no commentary, no code fences:
+{
+  "title": "short course title, 2-5 words",
+  "blurb": "one sentence saying what this course covers and why it matters",
+  "minutes": 6,
+  "lessons": [ { "h": "page heading", "brief": "one line on what this page must cover" } ]
+}
+
+Between 3 and ${COURSE_MAX_LESSONS} lessons. Split by the natural sections of the procedure. Prefer more, shorter pages over fewer long ones — one page per real topic reads far better than a wall of text. Do not invent sections the procedure does not have: if it is genuinely short, three pages is the honest answer.
+
+JSON:`;
+}
+
+function buildCourseLessonsPrompt(draft, slice) {
+  return `You are writing pages of a staff training course from an Australian dry cleaner's own written procedure.
+
+THEIR PROCEDURE
+${sopTextFor(draft) || '(no machine-readable text was provided)'}
+${COURSE_STYLE_RULES}
+
+Write the body text for exactly these pages, in this order:
+${slice.map((l, i) => (i + 1) + '. "' + l.h + '" — ' + (l.brief || '')).join('\n')}
+
+Each body is roughly 160 to 280 words. Teach the procedure as it is written, including the specific locations, tag names, button names and wording it uses.
+
+Return ONLY a JSON array, no commentary, no code fences:
+[ { "h": "page heading exactly as given", "body": "the page text" } ]
+
+JSON:`;
+}
+
+function buildCourseQuizPrompt(draft, opts) {
+  // Deliberately built from the finished lesson text rather than the source
+  // document: a question generated from what staff actually read is always
+  // answerable from what staff actually read.
+  const lessons = draft.lessons.map(l => '### ' + l.h + '\n' + l.body).join('\n\n');
+  const already = (opts && opts.existing && opts.existing.length)
+    ? '\nQuestions already written — do NOT repeat these or ask the same thing another way:\n' +
+      opts.existing.map(q => '- ' + q.q).join('\n') + '\n'
+    : '';
+  const want = (opts && opts.want) || COURSE_TARGET_QUESTIONS;
+  return `Below is the full text of a short staff training course for an Australian dry cleaner. Write the quiz that goes with it.
+
+THE COURSE
+${lessons.slice(0, COURSE_QUIZ_TEXT_CAP)}
+${already}
+
+Return ONLY a JSON array of ${want} questions, no commentary, no code fences:
+[ { "q": "the question", "a": ["option 1","option 2","option 3","option 4"], "correct": 0, "why": "one or two sentences explaining the right answer" } ]
+
+RULES
+- Exactly 4 options per question. "correct" is the 0-based index of the right one.
+- EVERY answer must be verifiable from the course text above. Never ask about something the course does not state.
+- Vary which index is correct.
+- Wrong options must be plausible to someone who has not read properly — not obviously silly.
+- Prefer questions about the things that cost money when they are not known: the steps the procedure says never to skip, and the actions it says never to take.
+- Spread them across the whole course. Do not take them all from the first page or two.
+- Australian English.
+
+JSON:`;
+}
+
+// Staged rather than one call, because the AI endpoint posts max_tokens: 3000
+// and a whole course does not fit inside that. A reply that hits the ceiling
+// comes back cut off mid-object, which as JSON means it comes back as nothing.
+async function generateCourse(draft, onProgress) {
+  const say = onProgress || function () {};
+
+  say('Reading the procedure…');
+  const outline = parseAiJson(await askClaudeSafe(buildCourseOutlinePrompt(draft)), 'object');
+  if (!outline || !Array.isArray(outline.lessons) || !outline.lessons.length) {
+    throw new Error("Couldn't get a usable outline out of that document. If the text above looked garbled, paste the key parts in and try again.");
+  }
+  draft.title = String(outline.title || draft.title || 'Our procedure').slice(0, 80);
+  draft.blurb = String(outline.blurb || '').slice(0, 300);
+  draft.minutes = Number(outline.minutes) > 0 ? Math.min(60, Math.round(Number(outline.minutes))) : 8;
+
+  const wanted = outline.lessons
+    .filter(l => l && l.h)
+    .slice(0, COURSE_MAX_LESSONS)
+    .map(l => ({ h: String(l.h).slice(0, 120), brief: String(l.brief || '').slice(0, 200) }));
+
+  // Two pages at a time keeps every reply comfortably inside the ceiling.
+  draft.lessons = [];
+  for (let i = 0; i < wanted.length; i += 2) {
+    const slice = wanted.slice(i, i + 2);
+    say('Writing page ' + (i + 1) + (slice.length > 1 ? ' and ' + (i + 2) : '') + ' of ' + wanted.length + '…');
+    const got = parseAiJson(await askClaudeSafe(buildCourseLessonsPrompt(draft, slice)), 'array');
+    const rows = Array.isArray(got) ? got : [];
+    slice.forEach((l, n) => {
+      const match = rows.find(r => r && r.h && String(r.h).trim() === l.h.trim()) || rows[n];
+      draft.lessons.push({ h: l.h, body: (match && match.body) ? String(match.body) : '' });
+    });
+  }
+  // A page the model skipped is left empty rather than dropped, so the owner can
+  // see the gap and write it themselves instead of wondering what is missing.
+
+  say('Writing the questions…');
+  draft.quiz = cleanQuiz(parseAiJson(await askClaudeSafe(buildCourseQuizPrompt(draft)), 'array'));
+
+  // Models routinely return fewer than asked for. One top-up call, told what has
+  // already been asked so it does not simply rephrase the same questions.
+  if (draft.quiz.length && draft.quiz.length < COURSE_TARGET_QUESTIONS - 1) {
+    say('Adding a few more questions…');
+    const more = cleanQuiz(parseAiJson(await askClaudeSafe(
+      buildCourseQuizPrompt(draft, { existing: draft.quiz, want: COURSE_TARGET_QUESTIONS - draft.quiz.length })), 'array'));
+    const seen = new Set(draft.quiz.map(q => q.q.trim().toLowerCase()));
+    more.forEach(q => { if (!seen.has(q.q.trim().toLowerCase())) { seen.add(q.q.trim().toLowerCase()); draft.quiz.push(q); } });
+  }
+  // A top-up that over-delivers should not leave staff sitting a twenty-question
+  // quiz. The owner can always add more by hand if they want them.
+  draft.quiz = draft.quiz.slice(0, COURSE_TARGET_QUESTIONS);
+
+  draft.updatedAt = Date.now();
+  return draft;
+}
+
+function cleanQuiz(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .filter(q => q && q.q && Array.isArray(q.a))
+    .map(q => ({
+      q: String(q.q).slice(0, 400),
+      a: q.a.slice(0, 4).map(x => String(x == null ? '' : x).slice(0, 300)),
+      correct: (Number(q.correct) >= 0 && Number(q.correct) <= 3) ? Number(q.correct) : 0,
+      why: String(q.why || '').slice(0, 500)
+    }))
+    .filter(q => q.a.length === 4);
+}
+
+// Regenerate one page on its own, for when a single page came out thin.
+async function regenerateLesson(draft, index) {
+  const l = draft.lessons[index];
+  if (!l) return;
+  const got = parseAiJson(await askClaudeSafe(buildCourseLessonsPrompt(draft, [{ h: l.h, brief: '' }])), 'array');
+  const rows = Array.isArray(got) ? got : [];
+  if (rows[0] && rows[0].body) { l.body = String(rows[0].body); draft.updatedAt = Date.now(); }
+}
+
+// Two tiers, and the difference matters.
+//
+// Warnings are quality problems — a thin course, a question with no explanation.
+// The owner is entitled to publish anyway and tidy it later; it is their shop.
+//
+// Blockers are the two states the learner screens cannot survive. A course with
+// nothing readable has nothing to teach, and a quiz with no usable question
+// passes everyone automatically, because a score of zero clears a pass mark of
+// zero. Neither is a matter of taste, so neither can be overridden.
+function courseUsableQuestions(c) {
+  return (c.quiz || []).filter(q =>
+    q && (q.q || '').trim() &&
+    Array.isArray(q.a) && q.a.length === 4 && q.a.every(x => String(x == null ? '' : x).trim()) &&
+    q.correct >= 0 && q.correct <= 3);
+}
+
+function courseBlockers(c) {
+  const out = [];
+  if (!(c.lessons || []).some(l => (l.body || '').trim())) {
+    out.push('There is nothing for staff to read — at least one page needs some text on it.');
+  }
+  if (!courseUsableQuestions(c).length) {
+    out.push('There is no complete question. A quiz with nothing usable in it marks everybody as passed, so this one cannot go out.');
+  }
+  return out;
+}
+
+function courseWarnings(c) {
+  const out = [];
+  if (!c.title || !c.title.trim()) out.push('It has no title — staff will see "Untitled course".');
+  (c.lessons || []).forEach((l, i) => {
+    if (!(l.body || '').trim()) out.push('Page ' + (i + 1) + (l.h ? ' (' + l.h + ')' : '') + ' is empty.');
+  });
+  const qs = c.quiz || [];
+  if (qs.length && qs.length < COURSE_MIN_QUESTIONS) {
+    out.push('Only ' + qs.length + ' question' + (qs.length === 1 ? '' : 's') + ' — most courses want at least ' + COURSE_MIN_QUESTIONS + '.');
+  }
+  qs.forEach((q, i) => {
+    if (!(q.q || '').trim()) out.push('Question ' + (i + 1) + ' has no question text.');
+    else if (!Array.isArray(q.a) || q.a.length !== 4 || q.a.some(x => !String(x == null ? '' : x).trim())) out.push('Question ' + (i + 1) + ' is missing one or more answers.');
+    if (!(q.why || '').trim()) out.push('Question ' + (i + 1) + ' has no explanation, so staff will not be told why.');
+  });
+  return out;
+}
+
+// Kept for anything that just wants "is there anything wrong with this".
+function courseProblems(c) { return courseBlockers(c).concat(courseWarnings(c)); }
+
+function saveCourseDraft(draft) {
+  const i = (state.customCourses || []).findIndex(c => c.id === draft.id);
+  const rec = Object.assign({}, draft);
+  delete rec.sourceText;   // the document already holds it; no need for a second copy in the blob
+  rec.updatedAt = Date.now();
+  if (i >= 0) state.customCourses[i] = rec; else state.customCourses.unshift(rec);
+  persistState();
+}
+
+async function publishCourse(draft) {
+  const blockers = courseBlockers(draft);
+  if (blockers.length) {
+    await uiAlert('This course cannot go to staff:\n\n' + blockers.map(x => '• ' + x).join('\n'), 'Cannot publish');
+    return false;
+  }
+  const warnings = courseWarnings(draft);
+  if (warnings.length) {
+    const shown = warnings.slice(0, 8);
+    const rest = warnings.length - shown.length;
+    const ok = await uiConfirm(
+      'Staff will see it as it is:\n\n' + shown.map(x => '• ' + x).join('\n') +
+      (rest > 0 ? '\n• …and ' + rest + ' more' : '') +
+      '\n\nYou can publish anyway and fix these later.',
+      { title: 'Publish with ' + warnings.length + ' thing' + (warnings.length === 1 ? '' : 's') + ' unfinished?', confirmLabel: 'Publish anyway' });
+    if (!ok) return false;
+  }
+  draft.status = 'published';
+  draft.num = draft.num || nextCourseNum(draft.replaces);
+  saveCourseDraft(draft);
+  return true;
+}
+
+// ===== Owner-facing: build, edit, publish =====
+
+function coursePanelHtml() {
+  if (!can('training.manage')) return '';
+  const mine = state.customCourses || [];
+  const hidden = new Set(state.hiddenCourses || []);
+  const replaced = new Set(mine.filter(c => c.status === 'published').map(c => c.replaces).filter(Boolean));
+
+  const rows = mine.map(c => {
+    const covers = c.replaces ? (TRAINING_MODULES.find(m => m.id === c.replaces) || {}).title : '';
+    return `
+      <div class="tr-own ${c.status}">
+        <div class="tr-own-main">
+          <div class="tr-own-head">
+            <strong>${escapeHtml(c.title || 'Untitled course')}</strong>
+            <span class="tr-chip ${c.status === 'published' ? 'pass' : ''}">${c.status === 'published' ? 'Live for staff' : 'Draft'}</span>
+          </div>
+          <div class="tr-own-meta">${(c.lessons || []).length} pages &middot; ${(c.quiz || []).length} questions${covers ? ' &middot; replaces ' + escapeHtml(covers) : ''}${c.source ? ' &middot; from ' + escapeHtml(c.source) : ''}</div>
+        </div>
+        <div class="tr-own-act">
+          <button class="btn btn-secondary" data-course-edit="${c.id}">Edit</button>
+          ${c.status === 'published'
+            ? `<button class="btn btn-ghost" data-course-unpub="${c.id}">Unpublish</button>`
+            : `<button class="btn btn-primary" data-course-pub="${c.id}">Publish to staff</button>`}
+          <button class="btn btn-ghost" data-course-export="${c.id}" title="Save this course as a file">Export</button>
+          <button class="btn btn-ghost" data-course-del="${c.id}" style="color:var(--warn)">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const builtins = TRAINING_MODULES.map(m => {
+    const off = hidden.has(m.id);
+    const sup = replaced.has(m.id);
+    return `<div class="tr-toggle ${off || sup ? 'off' : ''}">
+        <span>${escapeHtml(m.num)} ${escapeHtml(m.title)}</span>
+        ${sup
+          ? '<em>replaced by one of ours</em>'
+          : `<button class="btn btn-ghost" data-course-hide="${m.id}">${off ? 'Switch back on' : 'Switch off'}</button>`}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="tr-panel">
+      <div class="tr-panel-head">
+        <h3>Our own courses</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="course-new">Build a course from one of our documents</button>
+          <button class="btn btn-secondary" id="course-import">Import a course</button>
+          <input type="file" id="course-import-file" accept=".json,application/json" style="display:none">
+        </div>
+      </div>
+      <p class="tr-panel-sub">The six courses above are written for dry cleaners generally. Yours are written from your own procedures — where they differ, yours should win. Switch off any built-in course your own replaces, so staff are not taught two different answers to the same question.</p>
+      ${rows || '<p class="tr-panel-empty">None yet. Upload a procedure in Documents, then build a course from it here.</p>'}
+      <div class="tr-toggles">
+        <div class="tr-toggles-label">Built-in courses</div>
+        ${builtins}
+      </div>
+    </div>`;
+}
+
+function bindCoursePanel(screen) {
+  if (!can('training.manage')) return;
+  const q = (sel, fn) => screen.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => fn(b)));
+
+  q('[data-course-edit]', b => openCourseEditor(b.dataset.courseEdit));
+  q('[data-course-pub]', async b => {
+    const c = (state.customCourses || []).find(x => x.id === b.dataset.coursePub);
+    if (c && await publishCourse(c)) { renderTraining(); }
+  });
+  q('[data-course-unpub]', async b => {
+    const c = (state.customCourses || []).find(x => x.id === b.dataset.courseUnpub);
+    if (!c) return;
+    if (!(await uiConfirm('Staff will stop seeing "' + (c.title || 'this course') + '". Results already recorded against it are kept.', { title: 'Unpublish this course?', confirmLabel: 'Unpublish' }))) return;
+    c.status = 'draft'; saveCourseDraft(c); renderTraining();
+  });
+  q('[data-course-del]', async b => {
+    const c = (state.customCourses || []).find(x => x.id === b.dataset.courseDel);
+    if (!c) return;
+    const held = (state.training || []).filter(r => r.moduleId === c.id).length;
+    const warn = held ? '\n\n' + held + ' recorded result(s) reference this course. They are kept, and will show on the register as no longer in use.' : '';
+    if (!(await uiConfirm('This cannot be undone.' + warn, { title: 'Delete "' + (c.title || 'this course') + '"?', confirmLabel: 'Delete' }))) return;
+    state.customCourses = (state.customCourses || []).filter(x => x.id !== c.id);
+    persistState(); renderTraining();
+  });
+  q('[data-course-export]', b => exportCourse(b.dataset.courseExport));
+  q('[data-course-hide]', b => {
+    const id = b.dataset.courseHide;
+    const set = new Set(state.hiddenCourses || []);
+    if (set.has(id)) set.delete(id); else set.add(id);
+    state.hiddenCourses = Array.from(set);
+    persistState(); renderTraining();
+  });
+
+  const nb = document.getElementById('course-new');
+  if (nb) nb.addEventListener('click', openCourseSourcePicker);
+  const ib = document.getElementById('course-import');
+  const ifile = document.getElementById('course-import-file');
+  if (ib && ifile) {
+    ib.addEventListener('click', () => ifile.click());
+    ifile.addEventListener('change', () => { if (ifile.files && ifile.files[0]) importCourse(ifile.files[0]); ifile.value = ''; });
+  }
+}
+
+// ----- pick or upload the source document -----
+function openCourseSourcePicker() {
+  state.courseDraft = { view: 'pick', doc: null, upload: null, busy: false, note: '' };
+  renderTraining();
+}
+
+function renderCoursePicker(screen) {
+  const cd = state.courseDraft;
+  const docs = (state.documents || []).slice().sort((a, b) =>
+    (b.type === 'SOP / procedure' ? 1 : 0) - (a.type === 'SOP / procedure' ? 1 : 0));
+  const up = cd.upload;
+
+  const opts = ['<option value="">— choose a document —</option>']
+    .concat(docs.map(d => `<option value="${escapeHtml(d.id)}" ${cd.doc === d.id ? 'selected' : ''}>${escapeHtml(d.title)}${d.type ? ' (' + escapeHtml(d.type) + ')' : ''}</option>`)).join('');
+
+  const chosen = docs.find(d => d.id === cd.doc);
+  const text = up ? up.text : (chosen ? (chosen.text || '') : '');
+
+  const replOpts = ['<option value="">— none, this is an extra course —</option>']
+    .concat(TRAINING_MODULES.map(m => `<option value="${m.id}" ${cd.replaces === m.id ? 'selected' : ''}>${escapeHtml(m.num + ' ' + m.title)}</option>`)).join('');
+
+  screen.innerHTML = trainingHeaderHtml('Build a course from one of your own procedures. The app drafts it, you read and fix it, then you publish it to staff.') + `
+    <div class="card tr-build">
+      <label class="label">Which document?</label>
+      <select class="input" id="course-doc">${opts}</select>
+      <div class="tr-or">or</div>
+      <button class="btn btn-secondary" id="course-upload-btn">Upload a procedure now</button>
+      <input type="file" id="course-upload-file" accept=".pdf,.txt,.md,.csv,.rtf,.htm,.html,.doc,.docx" style="display:none">
+      ${cd.note ? `<p class="tr-note">${escapeHtml(cd.note)}</p>` : ''}
+
+      ${text ? `
+        <label class="label" style="margin-top:18px">What the app read from it — check this before generating</label>
+        <textarea class="input" id="course-text" rows="8" placeholder="Paste the procedure text here if what was read looks wrong">${escapeHtml(text)}</textarea>
+        <p class="tr-hint">PDFs made from Word or Publisher often read badly, and <strong>photographs are not read at all</strong>. If your procedure relies on pictures, the course will keep the words and lose the images — describe the key ones here in words.</p>
+      ` : ''}
+
+      <label class="label" style="margin-top:18px">Does this replace one of the built-in courses?</label>
+      <select class="input" id="course-replaces">${replOpts}</select>
+      <p class="tr-hint">Choosing one hides it for your business, so staff get your version rather than both.</p>
+
+      <div class="step-actions" style="margin-top:20px">
+        <button class="btn btn-ghost" id="course-cancel">&larr; Back</button>
+        <button class="btn btn-primary" id="course-generate" ${text && text.trim().length > 80 ? '' : 'disabled'}>Generate the course &rarr;</button>
+      </div>
+    </div>`;
+
+  const docSel = document.getElementById('course-doc');
+  docSel.addEventListener('change', () => { cd.doc = docSel.value; cd.upload = null; cd.note = ''; renderTraining(); });
+  const rep = document.getElementById('course-replaces');
+  rep.addEventListener('change', () => { cd.replaces = rep.value || null; });
+  const ta = document.getElementById('course-text');
+  if (ta) ta.addEventListener('input', () => { cd.editedText = ta.value; });
+
+  const ub = document.getElementById('course-upload-btn');
+  const uf = document.getElementById('course-upload-file');
+  ub.addEventListener('click', () => uf.click());
+  uf.addEventListener('change', async () => {
+    const f = uf.files && uf.files[0];
+    uf.value = '';
+    if (!f) return;
+    cd.note = 'Reading ' + f.name + '…'; renderTraining();
+    try {
+      const r = await readDocFile(f);
+      cd.upload = { text: r.text || '', fileName: f.name };
+      cd.doc = null;
+      cd.note = r.note || '';
+    } catch (e) {
+      cd.upload = { text: '', fileName: f.name };
+      cd.note = "Couldn't read that file. Paste the procedure text in below instead.";
+    }
+    renderTraining();
+  });
+
+  document.getElementById('course-cancel').addEventListener('click', () => { state.courseDraft = null; renderTraining(); });
+  document.getElementById('course-generate').addEventListener('click', () => startCourseGeneration());
+}
+
+async function startCourseGeneration() {
+  const cd = state.courseDraft;
+  const chosen = (state.documents || []).find(d => d.id === cd.doc);
+  const ta = document.getElementById('course-text');
+  const text = (ta ? ta.value : '') || (cd.upload ? cd.upload.text : (chosen ? chosen.text : ''));
+
+  const draft = newCourseDraft(chosen || null);
+  draft.sourceText = text;
+  draft.replaces = cd.replaces || null;
+  if (!chosen && cd.upload) draft.source = 'Our procedure — ' + cd.upload.fileName;
+
+  const wait = uiModal({ title: 'Building the course…', message: 'Reading the procedure…', confirmLabel: 'Working…', cancelLabel: null });
+  const say = (msg) => {
+    const el = document.querySelector('.ui-modal-backdrop .ui-modal p');
+    if (el) el.textContent = msg;
+  };
+  try {
+    await generateCourse(draft, say);
+  } catch (e) {
+    document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+    uiAlert((e && e.message) || 'Something went wrong building the course. Try again in a moment.', "Couldn't build it");
+    return;
+  }
+  document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+  saveCourseDraft(draft);
+  state.courseDraft = { view: 'edit', id: draft.id, sourceText: text };
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+// ----- the editor -----
+function openCourseEditor(id) {
+  const c = (state.customCourses || []).find(x => x.id === id);
+  if (!c) return;
+  state.courseDraft = { view: 'edit', id: id, sourceText: c.sourceText || '' };
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+function renderCourseEditor(screen) {
+  const cd = state.courseDraft;
+  const c = (state.customCourses || []).find(x => x.id === cd.id);
+  if (!c) { state.courseDraft = null; return renderTraining(); }
+
+  const lessons = (c.lessons || []).map((l, i) => `
+    <div class="tr-edit-block" data-lesson="${i}">
+      <div class="tr-edit-head">
+        <span class="tr-q-num">Page ${i + 1}</span>
+        <div class="tr-edit-act">
+          <button class="btn btn-ghost" data-lesson-preview="${i}">${cd.preview === i ? 'Edit' : 'Preview'}</button>
+          <button class="btn btn-ghost" data-lesson-regen="${i}">Rewrite</button>
+          <button class="btn btn-ghost" data-lesson-up="${i}" ${i === 0 ? 'disabled' : ''}>&uarr;</button>
+          <button class="btn btn-ghost" data-lesson-down="${i}" ${i === c.lessons.length - 1 ? 'disabled' : ''}>&darr;</button>
+          <button class="btn btn-ghost" data-lesson-del="${i}" style="color:var(--warn)">Remove</button>
+        </div>
+      </div>
+      <input class="input" data-lesson-h="${i}" value="${escapeHtml(l.h)}" placeholder="Page heading">
+      ${cd.preview === i
+        ? `<div class="card tr-read" style="margin-top:8px">${renderMarkdown(l.body || '')}</div>`
+        : `<textarea class="input" data-lesson-body="${i}" rows="9" placeholder="What this page teaches">${escapeHtml(l.body || '')}</textarea>`}
+      ${!(l.body || '').trim() ? '<p class="tr-warn">This page is empty — write it, rewrite it, or remove it.</p>' : ''}
+    </div>`).join('');
+
+  const quiz = (c.quiz || []).map((q, i) => `
+    <div class="tr-edit-block" data-q="${i}">
+      <div class="tr-edit-head">
+        <span class="tr-q-num">Question ${i + 1}</span>
+        <div class="tr-edit-act">
+          <button class="btn btn-ghost" data-q-del="${i}" style="color:var(--warn)">Remove</button>
+        </div>
+      </div>
+      <textarea class="input" data-q-text="${i}" rows="2" placeholder="The question">${escapeHtml(q.q || '')}</textarea>
+      <div class="tr-edit-opts">
+        ${(q.a || []).map((opt, oi) => `
+          <label class="tr-edit-opt ${q.correct === oi ? 'on' : ''}">
+            <input type="radio" name="corr${i}" value="${oi}" ${q.correct === oi ? 'checked' : ''} data-q-correct="${i}">
+            <input class="input" data-q-opt="${i}:${oi}" value="${escapeHtml(opt)}" placeholder="Answer ${oi + 1}">
+          </label>`).join('')}
+      </div>
+      <label class="label" style="margin-top:8px">Why that is the answer</label>
+      <textarea class="input" data-q-why="${i}" rows="2" placeholder="Shown to staff after they answer">${escapeHtml(q.why || '')}</textarea>
+    </div>`).join('');
+
+  const blockers = courseBlockers(c);
+  const warnings = courseWarnings(c);
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 08 &middot; ${c.status === 'published' ? 'Live course' : 'Draft'}</div>
+      <h2>${escapeHtml(c.title || 'Untitled course')}</h2>
+      <p>Read it before you publish it. Staff are marked against these answers, so a question that came out wrong teaches the wrong thing.</p>
+    </div>
+    <div class="card tr-build">
+      <label class="label">Course title</label>
+      <input class="input" id="c-title" value="${escapeHtml(c.title || '')}">
+      <label class="label" style="margin-top:12px">One-line description</label>
+      <textarea class="input" id="c-blurb" rows="2">${escapeHtml(c.blurb || '')}</textarea>
+      <div class="field-row" style="margin-top:12px">
+        <div><label class="label">Minutes</label><input class="input" id="c-mins" type="number" min="1" max="60" value="${Number(c.minutes) || 8}"></div>
+        <div><label class="label">Replaces</label>
+          <select class="input" id="c-repl">
+            ${['<option value="">— none —</option>'].concat(TRAINING_MODULES.map(m =>
+              `<option value="${m.id}" ${c.replaces === m.id ? 'selected' : ''}>${escapeHtml(m.num + ' ' + m.title)}</option>`)).join('')}
+          </select></div>
+      </div>
+    </div>
+
+    <h3 class="tr-edit-title">Pages</h3>
+    ${lessons || '<p class="tr-panel-empty">No pages yet.</p>'}
+    <button class="btn btn-secondary" id="c-add-lesson">+ Add a page</button>
+
+    <h3 class="tr-edit-title">Questions</h3>
+    ${quiz || '<p class="tr-panel-empty">No questions yet.</p>'}
+    <button class="btn btn-secondary" id="c-add-q">+ Add a question</button>
+
+    ${blockers.length ? `<div class="tr-problems block"><strong>This cannot go to staff yet:</strong><ul>${blockers.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}</ul></div>` : ''}
+    ${warnings.length ? `<div class="tr-problems"><strong>Unfinished — you can still publish, and fix these later:</strong><ul>${warnings.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}</ul></div>` : ''}
+
+    <div class="step-actions" style="margin-top:20px">
+      <button class="btn btn-ghost" id="c-back">&larr; Save and close</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${c.status === 'published'
+          ? '<span class="tr-chip pass" style="align-self:center">Live for staff</span>'
+          : `<button class="btn btn-primary" id="c-publish" ${blockers.length ? 'disabled' : ''}>Publish to staff${warnings.length ? ' anyway' : ''}</button>`}
+      </div>
+    </div>`;
+
+  // Field edits write straight through, the way the staff cards do.
+  const bindText = (sel, fn) => screen.querySelectorAll(sel).forEach(el =>
+    el.addEventListener('input', () => { fn(el); c.updatedAt = Date.now(); saveCourseDraft(c); }));
+
+  bindText('#c-title', el => { c.title = el.value; });
+  bindText('#c-blurb', el => { c.blurb = el.value; });
+  bindText('#c-mins', el => { c.minutes = Number(el.value) || 8; });
+  bindText('[data-lesson-h]', el => { c.lessons[Number(el.dataset.lessonH)].h = el.value; });
+  bindText('[data-lesson-body]', el => { c.lessons[Number(el.dataset.lessonBody)].body = el.value; });
+  bindText('[data-q-text]', el => { c.quiz[Number(el.dataset.qText)].q = el.value; });
+  bindText('[data-q-why]', el => { c.quiz[Number(el.dataset.qWhy)].why = el.value; });
+  bindText('[data-q-opt]', el => {
+    const [qi, oi] = el.dataset.qOpt.split(':').map(Number);
+    c.quiz[qi].a[oi] = el.value;
+  });
+
+  const repl = document.getElementById('c-repl');
+  repl.addEventListener('change', () => { c.replaces = repl.value || null; saveCourseDraft(c); });
+
+  screen.querySelectorAll('[data-q-correct]').forEach(el => el.addEventListener('change', () => {
+    c.quiz[Number(el.dataset.qCorrect)].correct = Number(el.value);
+    saveCourseDraft(c); renderTraining();
+  }));
+
+  const act = (sel, fn) => screen.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => fn(b)));
+  act('[data-lesson-preview]', b => {
+    const i = Number(b.dataset.lessonPreview);
+    cd.preview = cd.preview === i ? null : i;
+    renderTraining();
+  });
+  act('[data-lesson-del]', async b => {
+    if (!(await uiConfirm('Remove this page?', { confirmLabel: 'Remove' }))) return;
+    c.lessons.splice(Number(b.dataset.lessonDel), 1); saveCourseDraft(c); renderTraining();
+  });
+  act('[data-lesson-up]', b => {
+    const i = Number(b.dataset.lessonUp);
+    c.lessons.splice(i - 1, 0, c.lessons.splice(i, 1)[0]); saveCourseDraft(c); renderTraining();
+  });
+  act('[data-lesson-down]', b => {
+    const i = Number(b.dataset.lessonDown);
+    c.lessons.splice(i + 1, 0, c.lessons.splice(i, 1)[0]); saveCourseDraft(c); renderTraining();
+  });
+  act('[data-lesson-regen]', async b => {
+    const i = Number(b.dataset.lessonRegen);
+    if (!(c.sourceText || cd.sourceText)) { uiAlert('The original procedure text is no longer on hand, so this page cannot be rewritten automatically. Edit it by hand.', 'Nothing to rewrite from'); return; }
+    const wait = uiModal({ title: 'Rewriting the page…', message: c.lessons[i].h, confirmLabel: 'Working…', cancelLabel: null });
+    try {
+      await regenerateLesson(Object.assign(c, { sourceText: c.sourceText || cd.sourceText }), i);
+      saveCourseDraft(c);
+    } catch (e) {
+      document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+      uiAlert((e && e.message) || 'That did not work. Try again, or write the page yourself.', "Couldn't rewrite it");
+      return;
+    }
+    document.querySelectorAll('.ui-modal-backdrop').forEach(el => el.remove());
+    renderTraining();
+  });
+  act('[data-q-del]', async b => {
+    if (!(await uiConfirm('Remove this question?', { confirmLabel: 'Remove' }))) return;
+    c.quiz.splice(Number(b.dataset.qDel), 1); saveCourseDraft(c); renderTraining();
+  });
+
+  document.getElementById('c-add-lesson').addEventListener('click', () => {
+    c.lessons.push({ h: '', body: '' }); saveCourseDraft(c); renderTraining();
+  });
+  document.getElementById('c-add-q').addEventListener('click', () => {
+    c.quiz.push({ q: '', a: ['', '', '', ''], correct: 0, why: '' }); saveCourseDraft(c); renderTraining();
+  });
+  document.getElementById('c-back').addEventListener('click', () => {
+    saveCourseDraft(c); state.courseDraft = null; renderTraining(); window.scrollTo(0, 0);
+  });
+  const pub = document.getElementById('c-publish');
+  if (pub) pub.addEventListener('click', async () => {
+    if (await publishCourse(c)) { state.courseDraft = null; renderTraining(); window.scrollTo(0, 0); }
+  });
+}
+
+// ----- handing a course to another operator -----
+function exportCourse(id) {
+  const c = (state.customCourses || []).find(x => x.id === id);
+  if (!c) return;
+  const payload = {
+    app: 'hangr-course', version: 1,
+    title: c.title, blurb: c.blurb, minutes: c.minutes, reviewed: c.reviewed,
+    source: c.source, replaces: c.replaces,
+    lessons: c.lessons, quiz: c.quiz
+  };
+  downloadFile(JSON.stringify(payload, null, 2), sanitizeFileName('hangr-course-' + (c.title || 'course')) + '.json', 'application/json');
+}
+
+function importCourse(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    let data;
+    try { data = JSON.parse(r.result); } catch (e) { uiAlert("That file isn't a Hangr course — it wouldn't open."); return; }
+    if (!data || data.app !== 'hangr-course' || !Array.isArray(data.lessons)) { uiAlert("That file isn't a Hangr course."); return; }
+    // Always lands as a draft. Someone else's procedure is a starting point, not
+    // something to start teaching your staff sight unseen.
+    const c = {
+      id: newId('C'),
+      title: String(data.title || 'Imported course'),
+      blurb: String(data.blurb || ''),
+      minutes: Number(data.minutes) || 8,
+      reviewed: String(data.reviewed || ''),
+      source: String(data.source || 'Imported course'),
+      sourceDocId: null,
+      replaces: typeof data.replaces === 'string' ? data.replaces : null,
+      status: 'draft',
+      num: '',
+      lessons: data.lessons.filter(l => l && typeof l.h === 'string').map(l => ({ h: String(l.h), body: String(l.body || '') })),
+      quiz: (Array.isArray(data.quiz) ? data.quiz : []).filter(q => q && Array.isArray(q.a) && q.a.length === 4)
+        .map(q => ({ q: String(q.q || ''), a: q.a.map(x => String(x == null ? '' : x)), correct: Number(q.correct) || 0, why: String(q.why || '') })),
+      createdAt: Date.now(), updatedAt: Date.now()
+    };
+    state.customCourses.unshift(c);
+    persistState();
+    state.courseDraft = { view: 'edit', id: c.id, sourceText: '' };
+    renderTraining();
+    uiAlert('Imported as a draft. Read it through and adjust it to how you actually work, then publish it.', 'Imported');
+  };
+  r.readAsText(file);
+}
 
 // ============ DOCUMENTS ============
 const DOC_TYPES = ['Insurance policy', 'Lease / agreement', 'Supplier contract or quote', 'Equipment manual', 'SOP / procedure', 'Certificate / registration', 'Council / EPA / compliance', 'Other'];
@@ -5389,6 +7996,7 @@ const sideIcons = {
   documents:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/></svg>',
   problems:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M9 3h6v3H9z"/><path d="M15 4.5h2a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2h2"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
   bills:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M3 3v18h18"/><path d="m7 14 3.5-4 3 3L20 7"/></svg>',
+  training:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M12 7c-1.8-1.3-4-2-6.5-2H3v13h2.5c2.5 0 4.7.7 6.5 2"/><path d="M12 7c1.8-1.3 4-2 6.5-2H21v13h-2.5c-2.5 0-4.7.7-6.5 2"/><path d="M12 7v13"/></svg>',
   pricelist:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
 };
 
@@ -5616,8 +8224,8 @@ const ROLE_BLURBS = {
 //   settings       edit the business profile and branding
 //   manageAccess   invite people and change their role
 const ROLE_CAPS = {
-  owner:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess'],
-  admin:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings'],
+  owner:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess', 'training.manage'],
+  admin:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
   manager: ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents'],
   staff:   ['chat', 'problems', 'letters.own', 'priceLists'],
 };
@@ -5629,6 +8237,10 @@ const SECTION_CAP = {
   claims:     'claims',
   bills:      'financials',
   problems:   'problems',
+  // 'training' is deliberately absent, so every role can open it. Staff records
+  // are the owner's business; training is the staff member's, and a course the
+  // person on the counter cannot open trains nobody. The owner-only half of that
+  // screen — the register — is gated inside it by 'training.manage'.
 };
 
 // The role in force. state.currentRole comes from the memberships row; staff
