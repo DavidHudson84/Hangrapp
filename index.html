@@ -913,6 +913,7 @@ const state = {
   priceDraft: null,
   priceBusy: false,
   claims: [],
+  problems: [],
   letters: [],
   staff: [],
   training: [],
@@ -929,6 +930,7 @@ const state = {
   trainingSession: null,
   pendingImage: null,
   currentLetter: null,
+  currentProblem: null,
   chartInstance: null,
   chatBusy: false
 };
@@ -1126,11 +1128,12 @@ function openLegal(which) {
 const TABS = [
   { id: 'onboarding', num: '01', label: 'Onboarding' },
   { id: 'chat',       num: '02', label: 'Chat' },
+  { id: 'problems',   num: '07', label: 'Customer Problems' },
   { id: 'letters',    num: '03', label: 'Letters' },
   { id: 'staff',      num: '04', label: 'Staff' },
   { id: 'claims',     num: '05', label: 'Claims' },
   { id: 'bills',      num: '06', label: 'Bill Compare' },
-  { id: 'training',   num: '07', label: 'Training' }
+  { id: 'training',   num: '08', label: 'Training' }
 ];
 
 const STATES = ['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
@@ -1254,7 +1257,24 @@ async function loadCloud() {
   const { data: biz, error: be } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
   if (be) throw be;
   applyStateBlob(biz.data || {});
+  adoptOwnerlessChats();
   return true;
+}
+
+// One-time migration for chats that pre-date ownership being recorded. Without a
+// createdBy they are invisible to staff for good — including any thread a staff
+// member started themselves. Enforced roles only began on 2026-08-25, so in
+// practice these are the owner's own chats.
+//
+// Guarded to a clean owner sign-in on purpose: currentUserId is whoever is logged
+// in, so running this for any other role would quietly hand them the lot. Skipped
+// in staff preview so that view keeps telling the truth about what staff can see.
+function adoptOwnerlessChats() {
+  if (state.currentRole !== 'owner' || state.staffMode || !state.currentUserId) return 0;
+  let n = 0;
+  (state.chats || []).forEach(c => { if (!c.createdBy) { c.createdBy = state.currentUserId; n++; } });
+  if (n) persistState();
+  return n;
 }
 
 async function signOut() {
@@ -1332,6 +1352,7 @@ function saveLetter(l) {
     id: l.id, date: l.date, subject: l.subject || '(untitled)', type: l.type,
     family: l.family || null, scope: l.scope || null, sourceMsgId: l.sourceMsgId || null,
     staffId: l.staffId || null, body: l.body, facts: l.facts || null, claim: l.claim || null,
+    problemId: l.problemId || null,
     createdBy: l.createdBy || state.currentUserId || null,
     updatedAt: Date.now()
   };
@@ -1367,10 +1388,104 @@ const LETTER_TYPE_LABEL = {
 };
 function letterTypeLabel(t) { return LETTER_TYPE_LABEL[t] || (t || 'Letter'); }
 
+// ============ CUSTOMER PROBLEMS ============
+// What used to be the JotForm "customer problem solver report". A problem is the
+// parent record: the chat, the claim and any letters all hang off it by problemId,
+// so one counter incident stays one thread of work instead of three unlinked ones.
+//
+// Every role may raise one — it is the person at the counter who takes it. Turning
+// one into a claim still needs `claims`, which staff do not have.
+
+const PROBLEM_STATUS = {
+  'open':               { label: 'Open', tone: 'intake' },
+  'awaiting-customer':  { label: 'Waiting on the customer', tone: 'goodwill' },
+  'claim':              { label: 'Became a claim', tone: 'paid' },
+  'resolved':           { label: 'Resolved', tone: 'defended' },
+};
+function problemStatus(p) { return PROBLEM_STATUS[(p && p.status) || 'open'] || PROBLEM_STATUS.open; }
+
+// Field keys deliberately match FACT_SETS.garment (customerName, docket, garment,
+// site) so what the counter typed flows into a letter with no mapping layer.
+function newProblem() {
+  return {
+    id: newId('P'),
+    date: new Date().toISOString().slice(0, 10),
+    docket: '', customerName: '', phone: '', email: '', site: '',
+    garment: '', whatHappened: '', takenBy: '',
+    status: 'open',
+    chatId: null, claimId: null,
+    createdBy: state.currentUserId || null,
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+function saveProblem(p) {
+  if (!p) return;
+  if (!p.id) p.id = newId('P');
+  p.updatedAt = Date.now();
+  const i = state.problems.findIndex(x => x.id === p.id);
+  if (i === -1) state.problems.unshift(p); else state.problems[i] = p;
+  persistState();
+}
+function findProblem(id) { return state.problems.find(x => x.id === id) || null; }
+// Same ownership rule as chats and letters: a record with no createdBy pre-dates
+// the field, so it stays hidden from staff rather than newly exposed.
+function visibleProblems() {
+  const all = state.problems || [];
+  if (can('claims')) return all;
+  const me = state.currentUserId;
+  return all.filter(x => x.createdBy ? x.createdBy === me : false);
+}
+function maySeeProblem(p) {
+  if (!p) return false;
+  if (can('claims')) return true;
+  return p.createdBy ? p.createdBy === state.currentUserId : false;
+}
+async function deleteProblem(id) {
+  const p = findProblem(id);
+  if (!maySeeProblem(p)) return;
+  const who = p.customerName || p.docket || 'this report';
+  if (!(await uiConfirm('Delete the problem report for ' + who + '? The chat it started is kept.'))) return;
+  state.problems = state.problems.filter(x => x.id !== id);
+  if (state.currentProblem && state.currentProblem.id === id) state.currentProblem = null;
+  render();
+}
+function problemLabel(p) {
+  if (!p) return 'Customer problem';
+  return p.customerName || (p.docket ? 'Docket ' + p.docket : '') || 'Customer problem';
+}
+// Overlay the typed report onto the facts the model pulled out of the chat. A
+// human read these off the docket, so they win over anything inferred from prose.
+function applyProblemFacts(facts, p) {
+  if (!p) return facts;
+  const out = Object.assign({}, facts || {});
+  ['customerName', 'docket', 'garment', 'site'].forEach(k => { if (p[k]) out[k] = p[k]; });
+  return out;
+}
+// The opening message of the chat. The AI transport flattens a conversation into a
+// single user turn, so there is no per-chat system slot to put this in — writing it
+// as the first user message is the seam that needs no change to buildSystemPrompt,
+// and it stays visible and editable in the transcript.
+function problemBrief(p) {
+  const bits = [];
+  if (p.date) bits.push('Date taken: ' + p.date);
+  if (p.docket) bits.push('Docket / order number: ' + p.docket);
+  if (p.customerName) bits.push('Customer: ' + p.customerName);
+  if (p.phone) bits.push('Phone: ' + p.phone);
+  if (p.email) bits.push('Email: ' + p.email);
+  if (p.site) bits.push('Store / site: ' + p.site);
+  if (p.garment) bits.push('Item: ' + p.garment);
+  if (p.takenBy) bits.push('Taken by: ' + p.takenBy);
+  return 'A customer has raised a problem over the counter. Here is the report:\n\n'
+    + bits.join('\n')
+    + '\n\nWhat happened, in the customer\'s words and ours:\n' + (p.whatHappened || '(not recorded)')
+    + '\n\nPlease help me work out where we stand and what to do next.';
+}
 
 function buildStateBlob() {
   const chats = state.chats.map(c => ({
     id: c.id, title: c.title, createdAt: c.createdAt,
+    createdBy: c.createdBy || null,
+    kind: c.kind || null, problemId: c.problemId || null,
     messages: c.messages.filter(m => !m.pending && !m.error)
   }));
   return {
@@ -1380,6 +1495,7 @@ function buildStateBlob() {
     activeChatId: state.activeChatId,
     bills: state.bills,
     claims: state.claims,
+    problems: state.problems,
     letters: state.letters,
     staff: state.staff,
     training: state.training,
@@ -1423,6 +1539,7 @@ function applyStateBlob(s) {
     }
     if (Array.isArray(s.bills)) state.bills = s.bills;
     if (Array.isArray(s.claims)) state.claims = s.claims;
+    if (Array.isArray(s.problems)) state.problems = s.problems;
     if (Array.isArray(s.letters)) state.letters = s.letters;
     if (Array.isArray(s.staff)) state.staff = s.staff;
     if (Array.isArray(s.training)) state.training = s.training;
@@ -1451,17 +1568,83 @@ function deriveChatTitle(messages) {
   return firstUser.content.trim().replace(/\s+/g, ' ').slice(0, 42) + (firstUser.content.length > 42 ? '…' : '');
 }
 function newChat(activate) {
-  const c = { id: 'c' + Date.now(), title: 'New chat', createdAt: Date.now(), messages: [] };
+  const c = { id: 'c' + Date.now(), title: 'New chat', createdAt: Date.now(), createdBy: state.currentUserId || null, messages: [] };
   state.chats.unshift(c);
   if (activate !== false) state.activeChatId = c.id;
   return c;
 }
+// Resolve within what this role may see. Filtering the sidebar alone would be
+// cosmetic: activeChatId lives in the shared blob, so whatever the owner last had
+// open is what a staff login would otherwise land on at the next load.
 function activeChat() {
-  let c = state.chats.find(x => x.id === state.activeChatId);
-  if (!c) c = state.chats[0] || newChat();
+  const mine = visibleChats();
+  let c = mine.find(x => x.id === state.activeChatId);
+  if (!c) c = mine[0] || newChat();
   state.activeChatId = c.id;
   return c;
 }
+// True when this role may open that particular chat. Guards the rename and delete
+// handlers, which look up by id and would otherwise reach a hidden thread.
+function maySeeChat(c) {
+  if (!c) return false;
+  if (can('chats.all')) return true;
+  return c.createdBy ? c.createdBy === state.currentUserId : false;
+}
+// One AI round-trip on a thread. Lifted out of the chat composer so a problem
+// report can open a chat and get an answer without going through the textarea —
+// one send path, not two that drift apart.
+async function askInThread(thread, text, image) {
+  if (state.chatBusy) return;
+  const userMsgId = 'm' + Date.now() + '-u';
+  const pendingId = 'm' + Date.now() + '-p';
+  thread.messages.push({ id: userMsgId, role: 'user', content: text, image: image || undefined });
+  thread.messages.push({ id: pendingId, role: 'ai', content: '', pending: true });
+  state.chatBusy = true;
+  render();
+
+  try {
+    const history = thread.messages.filter(m => m.id !== userMsgId && m.id !== pendingId && !m.pending && !m.error);
+    let prompt = buildSystemPrompt(state.profile, history, text || '(no text — see the attached photo)');
+    if (image) prompt = PHOTO_PREAMBLE + prompt;
+    const response = image
+      ? await askClaudeSafe(prompt, [image])
+      : await askClaudeSafe(prompt);
+    const parsed = parseAIResponse(response);
+    const idx = thread.messages.findIndex(m => m.id === pendingId);
+    if (idx !== -1) {
+      thread.messages[idx] = { id: pendingId, role: 'ai', content: parsed.body, letterOffer: parsed.letterOffer };
+    }
+  } catch (err) {
+    const idx = thread.messages.findIndex(m => m.id === pendingId);
+    const errMsg = err && err.message ? err.message : 'unknown error';
+    if (idx !== -1) {
+      thread.messages[idx] = {
+        id: pendingId, role: 'ai', error: true,
+        content: "Sorry &mdash; I couldn't reach the AI just now (" + errMsg + "). Try sending the question again."
+      };
+    }
+  } finally {
+    state.chatBusy = false;
+    render();
+  }
+}
+
+// The form hands off to the consultant here. The captured fields become the
+// opening user message, so the reply is grounded in the docket and the customer
+// from the very first turn.
+async function startProblemChat(pr) {
+  const rec = findProblem(pr.id) || pr;
+  const c = newChat(true);
+  c.kind = 'problem';
+  c.problemId = rec.id;
+  c.title = 'Problem: ' + problemLabel(rec);
+  rec.chatId = c.id;
+  saveProblem(rec);
+  state.currentProblem = null;
+  goToTab('chat');
+  await askInThread(c, problemBrief(rec));
+}
+
 async function resetAll() {
   if (!(await uiConfirm('Clear all saved business details, chats, letters, staff and bills? This cannot be undone.', { title: 'Reset everything?', confirmLabel: 'Reset' }))) return;
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
@@ -2608,6 +2791,7 @@ function renderScreens() {
     onboarding: renderOnboarding,
     chat: renderChat,
     letters: renderLetters,
+    problems: renderProblems,
     staff: renderStaff,
     claims: renderClaims,
     bills: renderBills,
@@ -3203,6 +3387,13 @@ function renderChat() {
 
   const chat = activeChat();
   const messages = chat.messages;
+  // A problem thread is one part of a larger issue — say so, and give the way back.
+  const linkedProblem = chat.problemId ? findProblem(chat.problemId) : null;
+  const problemBanner = (linkedProblem && maySeeProblem(linkedProblem)) ? `
+    <div class="chat-knows">
+      <span>Customer problem &middot; ${escapeHtml(problemLabel(linkedProblem))}${linkedProblem.docket ? ' &middot; docket ' + escapeHtml(linkedProblem.docket) : ''}</span>
+      <button class="btn btn-ghost" id="chat-open-problem">View the report</button>
+    </div>` : '';
   const exportBtn = messages.some(m => m.role === 'ai' && !m.pending && !m.error)
     ? `<button class="btn btn-secondary" id="chat-export" title="Export this chat">${icons.doc} Export chat</button>` : '';
 
@@ -3248,6 +3439,7 @@ function renderChat() {
           ${exportBtn}
         </div>
         ${knowledgeLine}
+        ${problemBanner}
         <div class="card chat-card">
           <div class="messages" id="messages">${msgs}</div>
           <button class="chat-jump" id="chat-jump" aria-label="Jump to latest" title="Jump to latest">${icons.arrowDown}</button>
@@ -3301,41 +3493,14 @@ function renderChat() {
     if (!text && !image) return;
 
     const thread = activeChat();
-    if (thread.title === 'New chat' || !thread.title) thread.title = deriveChatTitle([{ role: 'user', content: text }]);
-    const userMsgId = 'm' + Date.now() + '-u';
-    const pendingId = 'm' + Date.now() + '-p';
-    thread.messages.push({ id: userMsgId, role: 'user', content: text, image: image || undefined });
-    thread.messages.push({ id: pendingId, role: 'ai', content: '', pending: true });
+    // A problem report has already named itself after the customer — do not let
+    // the opening brief overwrite that with its first 42 characters.
+    if (thread.kind !== 'problem' && (thread.title === 'New chat' || !thread.title)) {
+      thread.title = deriveChatTitle([{ role: 'user', content: text }]);
+    }
     input.value = '';
     state.pendingImage = null;
-    state.chatBusy = true;
-    render();
-
-    try {
-      const history = thread.messages.filter(m => m.id !== userMsgId && m.id !== pendingId && !m.pending && !m.error);
-      let prompt = buildSystemPrompt(state.profile, history, text || '(no text — see the attached photo)');
-      if (image) prompt = PHOTO_PREAMBLE + prompt;
-      const response = image
-        ? await askClaudeSafe(prompt, [image])
-        : await askClaudeSafe(prompt);
-      const parsed = parseAIResponse(response);
-      const idx = thread.messages.findIndex(m => m.id === pendingId);
-      if (idx !== -1) {
-        thread.messages[idx] = { id: pendingId, role: 'ai', content: parsed.body, letterOffer: parsed.letterOffer };
-      }
-    } catch (err) {
-      const idx = thread.messages.findIndex(m => m.id === pendingId);
-      const errMsg = err && err.message ? err.message : 'unknown error';
-      if (idx !== -1) {
-        thread.messages[idx] = {
-          id: pendingId, role: 'ai', error: true,
-          content: "Sorry &mdash; I couldn't reach the AI just now (" + errMsg + "). Try sending the question again."
-        };
-      }
-    } finally {
-      state.chatBusy = false;
-      render();
-    }
+    await askInThread(thread, text, image);
   };
 
   const photoBtn = document.getElementById('photo-btn');
@@ -3370,6 +3535,8 @@ function renderChat() {
   document.querySelectorAll('[data-note-msg]').forEach(b => {
     b.addEventListener('click', () => draftNote('message', b.dataset.noteMsg));
   });
+  const openProb = document.getElementById('chat-open-problem');
+  if (openProb) openProb.addEventListener('click', () => openProblem(chat.problemId));
   const addKnow = document.getElementById('chat-add-knowledge');
   if (addKnow) addKnow.addEventListener('click', () => {
     state.onboardingStep = Math.max(0, ONBOARDING_STEPS.findIndex(x => x.id === 'documents'));
@@ -3417,6 +3584,7 @@ async function draftLetterFromMessage(msgId, overrideType, factsOverride, claimO
     sourceMsgId: msgId,
     baseType: msg.letterOffer.type,
     family: factFamily(offer.type),
+    problemId: thread.problemId || null,
     claim: claim
   };
 
@@ -3433,6 +3601,7 @@ async function draftLetterFromMessage(msgId, overrideType, factsOverride, claimO
     const conv = thread.messages.filter(m => !m.pending && !m.error);
     if (!facts && keep.family) {
       facts = await extractFacts(conv, offer.type, state.profile);
+      facts = applyProblemFacts(facts, keep.problemId ? findProblem(keep.problemId) : null);
       if (offer.type === 'settlement' && claim && !claim.replacementCost && facts && facts.value) {
         claim.replacementCost = String(facts.value).replace(/[^0-9.]/g, '') || '';
         keep.claim = claim;
@@ -3631,6 +3800,7 @@ function recordClaim(letter) {
   if (!outcome) return;
   const f = letter.facts || {};
   const c = letter.claim || {};
+  const pr = letter.problemId ? findProblem(letter.problemId) : null;
   const calc = calcAdjustment(c);
   const offered = (c.offer !== '' && c.offer != null && !isNaN(parseFloat(c.offer)))
     ? parseFloat(c.offer)
@@ -3641,10 +3811,12 @@ function recordClaim(letter) {
     id: letter.sourceMsgId,
     date: letter.date,
     ts: Date.now(),
-    customer: f.customerName || '',
-    garment: f.garment || letter.subject || '',
+    customer: (pr && pr.customerName) || f.customerName || '',
+    garment: (pr && pr.garment) || f.garment || letter.subject || '',
     cause: letter.subject || '',
-    site: f.site || '',
+    site: (pr && pr.site) || f.site || '',
+    docket: (pr && pr.docket) || f.docket || '',
+    problemId: letter.problemId || null,
     type: letter.type,
     outcome: outcome.label,
     tone: outcome.tone,
@@ -3655,6 +3827,13 @@ function recordClaim(letter) {
   };
   const i = state.claims.findIndex(x => x.id === rec.id);
   if (i === -1) state.claims.push(rec); else state.claims[i] = rec;
+  // Close the loop: the report knows it became a claim. Leave a status someone has
+  // already moved on (resolved, waiting) alone.
+  if (pr) {
+    pr.claimId = rec.id;
+    if (pr.status === 'open') pr.status = 'claim';
+    pr.updatedAt = Date.now();
+  }
 }
 
 function claimsTotals() {
@@ -3677,7 +3856,7 @@ function claimsRegisterHtml() {
   const rows = state.claims.slice().sort((a, b) => b.ts - a.ts).map(c => `
     <tr>
       <td>${escapeHtml(c.date || '')}</td>
-      <td>${escapeHtml(c.garment || '—')}${c.customer ? '<div style="font-size:11px;color:var(--muted)">' + escapeHtml(c.customer) + '</div>' : ''}</td>
+      <td>${escapeHtml(c.garment || '—')}${(c.customer || c.docket) ? '<div style="font-size:11px;color:var(--muted)">' + escapeHtml([c.customer, c.docket ? 'docket ' + c.docket : ''].filter(Boolean).join(' · ')) + '</div>' : ''}</td>
       <td><span class="claim-pill ${c.tone}">${escapeHtml(c.outcome)}</span></td>
       <td style="text-align:right">${c.atStake ? fmtAud(c.atStake) : '—'}</td>
       <td style="text-align:right">${c.paid ? fmtAud(c.paid) : '—'}</td>
@@ -3796,10 +3975,10 @@ function renderClaims() {
 }
 
 function exportClaimsCsv() {
-  const head = ['Date', 'Customer', 'Garment', 'Cause', 'Site', 'Outcome', 'Value at stake', 'Paid', 'Claimed not paid'];
+  const head = ['Date', 'Customer', 'Docket', 'Garment', 'Cause', 'Site', 'Outcome', 'Value at stake', 'Paid', 'Claimed not paid'];
   const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
   const rows = state.claims.slice().sort((a, b) => b.ts - a.ts).map(c =>
-    [c.date, c.customer, c.garment, c.cause, c.site, c.outcome, c.atStake || 0, c.paid || 0, c.saved || 0].map(esc).join(','));
+    [c.date, c.customer, c.docket || '', c.garment, c.cause, c.site, c.outcome, c.atStake || 0, c.paid || 0, c.saved || 0].map(esc).join(','));
   downloadFile([head.map(esc).join(','), ...rows].join('\n'), 'hangr-claims-register.csv', 'text/csv');
 }
 
@@ -5635,7 +5814,7 @@ function renderTraining() {
 function trainingHeaderHtml(sub) {
   return `
     <div class="screen-header">
-      <div class="ix">Module 07</div>
+      <div class="ix">Module 08</div>
       <h2>Staff Training</h2>
       <p>${sub}</p>
     </div>`;
@@ -5806,7 +5985,7 @@ function renderTrainingRead(screen) {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 07 &middot; Course ${escapeHtml(m.num)}</div>
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(m.num)}</div>
       <h2>${escapeHtml(m.title)}</h2>
     </div>
     <div class="step-progress">
@@ -5874,7 +6053,7 @@ function renderTrainingQuiz(screen) {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 07 &middot; Course ${escapeHtml(m.num)}</div>
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(m.num)}</div>
       <h2>${escapeHtml(m.title)} — questions</h2>
       <p>Answer all ${m.quiz.length}. You need ${trainingPassMark(m.quiz.length)} right to pass, and you can take it again as many times as you need.</p>
     </div>
@@ -5960,7 +6139,7 @@ function renderTrainingResult(screen) {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 07 &middot; Course ${escapeHtml(m.num)}</div>
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(m.num)}</div>
       <h2>${escapeHtml(m.title)} — result</h2>
     </div>
     <div class="tr-score ${rec.passed ? 'pass' : 'fail'}">
@@ -6681,7 +6860,7 @@ function renderCourseEditor(screen) {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 07 &middot; ${c.status === 'published' ? 'Live course' : 'Draft'}</div>
+      <div class="ix">Module 08 &middot; ${c.status === 'published' ? 'Live course' : 'Draft'}</div>
       <h2>${escapeHtml(c.title || 'Untitled course')}</h2>
       <p>Read it before you publish it. Staff are marked against these answers, so a question that came out wrong teaches the wrong thing.</p>
     </div>
@@ -7051,6 +7230,9 @@ function documentsBodyHtml() {
 }
 
 function bindDocumentControls() {
+  // The draft being edited, if there is one. documentsBodyHtml() reads the same
+  // value — the two halves are rendered and bound in the same pass.
+  const d = state.docDraft;
   const addBtn = document.getElementById('doc-add');
   if (addBtn) addBtn.addEventListener('click', () => { state.docDraft = emptyDocDraft(); render(); });
 
@@ -7238,7 +7420,7 @@ function priceListBodyHtml() {
 }
 
 function bindPriceListControls() {
-
+  const d = state.priceDraft;
   const addBtn = document.getElementById('price-add');
   if (addBtn) addBtn.addEventListener('click', () => { state.priceDraft = emptyPriceDraft(); render(); });
 
@@ -7782,7 +7964,7 @@ async function initApp() {
 // numbering so there is one list of sections in the app, not two.
 
 // Sections that are conversations rather than destinations sit above the divider.
-const SIDEBAR_PRIMARY = ['chat', 'letters'];
+const SIDEBAR_PRIMARY = ['chat', 'problems', 'letters'];
 
 // One icon per section. Collapsed, the icon is all there is to go on, so a bare
 // module number would leave the rail unreadable.
@@ -7793,6 +7975,7 @@ const sideIcons = {
   staff:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>',
   claims:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M12 3v18"/><path d="m5 7 7-3 7 3"/><path d="M3 11h6l-3 6-3-6Z"/><path d="M15 11h6l-3 6-3-6Z"/></svg>',
   documents:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/></svg>',
+  problems:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M9 3h6v3H9z"/><path d="M15 4.5h2a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2h2"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
   bills:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M3 3v18h18"/><path d="m7 14 3.5-4 3 3L20 7"/></svg>',
   training:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M12 7c-1.8-1.3-4-2-6.5-2H3v13h2.5c2.5 0 4.7.7 6.5 2"/><path d="M12 7c1.8-1.3 4-2 6.5-2H21v13h-2.5c-2.5 0-4.7.7-6.5 2"/><path d="M12 7v13"/></svg>',
   pricelist:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
@@ -7828,7 +8011,7 @@ function renderSidebar() {
 
   // Chat history is only meaningful once the business is set up.
   const showChats = state.onboardingComplete;
-  const chats = showChats ? state.chats : [];
+  const chats = showChats ? visibleChats() : [];
   const current = showChats ? activeChat() : null;
   const chatList = chats.length
     ? chats.map(c => `
@@ -7926,7 +8109,9 @@ function bindSidebar() {
   });
   document.querySelectorAll('[data-side-chat]').forEach(b => {
     b.addEventListener('click', () => {
-      state.activeChatId = b.dataset.sideChat;
+      const c = state.chats.find(x => x.id === b.dataset.sideChat);
+      if (!maySeeChat(c)) return;
+      state.activeChatId = c.id;
       goToTab('chat');
     });
   });
@@ -7934,7 +8119,7 @@ function bindSidebar() {
     b.addEventListener('click', async (e) => {
       e.stopPropagation();
       const c = state.chats.find(x => x.id === b.dataset.chatRename);
-      if (!c) return;
+      if (!maySeeChat(c)) return;
       const name = await uiPrompt('Rename this chat', c.title || '');
       if (name && name.trim()) { c.title = name.trim().slice(0, 60); render(); }
     });
@@ -7942,12 +8127,12 @@ function bindSidebar() {
   document.querySelectorAll('[data-chat-delete]').forEach(b => {
     b.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (state.chats.length <= 1) return;
+      if (visibleChats().length <= 1) return;
       const c = state.chats.find(x => x.id === b.dataset.chatDelete);
-      if (!c) return;
+      if (!maySeeChat(c)) return;
       if (!(await uiConfirm('Delete "' + (c.title || 'this chat') + '"? This cannot be undone.'))) return;
       state.chats = state.chats.filter(x => x.id !== c.id);
-      if (state.activeChatId === c.id) state.activeChatId = state.chats[0] ? state.chats[0].id : null;
+      if (state.activeChatId === c.id) { const rest = visibleChats(); state.activeChatId = rest[0] ? rest[0].id : null; }
       render();
     });
   });
@@ -8002,6 +8187,13 @@ const ROLE_BLURBS = {
 
 // Capabilities, most sensitive last.
 //   chat           ask the consultant anything the role is allowed to discuss
+//   chats.all      read every chat in the business, not just their own. A saved
+//                  transcript would otherwise walk straight past the prompt-level
+//                  rules below: staff cannot be told about a wage dispute, but
+//                  could read yesterday's chat about one. Manager and above.
+//   problems       raise a customer problem report at the counter. Every role has
+//                  this — it is the staff member in front of the customer who takes
+//                  it. Turning one into a claim still needs `claims`.
 //   letters.own    draft and open letters they created
 //   letters.all    see every letter the business has generated
 //   claims         the claims register, what was paid, what is at stake
@@ -8013,10 +8205,10 @@ const ROLE_BLURBS = {
 //   settings       edit the business profile and branding
 //   manageAccess   invite people and change their role
 const ROLE_CAPS = {
-  owner:   ['chat', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess', 'training.manage'],
-  admin:   ['chat', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
-  manager: ['chat', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents'],
-  staff:   ['chat', 'letters.own', 'priceLists'],
+  owner:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess', 'training.manage'],
+  admin:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
+  manager: ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents'],
+  staff:   ['chat', 'problems', 'letters.own', 'priceLists'],
 };
 
 // Which sections each capability unlocks. A section with no entry is open to all.
@@ -8025,6 +8217,7 @@ const SECTION_CAP = {
   staff:      'staffRecords',
   claims:     'claims',
   bills:      'financials',
+  problems:   'problems',
   // 'training' is deliberately absent, so every role can open it. Staff records
   // are the owner's business; training is the staff member's, and a course the
   // person on the counter cannot open trains nobody. The owner-only half of that
@@ -8108,6 +8301,16 @@ function kbAllowed(key) {
 // Letters a role is entitled to see. HR letters are staff records by another
 // name — a warning or a show-cause names an employee and states a case against
 // them — so they follow the staffRecords capability, not letters.all.
+// Chats a role may see. Same shape as visibleLetters below: a chat with no
+// createdBy pre-dates ownership, so it stays hidden from staff and visible to
+// manager and above. That is the safe direction — no existing transcript becomes
+// newly readable by a staff login.
+function visibleChats() {
+  const all = state.chats || [];
+  if (can('chats.all')) return all;
+  const me = state.currentUserId;
+  return all.filter(c => c.createdBy ? c.createdBy === me : false);
+}
 function visibleLetters() {
   const all = state.letters || [];
   if (can('letters.all')) {
@@ -8238,6 +8441,228 @@ async function openEmailLetter(l) {
       : 'Sent to ' + sentTo + '.', 'Email sent');
   }
 }
+// ============ CUSTOMER PROBLEMS SCREEN ============
+// Two modes on one renderer, the same shape renderLetters uses: the register when
+// nothing is open, the report itself when one is. state.currentProblem holds the
+// live record from state.problems (not a copy), so every keystroke writes through
+// and a half-filled report survives a refresh — the same save-draft mechanism the
+// staff roster uses.
+
+function problemFieldsHtml(p) {
+  const f = (key, label, opts) => {
+    const o = opts || {};
+    return `
+      <div class="field">
+        <div class="label">${escapeHtml(label)}</div>
+        <input class="input" type="${o.type || 'text'}" data-problem="${key}"
+               value="${escapeHtml(p[key] || '')}" placeholder="${escapeHtml(o.ph || '')}"
+               ${o.inputmode ? 'inputmode="' + o.inputmode + '"' : ''}>
+      </div>`;
+  };
+  return `
+    <div class="field-row">
+      ${f('date', 'Date', { type: 'date' })}
+      ${f('docket', 'Docket / order number', { ph: 'e.g. 4471' })}
+    </div>
+    <div class="field-row">
+      ${f('customerName', 'Customer name', { ph: 'First and last name' })}
+      ${f('phone', 'Phone', { type: 'tel', ph: '04__ ___ ___', inputmode: 'tel' })}
+    </div>
+    <div class="field-row">
+      ${f('email', 'Email', { type: 'email', ph: 'name@example.com' })}
+      ${f('site', 'Store / site', { ph: 'Which shop took it in' })}
+    </div>
+    <div class="field-row">
+      ${f('garment', 'Item', { ph: 'e.g. wool coat, navy — or what was lost' })}
+      ${f('takenBy', 'Taken by', { ph: 'Who served the customer' })}
+    </div>
+    <div class="field">
+      <div class="label">What happened</div>
+      <textarea class="textarea" rows="6" data-problem="whatHappened"
+        placeholder="What the customer says, what we can see, and anything they have asked for. Write it the way you would say it.">${escapeHtml(p.whatHappened || '')}</textarea>
+    </div>`;
+}
+
+// Once a report has started a chat it stops being a form and becomes the spine of
+// the issue — this is the bit that makes it read as one problem rather than three.
+function problemLinksHtml(p) {
+  const chat = p.chatId ? state.chats.find(c => c.id === p.chatId) : null;
+  const claim = p.claimId ? (state.claims || []).find(c => c.id === p.claimId) : null;
+  const letters = (state.letters || []).filter(l => l.problemId === p.id);
+  if (!chat && !claim && !letters.length) return '';
+  const rows = [];
+  if (chat) rows.push(`<div class="lib-item">
+      <div class="lib-main"><div class="lib-subject">${escapeHtml(chat.title || 'The chat')}</div>
+      <div class="lib-meta">The conversation this report started</div></div>
+      <button class="btn btn-secondary" data-problem-openchat="${p.id}">Open the chat</button>
+    </div>`);
+  letters.forEach(l => rows.push(`<div class="lib-item">
+      <div class="lib-main"><div class="lib-subject">${escapeHtml(l.subject || '(untitled)')}</div>
+      <div class="lib-meta"><span class="lib-tag">${escapeHtml(letterTypeLabel(l.type))}</span> &nbsp; ${escapeHtml(l.date || '')}</div></div>
+      <button class="btn btn-secondary" data-problem-openletter="${l.id}">Open</button>
+    </div>`));
+  if (claim) rows.push(`<div class="lib-item">
+      <div class="lib-main"><div class="lib-subject">${escapeHtml(claim.outcome || 'Claim')}</div>
+      <div class="lib-meta">In the claims register${claim.atStake ? ' · ' + fmtAud(claim.atStake) + ' at stake' : ''}</div></div>
+      ${can('claims') ? '<button class="btn btn-secondary" id="problem-goclaims">Claims register</button>' : ''}
+    </div>`);
+  return `<div class="card" style="margin-top:24px">
+      <div class="facts-head"><h3>This problem</h3><span class="facts-count">Everything linked to this report</span></div>
+      <div class="lib-list">${rows.join('')}</div>
+    </div>`;
+}
+
+function problemsRegisterHtml(list) {
+  const rows = list.map(p => {
+    const st = problemStatus(p);
+    return `
+    <tr data-problem-row="${p.id}" style="cursor:pointer">
+      <td>${escapeHtml(p.date || '')}</td>
+      <td>${escapeHtml(p.customerName || '—')}${p.phone ? '<div style="font-size:11px;color:var(--muted)">' + escapeHtml(p.phone) + '</div>' : ''}</td>
+      <td>${escapeHtml(p.docket || '—')}</td>
+      <td>${escapeHtml(p.garment || '—')}</td>
+      <td><span class="claim-pill ${st.tone}">${escapeHtml(st.label)}</span></td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="card" style="margin-top:28px">
+      <div class="facts-head">
+        <h3>Problem reports</h3>
+        <span class="facts-count">${list.length} report${list.length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="table-scroll">
+        <table class="claims-table">
+          <thead><tr><th>Date</th><th>Customer</th><th>Docket</th><th>Item</th><th>Status</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function openProblem(id) {
+  const p = findProblem(id);
+  if (!maySeeProblem(p)) return;
+  state.currentProblem = p;
+  state.activeTab = 'problems';
+  render();
+}
+
+function renderProblems() {
+  const screen = $('#screen-problems');
+  if (!screen) return;
+  const p = state.currentProblem;
+
+  if (!p) {
+    const list = visibleProblems().slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    screen.innerHTML = `
+      <div class="screen-header">
+        <div class="ix">Module 07</div>
+        <h2>Customer Problems</h2>
+        <p>A garment problem or a lost item taken over the counter. Fill this in while the customer is in front of you — it starts a chat with the consultant, and if it turns into a claim or a letter, everything stays joined to this one report.</p>
+      </div>
+      ${list.length ? `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px">
+          <div class="facts-count">${list.length} report${list.length === 1 ? '' : 's'}</div>
+          <button class="btn btn-primary" id="problem-new">${icons.plus} New problem report</button>
+        </div>
+        ${problemsRegisterHtml(list)}
+      ` : `
+        <div class="empty">
+          <div class="icon">${icons.alert}</div>
+          <h3>No problem reports yet</h3>
+          <p>When a customer brings something back — a mark that will not come out, a garment that has changed, something we cannot find — start the report here. You capture the docket and the details once, and the consultant picks it up from there.</p>
+          <button class="btn btn-primary" id="problem-new">${icons.plus} New problem report</button>
+        </div>`}
+    `;
+    const nb = document.getElementById('problem-new');
+    if (nb) nb.addEventListener('click', () => {
+      const np = newProblem();
+      saveProblem(np);
+      state.currentProblem = np;
+      render();
+    });
+    document.querySelectorAll('[data-problem-row]').forEach(tr =>
+      tr.addEventListener('click', () => openProblem(tr.dataset.problemRow)));
+    return;
+  }
+
+  const st = problemStatus(p);
+  const started = !!p.chatId;
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 07</div>
+      <h2>${escapeHtml(started ? problemLabel(p) : 'New problem report')}</h2>
+      <p>${started
+        ? 'Taken ' + escapeHtml(p.date || '') + '. Everything below stays linked to the chat, and to any claim or letter that comes out of it.'
+        : 'Capture what you can while the customer is here. Nothing is lost if you leave this page — it saves as you type.'}</p>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="problem-back">&larr; All reports</button>
+      <span class="claim-pill ${st.tone}">${escapeHtml(st.label)}</span>
+    </div>
+    <div class="card" style="margin-top:16px">
+      ${problemFieldsHtml(p)}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center">
+        ${started
+          ? `<button class="btn btn-primary" data-problem-openchat="${p.id}">${icons.chat} Open the chat</button>`
+          : `<button class="btn btn-primary" id="problem-start">${icons.chat} Save and start the chat</button>`}
+        ${started ? `
+          <select class="select" id="problem-status" style="max-width:230px">
+            ${Object.keys(PROBLEM_STATUS).map(k =>
+              `<option value="${k}" ${p.status === k ? 'selected' : ''}>${escapeHtml(PROBLEM_STATUS[k].label)}</option>`).join('')}
+          </select>` : ''}
+        <button class="btn btn-ghost" data-problem-delete="${p.id}" style="color:var(--warn);margin-left:auto">Delete</button>
+      </div>
+      ${started ? '' : '<div class="facts-count" style="margin-top:12px">Starting the chat sends what you have written to the consultant. You can keep editing this report afterwards.</div>'}
+    </div>
+    ${problemLinksHtml(p)}
+  `;
+
+  // Write-through on every keystroke, no re-render — the same mechanism the staff
+  // roster uses, so the field keeps focus and the draft is always saved.
+  screen.querySelectorAll('[data-problem]').forEach(el => {
+    const key = el.dataset.problem;
+    const ev = (el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(ev, (e) => {
+      const rec = findProblem(p.id);
+      if (!rec) return;
+      rec[key] = e.target.value;
+      rec.updatedAt = Date.now();
+      persistState();
+    });
+  });
+
+  const back = document.getElementById('problem-back');
+  if (back) back.addEventListener('click', () => { state.currentProblem = null; render(); });
+
+  const start = document.getElementById('problem-start');
+  if (start) start.addEventListener('click', () => startProblemChat(p));
+
+  const sel = document.getElementById('problem-status');
+  if (sel) sel.addEventListener('change', (e) => {
+    const rec = findProblem(p.id);
+    if (!rec) return;
+    rec.status = e.target.value;
+    saveProblem(rec);
+    render();
+  });
+
+  screen.querySelectorAll('[data-problem-openchat]').forEach(b => b.addEventListener('click', () => {
+    const rec = findProblem(b.dataset.problemOpenchat);
+    if (!rec || !rec.chatId) return;
+    const c = state.chats.find(x => x.id === rec.chatId);
+    if (!maySeeChat(c)) { uiAlert('That chat belongs to someone else.'); return; }
+    state.activeChatId = c.id;
+    goToTab('chat');
+  }));
+  screen.querySelectorAll('[data-problem-openletter]').forEach(b =>
+    b.addEventListener('click', () => openLetter(b.dataset.problemOpenletter)));
+  const gcl = document.getElementById('problem-goclaims');
+  if (gcl) gcl.addEventListener('click', () => { state.currentProblem = null; goToTab('claims'); });
+  screen.querySelectorAll('[data-problem-delete]').forEach(b =>
+    b.addEventListener('click', () => deleteProblem(b.dataset.problemDelete)));
+}
+
 // ============ BOOT ============
 // Everything that actually runs on load lives here, and this file sorts last.
 // Keeping the entry point in one place means a new module can be dropped in at
