@@ -192,12 +192,79 @@ function bestDoc(q, role) {
   }
   return best;
 }
-const q1 = bestDoc('the Fulton boiler has locked out showing fault code B14 what is it');
+const q1 = bestDoc('the Fulton boiler keeps dropping out on fault code B05 low water what is it');
 ok('boiler fault code → the Fulton manual', /fulton/i.test(q1.title), `got "${q1.title}"`);
 const q2 = bestDoc('what does the lease say about the rent review and CPI each March');
 ok('rent review → the Bendigo lease', /lease/i.test(q2.title), `got "${q2.title}"`);
 const q3 = bestDoc('what is our excess and the bailee liability limit on the insurance policy');
 ok('bailee limit → the insurance policy', /meridian|insurance/i.test(q3.title), `got "${q3.title}"`);
+
+console.log('\nWhat the chats and letters assert is actually in the documents');
+// The bug this catches: a seeded chat confidently explaining fault code B14 when
+// the manual lists B14 as reserved and never generated. The chat was written
+// before the manual existed, nothing linked the two, and the only thing that
+// would have found it is a demo in front of a prospect.
+//
+// So: pull every distinctive identifier out of what the business says, and
+// require it to appear somewhere in what the business holds on file.
+const corpus = blob.documents.map(d => d.text).join('\n')
+  + '\n' + blob.priceLists.map(p => p.text + '\n' + p.summary).join('\n');
+
+const spoken = blob.chats.flatMap(c => c.messages.map(m => m.content))
+  .concat(blob.letters.map(l => l.body))
+  .concat(blob.problems.map(p => [p.whatHappened, p.actionTaken, p.recommended].join(' ')))
+  .join('\n');
+
+const PATTERNS = [
+  [/\b[A-Z]{1,3}-?\d{2,3}\b(?=[^%]|$)/g, 'fault code or model'],   // B05, E17, F-04, XL-800
+  [/\bMDC-BP-\d+\b/g,                     'policy number'],
+  [/\bVIC-PV-[\d-]+\b/g,                  'plant registration'],
+  [/\bTW-\d+\b/g,                         'trade waste agreement'],
+];
+
+const NOT_IDENTIFIERS = new Set([
+  // Award classifications, docket numbers and phone fragments are the business's
+  // own records, not things a document would carry.
+  'DC1','DC2','DC3','DC4','DC5','L1','L2','L3','L4','B-24118','B-23904','K-08812',
+  'B-25277','B-22140','B-22886','K-09104','B-25491','MA000096','AS-3788'
+]);
+
+const missing = new Map();
+for (const [re, kind] of PATTERNS) {
+  for (const m of spoken.matchAll(re)) {
+    const tok = m[0];
+    if (NOT_IDENTIFIERS.has(tok)) continue;
+    if (/^\d/.test(tok)) continue;
+    if (!corpus.includes(tok)) missing.set(tok, kind);
+  }
+}
+ok('every identifier the business quotes appears on file',
+   missing.size === 0,
+   [...missing].map(([t, k]) => `${t} (${k})`).join(', '));
+
+// And the reverse for the one that actually bit: a code the manual declares
+// reserved must never be explained as though it were real. Match the whole
+// sentence and take every code-shaped token out of it — the first attempt at
+// this used a comma-separated pattern and quietly missed "B14, B19 and B37",
+// which is to say it passed the exact bug it was written to catch.
+const reserved = new Set();
+for (const sentence of corpus.split(/(?<=[.\n])/)) {
+  if (!/\breserved\b/.test(sentence)) continue;
+  if (!/\b(?:not generated|reserved and|are reserved|is reserved|unused)\b/.test(sentence)) continue;
+  for (const m of sentence.matchAll(/\b([A-Z]{1,2}-?\d{2})\b/g)) reserved.add(m[1]);
+}
+
+// A reserved code is "explained" if the business talks about it as a diagnosis
+// rather than merely listing it. Require it to sit near explanatory language.
+const explained = [...reserved].filter(code => {
+  const re = new RegExp('[^.\n]*\\b' + code.replace('-', '-?') + '\\b[^.\n]*', 'g');
+  return [...spoken.matchAll(re)].some(m =>
+    !/\breserved|not generated|unused\b/.test(m[0]));
+});
+
+ok(`${reserved.size} reserved codes found, none explained as real`,
+   explained.length === 0,
+   explained.length ? explained.join(', ') + ' — the manual says these are never generated' : '');
 
 console.log(`\n${pass} passed, ${fails.length} failed\n`);
 if (fails.length) { fails.forEach(f => console.log('  x ' + f)); console.log(''); process.exit(1); }

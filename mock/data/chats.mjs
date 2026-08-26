@@ -14,31 +14,31 @@ const T = (iso) => new Date(iso + 'T09:00:00+10:00').getTime();
 export const STANDALONE_CHATS = [
   {
     id: 'cboilerfault',
-    title: 'Boiler locked out on B14 this morning',
+    title: 'Boiler keeps dropping out on B05',
     createdAt: T('2026-08-18'),
     createdBy: UID.karen,
     kind: null,
     problemId: null,
     messages: [
       { id: 'mboilerfault-u', role: 'user',
-        content: `Peter rang me at ten past seven — the Fulton has locked out and the panel is showing B14. He has pressed reset twice and it goes again after about a minute. We have got the racks from yesterday still to press and no steam. What is B14 and is this something he can sort out or do I need to get someone in?` },
+        content: `Peter rang me at ten past seven — the Fulton has dropped out and the panel is showing B05. He has hit reset twice and it goes again after about a minute. We have got yesterday's racks still to press and no steam. Is this something he can sort out or do I need to get someone in?` },
       { id: 'mboilerfault-a', role: 'ai',
-        content: `B14 on the FB-030 is the low water cut-out lockout — the primary probe is not seeing water at the level it expects, so the burner is being held off. That is the control doing exactly what it is there for, and the important thing is that it is not a fault to be worked around.
+        content: `B05 on the FB-030 is LOW WATER — FIRST: the level has fallen to the first low water tip and the burner is being held off. That is the control doing exactly what it is there for.
 
-Three things cause it in that order of likelihood. The first is a genuinely low water level, which usually means the feedwater pump is not keeping up or has lost prime. The second is a fouled or scaled probe reading low when the level is actually fine — common if the water treatment has slipped, and your last inspection report flagged that the daily logs had gaps in May. The third is a probe or relay fault, which is the least likely of the three.
+The important part is the reset class. B05 is Class A once — resettable a single time, and Class B if it comes back. Peter has now reset it twice, and the manual is blunt about why that matters: a single B05 at the start of a heavy Monday with a hotwell nobody refilled over the weekend is explicable. A B05 that recurs is not, because the boiler has six minutes of water at full fire and something is taking it away.
 
-What Peter can do: check the gauge glass and see what the level actually is, blow down the gauge glass to make sure it is reading true, and check the feedwater pump is running and the feed tank has water in it. If the glass shows a proper level and the lockout still comes back, the probe is the suspect and that is where he stops.
+So stop resetting, and work the feedwater side in the order the manual sets out. Is there water in the hotwell. Is the make-up supply on. Is the softener stuck in regeneration and starving the hotwell. Is the feed pump running when it is called. Is the feed line stop valve open. Is the strainer blocked. Is the bottom blowdown valve passing — that shows as a hot blowdown line between blowdowns. Is there a visible leak.
 
-What he must not do is keep pressing reset. Repeated resetting on a low water lockout is how a boiler gets dry-fired, and on a registered pressure vessel that is both a serious safety event and a notifiable one. Two resets is already one more than I would want.
+Two things he must not do. Do not add water if the gauge glass is empty. And if it goes to B06 — LOW WATER, SECOND, LOCKOUT — that is the first device having failed to protect, and it is stop, do not reset, do not add water, isolate the gas, call the technician. B06 is Class B and an operator may never clear it.
 
-Given it has repeated after a reset, my call is to get your boiler technician out this morning rather than lose the day guessing. Goldfields did your June inspection so they know the machine.
+Given it has already come back twice, my call is to get your boiler technician out this morning rather than lose the day. Goldfields did your June inspection so they know the machine — and worth knowing, that report already flagged your daily logs had three gaps in May, which is the kind of thing that gets asked about if this turns into something.
 
-Want me to draft a service request to send them?` ,
-        letterOffer: { subject: 'Service request — Fulton FB-030, repeating B14 low water lockout', type: 'service-request' } }
+Want me to draft the service request?`,
+        letterOffer: { subject: 'Service request — Fulton FB-030, recurring B05 low water', type: 'service-request' } }
     ]
   },
 
-  {
+{
     id: 'cleasereview',
     title: 'What does the lease actually say about the rent review?',
     createdAt: T('2026-08-21'),

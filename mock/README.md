@@ -40,26 +40,80 @@ placeholder. If it fails, nothing is written.
 
 ## Loading it
 
-Run the SQL in `mock/sql/` **in numeric order**.
+`00-users.sql` creates the six logins and is run **once**. Creating Karen is what
+brings the business into existence, via the `on_auth_user_created` trigger.
 
-- `00-users.sql` — the six logins. Run once. Creating Karen is what brings the
-  business into existence, via the `on_auth_user_created` trigger.
+Then load the blob, either way:
+
+**The short way.** The blob is one JSON object and the repository is public, so
+Postgres can fetch it itself. This is how it was loaded the first time.
+
+```sql
+create extension if not exists http with schema extensions;
+
+update public.businesses
+   set data = (select content::jsonb
+                 from extensions.http_get('https://raw.githubusercontent.com/'
+                   || 'DavidHudson84/Hangrapp/claude/mock-dry-cleaner-setup-7pp5sc'
+                   || '/mock/blob.json')),
+       name = 'Main Street Dry Cleaners'
+ where id = (select business_id from public.memberships
+              where user_id = '9fd9feee-078b-4811-81ce-8c1558efa005');
+
+drop extension http;
+```
+
+Check the sha256 of what comes back against `sha256sum mock/blob.json` before
+committing to it. A truncated or cached response is still valid JSON and still
+loads — it is just quietly missing half the library, which you would not notice
+until a demo. Drop the extension afterwards; it lets the database make outbound
+HTTP requests and there is no reason to leave that switched on.
+
+**The portable way.** Generate the SQL and paste it into the Supabase SQL editor
+in numeric order:
+
+```
+node mock/emit-sql.mjs
+```
+
 - `01-base.sql` — profile, roster, and empty arrays.
 - `02-…` onwards — the arrays, appended in chunks of at most 70 KB.
-- `99-teardown.sql` — removes the tenant completely. Use it to retry from clean.
 
 Re-running the whole set from `01` reproduces the blob exactly, because `01`
 resets the arrays before the appends begin. Re-running a *single* append file
 would double that array — run the set, not a file.
 
+`99-teardown.sql` removes the tenant completely — the business, the memberships,
+the identities and the six logins. Use it to retry from clean.
+
+The generated `sql/NN-*.sql` files are not committed; they are derived from
+`blob.json` and regenerating them is one command. `00-users.sql` and
+`99-teardown.sql` are hand written and are in the repository.
+
 ## Resetting after a demo
 
-A demo that has been poked at can be put back without touching the logins:
+A demo that has been poked at can be put back without touching the logins — the
+blob is replaced, the six accounts are not. Either re-run the `http_get` update
+above, or `node mock/build.mjs && node mock/emit-sql.mjs` and run `01-base.sql`
+onwards again.
+
+## Checking it
 
 ```
-node mock/build.mjs && node mock/emit-sql.mjs
-# then run 01-base.sql onwards again
+node mock/verify.mjs
 ```
+
+This lifts the real functions out of `index.html` — `claimsTotals`,
+`activeCourses`, `docVisibleToRole`, `calcAdjustment`, `docChunks`, `_scoreText`
+— and runs them against the built blob, rather than reimplementing them. A
+reimplementation only ever proves the reimplementation is consistent with itself.
+
+Forty-eight checks: the claims dashboard adds up and each settlement still
+recomputes to the figure in its letter, the business's own course displaces the
+built-in one while the old passes stay on the register, the training spread is
+uneven in the ways a real one is, a counter login cannot reach the lease or the
+claims, every machine has a manual filed against it, and the three demo
+questions each retrieve the document that answers them.
 
 ## What is in it
 

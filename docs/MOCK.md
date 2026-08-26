@@ -95,10 +95,21 @@ node mock/build.mjs --report    # assemble and validate; writes mock/blob.json
 node mock/emit-sql.mjs          # turn blob.json into mock/sql/NN-*.sql
 ```
 
-Then run `mock/sql/*.sql` in numeric order. `00-users.sql` creates the logins and
-is run once; `01-base.sql` onwards loads the blob and can be re-run any time to
-reset a demo that has been poked at. `99-teardown.sql` removes the tenant
-entirely.
+`00-users.sql` creates the logins and is run once. The blob itself loads either
+by generating `mock/sql/NN-*.sql` and running them in numeric order, or — since
+the repository is public — by letting Postgres fetch `mock/blob.json` itself with
+the `http` extension, which is how it was loaded the first time and is one
+statement instead of thirty. `mock/README.md` has both, including the checksum
+guard worth putting on the fetch and the reminder to drop the extension
+afterwards. Either path can be re-run to reset a demo that has been poked at,
+without touching the six logins. `99-teardown.sql` removes the tenant entirely.
+
+`node mock/verify.mjs` is the other half. It lifts the real functions out of
+`index.html` and runs them against the built blob rather than reimplementing
+them, which would only prove the reimplementation is consistent with itself.
+Forty-eight checks, covering the claims arithmetic, the course replacement, the
+training spread, the role boundaries, the manuals-to-machines wiring, and whether
+the three demo questions above actually retrieve the documents that answer them.
 
 `build.mjs` will not write a blob that would render an empty panel. It checks that
 every claim has a letter behind it, that every letter's `sourceMsgId` is a chat
@@ -120,6 +131,7 @@ one `jsonb` blob — so it is enforced here or not at all.
 | `mock/letters/*.txt` | Letter bodies, and the chat exchanges that produced them. |
 | `mock/cards/*.txt` | The knowledge card for each stored document record. |
 | `mock/build.mjs` | Assembles and validates; writes `mock/blob.json`. |
+| `mock/verify.mjs` | Runs `index.html`'s own functions against the built blob. 48 checks. |
 | `mock/emit-sql.mjs` | Turns `blob.json` into the SQL under `mock/sql/`. |
 | `mock/sql/00-users.sql` | The six logins. Hand written; run once. |
 | `mock/sql/99-teardown.sql` | Removes the tenant completely. |
