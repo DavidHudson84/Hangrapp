@@ -1238,7 +1238,8 @@ const TABS = [
   { id: 'staff',      num: '05', label: 'Staff' },
   { id: 'claims',     num: '06', label: 'Claims' },
   { id: 'bills',      num: '07', label: 'Bill Compare' },
-  { id: 'training',   num: '08', label: 'Training' }
+  { id: 'training',   num: '08', label: 'Training' },
+  { id: 'users',      num: '09', label: 'Users' }
 ];
 
 const STATES = ['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
@@ -2951,7 +2952,8 @@ function renderScreens() {
     staff: renderStaff,
     claims: renderClaims,
     bills: renderBills,
-    training: renderTraining
+    training: renderTraining,
+    users: renderUsers
   };
   // Settle which tab we are on before the markup is built, or the screen that
   // gets rendered is not the one marked active. A saved tab can name a section
@@ -8280,7 +8282,7 @@ function renderSetPassword(msg) {
     if (a !== b) { msgEl.textContent = 'Those two do not match.'; return; }
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
-      const { error } = await sb.auth.updateUser({ password: a });
+      const { error } = await sb.auth.updateUser({ password: a, data: { must_change_password: false } });
       if (error) throw error;
       clearAuthHash();
       await handlePostLogin();
@@ -8312,6 +8314,8 @@ async function handlePostLogin() {
   try { aal = (await sb.auth.mfa.getAuthenticatorAssuranceLevel()).data; } catch (e) {}
   if (aal && aal.nextLevel === 'aal2' && aal.currentLevel === 'aal1') {
     renderMfaChallenge();
+  } else if (await mustChangePassword()) {
+    renderSetPassword('This login was set up for you. Choose your own password before you start.');
   } else {
     await onSignedIn();
   }
@@ -8452,6 +8456,7 @@ const sideIcons = {
   problems:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M9 3h6v3H9z"/><path d="M15 4.5h2a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2h2"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
   bills:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M3 3v18h18"/><path d="m7 14 3.5-4 3 3L20 7"/></svg>',
   training:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M12 7c-1.8-1.3-4-2-6.5-2H3v13h2.5c2.5 0 4.7.7 6.5 2"/><path d="M12 7c1.8-1.3 4-2 6.5-2H21v13h-2.5c-2.5 0-4.7.7-6.5 2"/><path d="M12 7v13"/></svg>',
+  users:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   pricelist:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="15" height="15"><path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
 };
 
@@ -8717,6 +8722,7 @@ const SECTION_CAP = {
   claims:     'claims',
   bills:      'financials',
   problems:   'problems',
+  users:      'manageAccess',
   // 'training' is deliberately absent, so every role can open it. Staff records
   // are the owner's business; training is the staff member's, and a course the
   // person on the counter cannot open trains nobody. The owner-only half of that
@@ -8844,6 +8850,247 @@ function offerableLetterTypes() {
                 'intake-authorisation'];
   return can('staffRecords') ? base.concat(HR_LETTERS) : base;
 }
+// ============ USERS (ACCESS) ============
+// Who can sign in to this business, and as what.
+//
+// Nothing on this screen is trusted. Every action goes to the manage-access edge
+// function, which re-checks that the caller really is the owner before it
+// touches a row — this file only decides what to draw. The roster itself has to
+// come from there too: email addresses live in auth.users, which the browser
+// cannot read under any policy.
+
+const ACCESS_ENDPOINT = SB_URL + '/functions/v1/manage-access';
+
+async function accessApi(body) {
+  let token = SB_ANON;
+  try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
+  const r = await fetch(ACCESS_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, apikey: SB_ANON, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    const err = new Error(j.error || 'That did not work. Try again.');
+    err.code = j.code;
+    err.status = r.status;
+    throw err;
+  }
+  return j;
+}
+
+// Roles the owner may hand out. Owner is absent on purpose: there is one, it is
+// the account that signed the business up, and the server refuses to create a
+// second or demote the first. Nobody can lock the owner out of their own data.
+const GRANTABLE_ROLES = ['admin', 'manager', 'staff'];
+
+// Readable rather than clever. The owner reads this out or writes it on a slip
+// of paper, and it stops being the password the first time the person signs in.
+function suggestPassword() {
+  const words = ['amber', 'basket', 'cotton', 'dahlia', 'ember', 'fabric', 'garnet',
+                 'hollow', 'indigo', 'jasmine', 'kettle', 'linen', 'marble', 'nectar',
+                 'opal', 'pewter', 'quartz', 'ribbon', 'satin', 'timber'];
+  const pick = () => words[Math.floor(Math.random() * words.length)];
+  return pick() + '-' + pick() + '-' + String(Math.floor(100 + Math.random() * 900));
+}
+
+// null = not fetched yet. The screen fetches once and redraws from this, so
+// changing a role does not blank the list while the server thinks about it.
+let _usersCache = null;
+let _usersError = '';
+// The handover details for a login just created. Held here rather than shown
+// in a modal because the password is the one thing the owner has to read
+// accurately, and uiModal escapes its message into a single paragraph.
+// Nothing stores this — once it is dismissed the password cannot be looked up.
+let _lastCreated = null;
+
+async function loadUsers() {
+  try {
+    const j = await accessApi({ action: 'list' });
+    _usersCache = j.users || [];
+    _usersError = '';
+  } catch (e) {
+    _usersCache = [];
+    _usersError = e.message || 'The list of users could not be loaded.';
+  }
+  if (state.activeTab === 'users') renderUsers();
+}
+
+function usersRoleOptions(cur) {
+  return GRANTABLE_ROLES
+    .map(r => `<option value="${r}" ${cur === r ? 'selected' : ''}>${escapeHtml(ROLE_LABELS[r])}</option>`)
+    .join('');
+}
+
+function renderUsers() {
+  const screen = $('#screen-users');
+  if (!screen) return;
+
+  const header = `
+    <div class="screen-header">
+      <div class="ix">Module 09</div>
+      <h2>Users</h2>
+      <p>Who can sign in to ${escapeHtml(state.profile.businessName || 'this business')}, and how much of it they see. A role is enforced on the server and in what the consultant is told — a staff login cannot reach HR or financials even if it goes looking for them.</p>
+    </div>`;
+
+  if (_usersCache === null) {
+    screen.innerHTML = header + '<div class="empty"><h3>Loading…</h3></div>';
+    loadUsers();
+    return;
+  }
+
+  const rows = _usersCache.map(u => {
+    const you = u.isYou ? ' <span class="staff-badge">you</span>' : '';
+    const added = u.addedAt ? new Date(u.addedAt).toLocaleDateString('en-AU') : '';
+    // The owner row is deliberately inert: no role select, no remove. The server
+    // refuses both, and offering a control that always fails is worse than not
+    // offering it.
+    const control = (u.role === 'owner')
+      ? '<span class="staff-badge">Owner</span>'
+      : `<select class="select" data-user-role="${escapeHtml(u.userId)}" style="max-width:150px">${usersRoleOptions(u.role)}</select>`;
+    const remove = (u.role === 'owner' || u.isYou)
+      ? ''
+      : `<button class="btn btn-ghost" data-user-remove="${escapeHtml(u.userId)}" style="color:var(--warn)">Remove</button>`;
+    return `
+      <div class="staff-card">
+        <div class="staff-card-head">
+          <div class="who">${escapeHtml(u.email)}${you}</div>
+          ${remove}
+        </div>
+        <div class="staff-actions">
+          ${control}
+          <span style="font-size:12px;color:var(--muted)">${escapeHtml(ROLE_BLURBS[u.role] || '')}</span>
+          ${added ? `<span style="margin-left:auto;font-size:11px;color:var(--muted)">Added ${escapeHtml(added)}</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const err = _usersError
+    ? `<div class="email-note" style="color:var(--warn);margin-bottom:12px">${escapeHtml(_usersError)}</div>`
+    : '';
+
+  const created = _lastCreated ? `
+    <div class="staff-card" style="border-color:var(--green);margin-bottom:16px">
+      <div class="staff-card-head"><div class="who">${escapeHtml(_lastCreated.email)} can now sign in as ${escapeHtml(ROLE_LABELS[_lastCreated.role] || _lastCreated.role)}</div></div>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">Give them this password directly. They choose their own the first time they sign in, and this one stops working. It is not stored and cannot be shown again.</p>
+      <div style="font-family:var(--mono);font-size:20px;letter-spacing:.04em;padding:12px 14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;user-select:all">${escapeHtml(_lastCreated.password)}</div>
+      <div class="staff-actions"><button class="btn btn-secondary" id="user-created-done">I have written it down</button></div>
+    </div>` : '';
+
+  screen.innerHTML = header + err + created + `
+    <div class="staff-list">${rows}</div>
+
+    <div class="staff-card" style="margin-top:20px">
+      <div class="staff-card-head"><div class="who">Add someone</div></div>
+      <div class="staff-grid">
+        <div class="staff-field">
+          <label>Their email</label>
+          <input id="user-new-email" type="email" placeholder="jane@example.com" autocomplete="off">
+        </div>
+        <div class="staff-field">
+          <label>Role</label>
+          <select class="select" id="user-new-role">${usersRoleOptions('staff')}</select>
+        </div>
+        <div class="staff-field" style="grid-column:1/-1">
+          <label>Temporary password <span class="opt" style="text-transform:none;letter-spacing:0">you hand this over — they choose their own on first sign-in</span></label>
+          <input id="user-new-password" value="${escapeHtml(suggestPassword())}" autocomplete="off">
+        </div>
+      </div>
+      <div class="staff-actions">
+        <button class="btn btn-primary" id="user-add">Create this login</button>
+        <span class="email-note" id="user-add-note"></span>
+      </div>
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="sidebar-label" style="padding-left:0">What each role can do</div>
+      ${['admin', 'manager', 'staff'].map(r =>
+        `<p style="font-size:12px;color:var(--muted);margin:6px 0"><strong style="color:var(--ink)">${escapeHtml(ROLE_LABELS[r])}</strong> — ${escapeHtml(ROLE_BLURBS[r])}</p>`
+      ).join('')}
+      <p style="font-size:12px;color:var(--muted);margin-top:12px">One person, one business. An email that already has a Hangr login cannot be added here — the app reads a single membership when someone signs in, so a second one would decide for them which business they land in.</p>
+    </div>`;
+
+  bindUsers();
+}
+
+function bindUsers() {
+  const doneBtn = document.getElementById('user-created-done');
+  if (doneBtn) doneBtn.addEventListener('click', () => { _lastCreated = null; renderUsers(); });
+
+  document.querySelectorAll('[data-user-role]').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const userId = sel.dataset.userRole;
+      const role = sel.value;
+      const before = (_usersCache.find(u => u.userId === userId) || {}).role;
+      sel.disabled = true;
+      try {
+        await accessApi({ action: 'set_role', userId, role });
+        const row = _usersCache.find(u => u.userId === userId);
+        if (row) row.role = role;
+        renderUsers();
+      } catch (e) {
+        sel.value = before || role;
+        sel.disabled = false;
+        await uiAlert(e.message || 'That change could not be saved.');
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-user-remove]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const userId = btn.dataset.userRemove;
+      const row = _usersCache.find(u => u.userId === userId);
+      const ok = await uiConfirm(
+        `${row ? row.email : 'This person'} loses access immediately and their login is deleted. Letters and chats they created stay with the business.`,
+        { title: 'Remove access', confirmLabel: 'Remove' }
+      );
+      if (!ok) return;
+      btn.disabled = true;
+      try {
+        await accessApi({ action: 'remove', userId });
+        _usersCache = _usersCache.filter(u => u.userId !== userId);
+        renderUsers();
+      } catch (e) {
+        btn.disabled = false;
+        await uiAlert(e.message || 'That person could not be removed.');
+      }
+    });
+  });
+
+  const addBtn = document.getElementById('user-add');
+  if (addBtn) addBtn.addEventListener('click', async () => {
+    const note = document.getElementById('user-add-note');
+    const email = (document.getElementById('user-new-email').value || '').trim();
+    const role = document.getElementById('user-new-role').value;
+    const password = document.getElementById('user-new-password').value || '';
+    note.style.color = 'var(--muted)';
+    note.textContent = 'Creating…';
+    addBtn.disabled = true;
+    try {
+      await accessApi({ action: 'create', email, role, password });
+      _lastCreated = { email, role, password };
+      _usersCache = null;
+      renderUsers();
+    } catch (e) {
+      addBtn.disabled = false;
+      note.style.color = 'var(--warn)';
+      note.textContent = e.message || 'That login could not be created.';
+    }
+  });
+}
+
+// A login created by the owner arrives with a password the owner picked and
+// therefore knows. It stops being a handover the moment the person chooses their
+// own, so that happens before they reach the app.
+async function mustChangePassword() {
+  try {
+    const u = await sb.auth.getUser();
+    const meta = u.data.user && u.data.user.user_metadata;
+    return !!(meta && meta.must_change_password);
+  } catch (e) { return false; }
+}
+
 // ============ EMAIL ============
 // Sending goes through the send-letter edge function, which holds the Resend key
 // (CLAUDE.md non-negotiable 3). The browser never sees it and never talks to
