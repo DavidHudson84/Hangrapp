@@ -275,6 +275,7 @@
   .soon-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-weight: 700; font-size: 68px; letter-spacing: .04em; color: var(--ink); opacity: .05; transform: rotate(-18deg); pointer-events: none; white-space: nowrap; }
   .soon-card { position: relative; max-width: 520px; margin: 0 auto; text-align: center; }
   .soon-badge { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-edge); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; }
+  .soon-tag { display: inline-block; font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-edge); padding: 2px 7px; border-radius: 999px; margin-left: 8px; vertical-align: 1px; }
   .soon-card p { color: var(--muted); font-size: 15px; line-height: 1.6; }
   .soon-sub { font-size: 13px; margin-top: 12px; opacity: .8; }
   #mfa-body code, .legal-body code { background: var(--paper-2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
@@ -917,6 +918,7 @@
   .email-opt strong { display: block; font-size: 14px; font-weight: 500; }
   .email-opt small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
   .email-note { min-height: 18px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .email-hint { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -3953,7 +3955,7 @@ function chatTranscriptHtml(chat) {
     return `<div class="qa"><div class="who">${who}</div><div class="txt">${body}</div></div>`;
   }).join('');
 }
-function buildExportDocument(title, innerHtml, dateStr) {
+function buildExportDocument(title, innerHtml, dateStr, footNote) {
   const p = state.profile;
   const logo = p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:70px;max-width:180px;object-fit:contain">` : '';
   const contact = chatExportContact();
@@ -3976,7 +3978,7 @@ function buildExportDocument(title, innerHtml, dateStr) {
   <h1>${escapeHtml(title)}</h1>
   <div class="meta">${escapeHtml(dateStr)}</div>
   ${innerHtml}
-  <div class="foot">Prepared with Hangr Consultant — general information for Australian dry cleaning operators, not legal, tax or financial advice.</div>
+  <div class="foot">${footNote ? `<div style="margin-bottom:6px">${escapeHtml(footNote)}</div>` : ''}Prepared with Hangr Consultant — general information for Australian dry cleaning operators, not legal, tax or financial advice.</div>
 </body></html>`;
 }
 function printHtmlDocument(html) {
@@ -9107,6 +9109,23 @@ async function mustChangePassword() {
 
 const EMAIL_ENDPOINT = SB_URL + '/functions/v1/send-letter';
 
+// The server owns the customer-send switch, so the app asks rather than keeping
+// a second copy of the answer that would go stale the moment the secret is
+// flipped. Cached for the session: it changes about once, and never mid-visit.
+let _emailCaps = null;
+async function emailCapabilities() {
+  if (_emailCaps) return _emailCaps;
+  let token = SB_ANON;
+  try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
+  try {
+    const r = await fetch(EMAIL_ENDPOINT, { headers: { Authorization: 'Bearer ' + token, apikey: SB_ANON } });
+    if (r.ok) _emailCaps = await r.json();
+  } catch (e) {}
+  // Unreachable, or an older function that has no answer to give: assume the
+  // cautious side. Offering a send that then fails is worse than not offering.
+  return _emailCaps || { configured: true, customerSend: false };
+}
+
 async function sendEmail({ toSelf, to, subject, html, body, replyTo }) {
   let token = SB_ANON;
   try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
@@ -9126,14 +9145,23 @@ async function sendEmail({ toSelf, to, subject, html, body, replyTo }) {
   return j;
 }
 
+// The address these go out from is send-only — nothing is delivered back to it.
+// Every emailed copy says so, or says where a reply does land, so that nobody
+// answers into a black hole. Printed and downloaded copies never carry this.
+function emailReplyFootNote(replyTo) {
+  return replyTo
+    ? 'Replies to this email go to ' + replyTo + '.'
+    : 'This was sent from an address that is not monitored — replies to it are not received.';
+}
+
 // Everything an operator would want on the letter when it arrives: the same
 // paper-white sheet they would have printed.
-function letterEmailHtml(l) {
+function letterEmailHtml(l, replyTo) {
   const inner = (l.family === 'note' || l.type === 'note')
     ? renderMarkdown(l.body)
     : '<pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;line-height:1.6">'
       + escapeHtml(l.body) + '</pre>';
-  return buildExportDocument(l.subject || 'Letter', inner, l.date || _exportDateStr());
+  return buildExportDocument(l.subject || 'Letter', inner, l.date || _exportDateStr(), emailReplyFootNote(replyTo));
 }
 
 async function openEmailLetter(l) {
@@ -9143,7 +9171,17 @@ async function openEmailLetter(l) {
   // behind this one and never be answered.
   let sentTo = null;
   const own = (state.profile.email || '').trim();
-  const customerAllowed = can('letters.all');
+  const caps = await emailCapabilities();
+  // Two separate reasons the option can be shut: this login is not allowed to
+  // use it, or nobody is yet. They read differently to the person looking.
+  const customerAllowed = can('letters.all') && caps.customerSend;
+  // Two separate reasons it can be shut, and they read differently: nobody can
+  // use it yet, or this login in particular cannot. Only the first is temporary,
+  // so only the first gets the Coming soon tag.
+  const customerPending = can('letters.all') && !caps.customerSend;
+  const customerReason = customerPending
+    ? 'Email it to yourself and forward it on from your own address'
+    : 'Not available on this login';
 
   await uiModal({
     title: 'Email this letter',
@@ -9151,19 +9189,21 @@ async function openEmailLetter(l) {
       <div class="email-choice">
         <label class="email-opt">
           <input type="radio" name="email-dest" value="self" checked>
-          <span><strong>To me</strong><small>${own ? escapeHtml(own) : 'the address you log in with'} — forward it on from your own address</small></span>
+          <span><strong>To me</strong><small>${own ? escapeHtml(own) : 'the address you log in with'} — forward it on from your own address, so replies come to you</small></span>
         </label>
         <label class="email-opt" ${customerAllowed ? '' : 'data-disabled="1"'}>
           <input type="radio" name="email-dest" value="customer" ${customerAllowed ? '' : 'disabled'}>
-          <span><strong>Straight to someone else</strong><small>${customerAllowed
+          <span><strong>Straight to someone else${customerPending
+            ? '<span class="soon-tag">Coming soon</span>' : ''}</strong><small>${customerAllowed
             ? 'The customer, a retailer, or an insurer'
-            : 'Not available on this login'}</small></span>
+            : escapeHtml(customerReason)}</small></span>
         </label>
         <div id="email-to-row" style="display:none">
           <label class="auth-label">Their email address</label>
           <input class="input" id="email-to" type="email" placeholder="customer@example.com">
           <label class="auth-label" style="margin-top:10px">Replies come back to</label>
           <input class="input" id="email-reply" type="email" value="${escapeHtml(own)}" placeholder="you@yourbusiness.com.au">
+          <small class="email-hint">The letter goes out from a send-only address. Leave this blank and they will have no way to answer it.</small>
         </div>
         <div class="email-note" id="email-note"></div>
       </div>`,
@@ -9186,7 +9226,7 @@ async function openEmailLetter(l) {
       note.style.color = 'var(--muted)';
       note.textContent = 'Sending…';
       try {
-        await sendEmail({ toSelf, to, replyTo, subject: l.subject || 'Letter', html: letterEmailHtml(l) });
+        await sendEmail({ toSelf, to, replyTo, subject: l.subject || 'Letter', html: letterEmailHtml(l, replyTo) });
         sentTo = toSelf ? 'self' : to;
         return true;
       } catch (e) {
@@ -9375,7 +9415,7 @@ async function draftRecommendation(id) {
 
 // A short acknowledgement so the customer knows it is logged and who has it. It
 // deliberately states no position on liability — that is what the letters are for.
-function problemAckHtml(p) {
+function problemAckHtml(p, replyTo) {
   const row = (k, v) => v ? `<div class="qa"><div class="who">${escapeHtml(k)}</div><p class="txt">${escapeHtml(v)}</p></div>` : '';
   const inner = `
     <p>Thank you for letting us know. We have logged the details below and it is with our team now.</p>
@@ -9383,8 +9423,10 @@ function problemAckHtml(p) {
     ${row('Item', garmentLine(p))}
     ${row('What you told us', p.whatHappened)}
     ${row('What we have done so far', p.actionTaken)}
-    <p>We will be in touch as soon as we have had a proper look. If anything below is wrong, reply to this email and we will correct it.</p>`;
-  return buildExportDocument('Your enquiry — ' + (p.docket ? 'docket ' + p.docket : 'received'), inner, p.date || _exportDateStr());
+    <p>We will be in touch as soon as we have had a proper look.${replyTo
+      ? ' If anything below is wrong, reply to this email and we will correct it.'
+      : ' If anything below is wrong, let us know next time you are in touch.'}</p>`;
+  return buildExportDocument('Your enquiry — ' + (p.docket ? 'docket ' + p.docket : 'received'), inner, p.date || _exportDateStr(), emailReplyFootNote(replyTo));
 }
 
 async function emailProblemAck(id) {
@@ -9392,6 +9434,16 @@ async function emailProblemAck(id) {
   if (!maySeeProblem(rec)) return;
   const to = (rec.email || '').trim();
   if (!to) { await uiAlert('There is no email address on this report.'); return; }
+  // This one only ever writes to a customer, so the same switch shuts it. Say so
+  // before the form rather than after it is filled in.
+  const caps = await emailCapabilities();
+  if (!caps.customerSend) {
+    await uiAlert(
+      'Emailing a customer directly is not switched on yet. Open the letter, email it to yourself, and forward it on from your own address.',
+      'Coming soon',
+    );
+    return;
+  }
   const own = (state.profile.email || '').trim();
   let sent = false;
   await uiModal({
@@ -9401,6 +9453,7 @@ async function emailProblemAck(id) {
         <p class="facts-count" style="margin-bottom:12px">A short acknowledgement to <strong>${escapeHtml(to)}</strong> confirming we have logged the problem. It does not say who is at fault.</p>
         <label class="auth-label">Replies come back to</label>
         <input class="input" id="ack-reply" type="email" value="${escapeHtml(own)}" placeholder="you@yourbusiness.com.au">
+        <small class="email-hint">It goes out from a send-only address. Leave this blank and they will have no way to answer it.</small>
         <div class="email-note" id="ack-note"></div>
       </div>`,
     confirmLabel: 'Send',
@@ -9410,10 +9463,11 @@ async function emailProblemAck(id) {
       note.style.color = 'var(--muted)';
       note.textContent = 'Sending…';
       try {
+        const replyTo = (root.querySelector('#ack-reply').value || '').trim() || undefined;
         await sendEmail({
-          to, replyTo: (root.querySelector('#ack-reply').value || '').trim() || undefined,
+          to, replyTo,
           subject: 'We have logged your enquiry' + (rec.docket ? ' — docket ' + rec.docket : ''),
-          html: problemAckHtml(rec)
+          html: problemAckHtml(rec, replyTo)
         });
         sent = true;
         return true;

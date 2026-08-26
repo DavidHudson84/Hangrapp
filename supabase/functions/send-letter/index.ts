@@ -9,8 +9,17 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
-const EMAIL_FROM = Deno.env.get('EMAIL_FROM') ?? '';
+// A secret pasted into the dashboard often arrives with a stray newline, or
+// wrapped in the quotes it was copied inside. Both read as "set" and then fail
+// somewhere far less obvious, so tidy them here rather than at the far end.
+const secret = (name: string) =>
+  (Deno.env.get(name) ?? '')
+    .trim()
+    .replace(/^(['"])(.*)\1$/s, '$2')
+    .trim();
+
+const RESEND_API_KEY = secret('RESEND_API_KEY');
+const EMAIL_FROM = secret('EMAIL_FROM');
 
 // Sending a letter to a customer puts Hangr in the chain of a document that may
 // end up in a dispute. Off until the terms and liability position are settled in
@@ -25,7 +34,7 @@ const MAX_RECIPIENTS = 5;
 const cors = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 const json = (body: unknown, status = 200) =>
@@ -49,8 +58,34 @@ const clean = (s: unknown, max = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
-  if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
-  if (!RESEND_API_KEY || !EMAIL_FROM) return json({ error: 'Email is not configured yet.' }, 503);
+
+  // What the app may offer, so the UI can grey out what would only fail. Two
+  // booleans and nothing else — the app needs to know whether customer sending
+  // is on, never anything about the key behind it. Asked rather than copied
+  // into index.html, so flipping ALLOW_CUSTOMER_SEND still takes no redeploy.
+  if (req.method === 'GET') {
+    return json({ configured: !!(RESEND_API_KEY && EMAIL_FROM), customerSend: ALLOW_CUSTOMER_SEND });
+  }
+
+  if (req.method !== 'POST') return json({ error: 'POST or GET only' }, 405);
+  // Naming the missing secret turns a dead end into an instruction. These are
+  // names, never values — they are already written down in docs/EMAIL.md.
+  const missing = [
+    ...(RESEND_API_KEY ? [] : ['RESEND_API_KEY']),
+    ...(EMAIL_FROM ? [] : ['EMAIL_FROM']),
+  ];
+  if (missing.length) {
+    return json(
+      {
+        error: `Email is not configured yet — ${missing.join(' and ')} ${
+          missing.length > 1 ? 'are' : 'is'
+        } missing from the send-letter function's secrets in Supabase.`,
+        code: 'not_configured',
+        missing,
+      },
+      503,
+    );
+  }
 
   // Who is asking. An anonymous caller cannot send mail as this business.
   const auth = req.headers.get('Authorization') ?? '';
