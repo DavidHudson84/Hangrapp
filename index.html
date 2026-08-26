@@ -1092,7 +1092,24 @@ async function loadCloud() {
   const { data: biz, error: be } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
   if (be) throw be;
   applyStateBlob(biz.data || {});
+  adoptOwnerlessChats();
   return true;
+}
+
+// One-time migration for chats that pre-date ownership being recorded. Without a
+// createdBy they are invisible to staff for good — including any thread a staff
+// member started themselves. Enforced roles only began on 2026-08-25, so in
+// practice these are the owner's own chats.
+//
+// Guarded to a clean owner sign-in on purpose: currentUserId is whoever is logged
+// in, so running this for any other role would quietly hand them the lot. Skipped
+// in staff preview so that view keeps telling the truth about what staff can see.
+function adoptOwnerlessChats() {
+  if (state.currentRole !== 'owner' || state.staffMode || !state.currentUserId) return 0;
+  let n = 0;
+  (state.chats || []).forEach(c => { if (!c.createdBy) { c.createdBy = state.currentUserId; n++; } });
+  if (n) persistState();
+  return n;
 }
 
 async function signOut() {
