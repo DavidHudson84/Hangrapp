@@ -354,6 +354,15 @@
   .facts-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
   /* Settings runs as one long column of fields; this marks where a genuinely
      different subject starts, so an access setting does not read as branding. */
+  /* Documents lead with what you are filing, not a generic button and a dropdown
+     buried in the form — the type decides what the form asks and what the AI
+     pulls out of it, so it is picked first. */
+  .doc-add-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
+  .doc-add-label { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .doc-add-btns { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+  .doc-retype { font-size: 12px; color: var(--muted); margin: -6px 0 12px; }
+  .linkish { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
+  .linkish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .settings-divider { display: flex; align-items: center; gap: 12px; margin: 28px 0 18px; }
   .settings-divider::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
   .settings-divider span { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
@@ -767,6 +776,13 @@
     body { background: #fff; }
     .screen { padding: 0 !important; max-width: none !important; }
     .letter-sheet { border: none !important; box-shadow: none !important; padding: 0 !important; max-width: none !important; width: 100% !important; min-height: 0 !important; }
+    /* What prints is the letter, not the screen it was composed on. The panels,
+       the refine bar and the legal modal are hidden where they are defined; this
+       clears the rest of the editing chrome — the screen heading and its blurb,
+       the position switcher, and the action buttons. */
+    .screen-header, .letter-modebar, #letter-actions, .app-disclaimer { display: none !important; }
+    /* Nothing above the sheet, so the letterhead starts at the top margin. */
+    .screen > *:first-child { margin-top: 0 !important; }
   }
 
   .app-disclaimer { max-width: 1180px; margin: 24px auto 32px; padding: 12px 24px 0; border-top: 1px solid var(--rule); font-size: 11px; line-height: 1.5; color: var(--muted); }
@@ -965,6 +981,8 @@ const state = {
   documents: [],
   docDraft: null,
   docBusy: false,
+  // Whether the rarely-used document types are showing. Transient.
+  docTypesExpanded: false,
   bills: [],
   priceLists: [],
   priceDraft: null,
@@ -4348,13 +4366,13 @@ function renderLetters() {
   const isPlain = !isTwimc && !isSettle && !isIntake && !isNote;
   const showModes = l.sourceMsgId && l.family === 'garment' && !isNote;
   const modeBar = showModes ? `
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--rule)">
+    <div class="letter-modebar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--rule)">
       <span class="ix" style="margin:0 8px 0 0">Position</span>
       <button class="btn ${isPlain ? 'btn-primary' : 'btn-secondary'}" id="mode-customer" ${l.pending ? 'disabled' : ''}>Letter to the customer</button>
       <button class="btn ${isTwimc ? 'btn-primary' : 'btn-secondary'}" id="mode-twimc" ${l.pending ? 'disabled' : ''}>Not our fault — defence</button>
       <button class="btn ${isSettle ? 'btn-primary' : 'btn-secondary'}" id="mode-settle" ${l.pending ? 'disabled' : ''}>Our fault — accept &amp; offer</button>
     </div>` : (l.sourceMsgId ? `
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--rule)">
+    <div class="letter-modebar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--rule)">
       <span class="ix" style="margin:0">${escapeHtml(l.type)}</span>
     </div>` : '');
 
@@ -6854,7 +6872,7 @@ function renderCoursePicker(screen) {
   const up = cd.upload;
 
   const opts = ['<option value="">— choose a document —</option>']
-    .concat(docs.map(d => `<option value="${escapeHtml(d.id)}" ${cd.doc === d.id ? 'selected' : ''}>${escapeHtml(d.title)}${d.type ? ' (' + escapeHtml(d.type) + ')' : ''}</option>`)).join('');
+    .concat(docs.map(d => `<option value="${escapeHtml(d.id)}" ${cd.doc === d.id ? 'selected' : ''}>${escapeHtml(d.title)}${d.type ? ' (' + escapeHtml(docTypeLabel(d.type)) + ')' : ''}</option>`)).join('');
 
   const chosen = docs.find(d => d.id === cd.doc);
   const text = up ? up.text : (chosen ? (chosen.text || '') : '');
@@ -7169,10 +7187,36 @@ function importCourse(file) {
 }
 
 // ============ DOCUMENTS ============
-const DOC_TYPES = ['Insurance policy', 'Lease / agreement', 'Supplier contract or quote', 'Equipment manual', 'SOP / procedure', 'Certificate / registration', 'Council / EPA / compliance', 'Other'];
+// key is what gets written onto the record and must never change — it is stored
+// on every document already saved, and renaming it would orphan their labels.
+// label is free to be reworded; button is the short form used on the add buttons.
+// common marks the four an operator actually reaches for; the rest sit behind "More".
+const DOC_TYPES = [
+  { key: 'Lease / agreement',           label: 'Lease / agreement',           button: 'Lease',             common: true,
+    hint: 'e.g. Shop 4, Hargreaves St — 5 year term from March 2024, 5 year option, rent reviewed to CPI each March' },
+  { key: 'Insurance policy',            label: 'Insurance policy',            button: 'Insurance policy',  common: true,
+    hint: 'e.g. Our business pack with QBE, renews 30 September, $2,500 excess, covers fire/flood/theft at the Bendigo plant' },
+  { key: 'Supplier contract or quote',  label: 'Supply contract or quote',    button: 'Supply contract',   common: true,
+    hint: 'e.g. Solvent supply from Kreussler, $1,850/drum, minimum four drums a year, 60 days notice to end it' },
+  { key: 'Equipment manual',            label: 'Equipment manual',            button: 'Equipment manual',  common: true,
+    hint: 'e.g. Union L800 operations manual — the machine in the Bendigo plant, installed 2019' },
+  { key: 'SOP / procedure',             label: 'SOP / procedure',             button: 'SOP',
+    hint: 'e.g. How we tag, inspect and record an at-risk garment at the counter' },
+  { key: 'Certificate / registration',  label: 'Certificate / registration',  button: 'Certificate',
+    hint: 'e.g. Pressure vessel registration for the boiler, expires June 2027' },
+  { key: 'Council / EPA / compliance',  label: 'Council / EPA / compliance',  button: 'Compliance',
+    hint: 'e.g. EPA permit conditions for solvent storage and waste disposal at the plant' },
+  { key: 'Other',                       label: 'Other',                       button: 'Something else',
+    hint: 'What is this, and what should the consultant know about it?' }
+];
+
+function docType(key) { return DOC_TYPES.find(t => t.key === key) || null; }
+// Documents saved before a wording change keep their stored key; fall back to it
+// so an older record never renders a blank tag.
+function docTypeLabel(key) { const t = docType(key); return t ? t.label : (key || 'Document'); }
 const DOC_TEXT_CAP = 20000; // characters of source text sent to build the card / kept on file
 
-function emptyDocDraft() { return { title: '', type: '', background: '', text: '', fileName: '', size: 0, reading: false, readNote: '' }; }
+function emptyDocDraft(type) { return { title: '', type: type || '', background: '', text: '', fileName: '', size: 0, reading: false, readNote: '' }; }
 
 // Best-effort in-browser text read. Text-like files read cleanly; PDFs are attempted
 // (uncompressed + FlateDecode via the browser's built-in DecompressionStream) and fall back
@@ -7252,6 +7296,23 @@ async function extractPdfText(bytes) {
   return out.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+const DOC_CARD_FOCUS = {
+  'Lease / agreement':
+    'lessor and lessee, the premises, term start and end, any option to renew and the window it must be exercised in, rent and how it is reviewed, outgoings, bond or personal guarantee, make-good obligations at the end, permitted use, and assignment or subletting rules.',
+  'Insurance policy':
+    'insurer and broker, policy number, what is insured, sums insured and any sub-limits, the excess, premium, period of cover and renewal date, notable exclusions, and how and how quickly a claim must be notified.',
+  'Supplier contract or quote':
+    'supplier, what is supplied, unit rates and prices, minimum volumes or spend, term and start date, how prices may be reviewed, notice period to end it, delivery or service levels, and any exclusivity.',
+  'Equipment manual':
+    'make, model and serial, capacities, pressures and electrical requirements, routine service intervals and what each service involves, consumables and spare part numbers, fault and error codes with what each means and the first thing to check, safety and lockout steps, and commissioning or default settings.',
+  'SOP / procedure':
+    'what the procedure covers and when it applies, who performs it, the steps in order, the checks and records required at each point, and what to do when it goes wrong.',
+  'Certificate / registration':
+    'what is certified or registered, the issuing body, the certificate or registration number, issue and expiry dates, any conditions attached, and what renewal requires.',
+  'Council / EPA / compliance':
+    'the authority, what is required of the business, any thresholds or limits, monitoring and reporting obligations with their due dates, the conditions attached, and the penalties for breach.'
+};
+
 function buildDocCardPrompt(d) {
   const text = (d.text || '').slice(0, DOC_TEXT_CAP);
   return `You are building a compact KNOWLEDGE CARD from a business document belonging to an Australian dry cleaning operator. The consultant will use this card later to answer the owner's questions about the document, so it must be faithful and specific.
@@ -7266,6 +7327,7 @@ ${text || '(no machine-readable text was provided — work from the owner\'s des
 
 WRITE THE CARD
 - Start with one line: what this document is.
+${DOC_CARD_FOCUS[d.type] ? '- For a document of this type, pull out in particular: ' + DOC_CARD_FOCUS[d.type] : ''}
 - Then the facts that matter, as short lines: parties/insurer/supplier, policy or account numbers, sums insured, excess, premium, key dates (start, expiry, renewal, review), obligations, exclusions, notice periods, amounts, rates — whatever is actually present.
 - Capture anything the owner flagged in their description.
 - Australian context.
@@ -7340,29 +7402,30 @@ function documentsBodyHtml() {
         <div class="lib-item">
           <div class="lib-main" data-doc-view="${doc.id}">
             <div class="lib-subject">${escapeHtml(doc.title)}</div>
-            <div class="lib-meta"><span class="lib-tag">${escapeHtml(doc.type || 'Document')}</span> &nbsp; ${escapeHtml(doc.uploadedAt || '')}${doc.card ? '' : ' · card not built'}</div>
+            <div class="lib-meta"><span class="lib-tag">${escapeHtml(docTypeLabel(doc.type))}</span> &nbsp; ${escapeHtml(doc.uploadedAt || '')}${doc.card ? '' : ' · card not built'}</div>
           </div>
           <button class="btn btn-secondary" data-doc-ask="${doc.id}">Ask about this</button>
           <button class="btn btn-ghost" data-doc-remove="${doc.id}" style="color:var(--warn)">Delete</button>
         </div>`).join('')}</div>`;
 
-  const typeOpts = ['<option value="">— type —</option>'].concat(DOC_TYPES.map(t => `<option value="${escapeHtml(t)}" ${d && d.type === t ? 'selected' : ''}>${escapeHtml(t)}</option>`)).join('');
+  const dt = d ? docType(d.type) : null;
 
-  const form = d ? `
+  const form = (d && d.type) ? `
     <div class="facts-panel" style="margin-top:16px">
-      <div class="facts-head"><h3>Add a document</h3><span class="facts-count">${d.fileName ? escapeHtml(d.fileName) : 'no file chosen'}</span></div>
+      <div class="facts-head">
+        <h3>${dt ? 'Adding ' + escapeHtml(/^[aeiou]/i.test(dt.button) ? 'an ' + dt.button.toLowerCase() : 'a ' + dt.button.toLowerCase()) : 'Add a document'}</h3>
+        <span class="facts-count">${d.fileName ? escapeHtml(d.fileName) : 'no file chosen'}</span>
+      </div>
+      ${dt ? `<div class="doc-retype">Wrong kind of document? <button type="button" class="linkish" id="doc-retype">Pick a different type</button></div>` : ''}
       <div class="upload-zone" id="doc-upload" style="margin-bottom:14px">
         ${icons.upload}
         <p><strong style="color:var(--ink)">Click to choose a file</strong> — text, Word-exported text, CSV or PDF</p>
         <input type="file" id="doc-input" accept=".pdf,.txt,.md,.markdown,.csv,.tsv,.json,.log,.rtf,.htm,.html,.xml,.yaml,.yml" style="display:none">
       </div>
       ${d.readNote ? `<div class="facts-note" style="margin-bottom:12px">${escapeHtml(d.readNote)}</div>` : ''}
-      <div class="staff-grid">
-        <div class="staff-field"><label>Title</label><input data-docf="title" value="${escapeHtml(d.title)}" placeholder="e.g. Business insurance policy 2026"></div>
-        <div class="staff-field"><label>Type</label><select data-docf="type">${typeOpts}</select></div>
-      </div>
+      <div class="staff-field"><label>Title</label><input data-docf="title" value="${escapeHtml(d.title)}" placeholder="${dt ? escapeHtml(dt.button) + ' — 2026' : 'e.g. Business insurance policy 2026'}"></div>
       <div class="staff-field" style="margin-top:12px"><label>Background — what is this and what should the consultant know about it?</label>
-        <textarea data-docf="background" rows="2" placeholder="e.g. Our business pack with QBE, renews 30 September, $2,500 excess, covers fire/flood/theft at the Bendigo plant">${escapeHtml(d.background)}</textarea></div>
+        <textarea data-docf="background" rows="2" placeholder="${dt ? escapeHtml(dt.hint) : 'What is this, and what should the consultant know about it?'}">${escapeHtml(d.background)}</textarea></div>
       <div class="staff-field" style="margin-top:12px"><label>Document text — read automatically where possible; paste here if a PDF didn't read</label>
         <textarea data-docf="text" rows="6" placeholder="The text the consultant will learn from">${escapeHtml(d.text)}</textarea></div>
       <div class="facts-actions">
@@ -7370,7 +7433,15 @@ function documentsBodyHtml() {
         <button class="btn btn-ghost" id="doc-cancel" ${state.docBusy ? 'disabled' : ''}>Cancel</button>
       </div>
     </div>` : `
-    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary" id="doc-add">+ Add a document</button></div>`;
+    <div class="doc-add-bar">
+      <span class="doc-add-label">Add a document</span>
+      <div class="doc-add-btns">
+        ${DOC_TYPES.filter(t => t.common).map(t => `<button class="btn btn-secondary" data-doc-add="${escapeHtml(t.key)}">+ ${escapeHtml(t.button)}</button>`).join('')}
+        ${state.docTypesExpanded
+          ? DOC_TYPES.filter(t => !t.common).map(t => `<button class="btn btn-secondary" data-doc-add="${escapeHtml(t.key)}">+ ${escapeHtml(t.button)}</button>`).join('')
+          : `<button class="btn btn-ghost" id="doc-more">More&hellip;</button>`}
+      </div>
+    </div>`;
 
   return list + form;
 }
@@ -7378,9 +7449,23 @@ function documentsBodyHtml() {
 function bindDocumentControls() {
   // The draft being edited, if there is one. documentsBodyHtml() reads the same
   // value — the two halves are rendered and bound in the same pass.
-  const d = state.docDraft;
-  const addBtn = document.getElementById('doc-add');
-  if (addBtn) addBtn.addEventListener('click', () => { state.docDraft = emptyDocDraft(); render(); });
+  const d = (state.docDraft && state.docDraft.type) ? state.docDraft : null;
+  // The type is chosen before the form opens, so the form can ask for what that
+  // kind of document actually carries. Re-typing a part-filled draft keeps what
+  // has already been entered.
+  document.querySelectorAll('[data-doc-add]').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.docAdd;
+    state.docDraft = Object.assign(emptyDocDraft(t), state.docDraft || {}, { type: t });
+    render();
+  }));
+  const moreBtn = document.getElementById('doc-more');
+  if (moreBtn) moreBtn.addEventListener('click', () => { state.docTypesExpanded = true; render(); });
+  const retypeBtn = document.getElementById('doc-retype');
+  if (retypeBtn) retypeBtn.addEventListener('click', () => {
+    state.docDraft.type = '';
+    state.docTypesExpanded = true;
+    render();
+  });
 
   if (d) {
     const input = document.getElementById('doc-input');
