@@ -676,7 +676,8 @@
   .tr-edit-opt.on { border-color: var(--green); background: var(--paper-2); }
   .tr-edit-opt input[type=radio] { flex: none; accent-color: var(--green); }
   .tr-edit-opt .input { margin-bottom: 0; }
-  .tr-problems { background: var(--paper-2); border-left: 3px solid var(--warn); border-radius: 5px; padding: 14px 16px; margin-top: 20px; font-size: 13.5px; }
+  .tr-problems { background: var(--paper-2); border-left: 3px solid var(--rule-strong); border-radius: 5px; padding: 14px 16px; margin-top: 20px; font-size: 13.5px; }
+  .tr-problems.block { border-left-color: var(--warn); }
   .tr-problems ul { margin: 8px 0 0 18px; }
   .tr-problems li { margin-bottom: 4px; }
   .tr-retired-dot { color: var(--muted); }
@@ -6133,8 +6134,14 @@ function printTrainingRecord(who) {
 // point of the feature, not friction in front of it.
 
 const COURSE_MIN_QUESTIONS = 4;
-const COURSE_MAX_LESSONS = 6;
-const SOP_TEXT_CAP = 14000;   // leaves room for the instructions under ASK_MAX
+const COURSE_MAX_LESSONS = 8;
+const COURSE_TARGET_QUESTIONS = 8;   // matches the built-in six
+const SOP_TEXT_CAP = 14000;          // leaves room for the instructions under ASK_MAX
+// The quiz prompt carries the whole finished course, which on a long procedure is
+// bigger than the source was. ASK_MAX is 30000 on the way in and the 3000-token
+// ceiling only applies on the way out, so this can be generous — and it has to be,
+// or the last pages fall off the prompt and never get a question.
+const COURSE_QUIZ_TEXT_CAP = 20000;
 
 function newCourseDraft(doc) {
   return {
@@ -6196,7 +6203,7 @@ Return ONLY a JSON object, no commentary, no code fences:
   "lessons": [ { "h": "page heading", "brief": "one line on what this page must cover" } ]
 }
 
-Between 2 and ${COURSE_MAX_LESSONS} lessons. Split by the natural sections of the procedure — do not invent sections it does not have.
+Between 3 and ${COURSE_MAX_LESSONS} lessons. Split by the natural sections of the procedure. Prefer more, shorter pages over fewer long ones — one page per real topic reads far better than a wall of text. Do not invent sections the procedure does not have: if it is genuinely short, three pages is the honest answer.
 
 JSON:`;
 }
@@ -6211,7 +6218,7 @@ ${COURSE_STYLE_RULES}
 Write the body text for exactly these pages, in this order:
 ${slice.map((l, i) => (i + 1) + '. "' + l.h + '" — ' + (l.brief || '')).join('\n')}
 
-Each body is roughly 120 to 220 words. Teach the procedure as it is written, including the specific locations, tag names, button names and wording it uses.
+Each body is roughly 160 to 280 words. Teach the procedure as it is written, including the specific locations, tag names, button names and wording it uses.
 
 Return ONLY a JSON array, no commentary, no code fences:
 [ { "h": "page heading exactly as given", "body": "the page text" } ]
@@ -6219,17 +6226,23 @@ Return ONLY a JSON array, no commentary, no code fences:
 JSON:`;
 }
 
-function buildCourseQuizPrompt(draft) {
+function buildCourseQuizPrompt(draft, opts) {
   // Deliberately built from the finished lesson text rather than the source
   // document: a question generated from what staff actually read is always
   // answerable from what staff actually read.
   const lessons = draft.lessons.map(l => '### ' + l.h + '\n' + l.body).join('\n\n');
+  const already = (opts && opts.existing && opts.existing.length)
+    ? '\nQuestions already written — do NOT repeat these or ask the same thing another way:\n' +
+      opts.existing.map(q => '- ' + q.q).join('\n') + '\n'
+    : '';
+  const want = (opts && opts.want) || COURSE_TARGET_QUESTIONS;
   return `Below is the full text of a short staff training course for an Australian dry cleaner. Write the quiz that goes with it.
 
 THE COURSE
-${lessons.slice(0, SOP_TEXT_CAP)}
+${lessons.slice(0, COURSE_QUIZ_TEXT_CAP)}
+${already}
 
-Return ONLY a JSON array of 6 questions, no commentary, no code fences:
+Return ONLY a JSON array of ${want} questions, no commentary, no code fences:
 [ { "q": "the question", "a": ["option 1","option 2","option 3","option 4"], "correct": 0, "why": "one or two sentences explaining the right answer" } ]
 
 RULES
@@ -6238,6 +6251,7 @@ RULES
 - Vary which index is correct.
 - Wrong options must be plausible to someone who has not read properly — not obviously silly.
 - Prefer questions about the things that cost money when they are not known: the steps the procedure says never to skip, and the actions it says never to take.
+- Spread them across the whole course. Do not take them all from the first page or two.
 - Australian English.
 
 JSON:`;
@@ -6279,8 +6293,27 @@ async function generateCourse(draft, onProgress) {
   // see the gap and write it themselves instead of wondering what is missing.
 
   say('Writing the questions…');
-  const quiz = parseAiJson(await askClaudeSafe(buildCourseQuizPrompt(draft)), 'array');
-  draft.quiz = (Array.isArray(quiz) ? quiz : [])
+  draft.quiz = cleanQuiz(parseAiJson(await askClaudeSafe(buildCourseQuizPrompt(draft)), 'array'));
+
+  // Models routinely return fewer than asked for. One top-up call, told what has
+  // already been asked so it does not simply rephrase the same questions.
+  if (draft.quiz.length && draft.quiz.length < COURSE_TARGET_QUESTIONS - 1) {
+    say('Adding a few more questions…');
+    const more = cleanQuiz(parseAiJson(await askClaudeSafe(
+      buildCourseQuizPrompt(draft, { existing: draft.quiz, want: COURSE_TARGET_QUESTIONS - draft.quiz.length })), 'array'));
+    const seen = new Set(draft.quiz.map(q => q.q.trim().toLowerCase()));
+    more.forEach(q => { if (!seen.has(q.q.trim().toLowerCase())) { seen.add(q.q.trim().toLowerCase()); draft.quiz.push(q); } });
+  }
+  // A top-up that over-delivers should not leave staff sitting a twenty-question
+  // quiz. The owner can always add more by hand if they want them.
+  draft.quiz = draft.quiz.slice(0, COURSE_TARGET_QUESTIONS);
+
+  draft.updatedAt = Date.now();
+  return draft;
+}
+
+function cleanQuiz(rows) {
+  return (Array.isArray(rows) ? rows : [])
     .filter(q => q && q.q && Array.isArray(q.a))
     .map(q => ({
       q: String(q.q).slice(0, 400),
@@ -6289,9 +6322,6 @@ async function generateCourse(draft, onProgress) {
       why: String(q.why || '').slice(0, 500)
     }))
     .filter(q => q.a.length === 4);
-
-  draft.updatedAt = Date.now();
-  return draft;
 }
 
 // Regenerate one page on its own, for when a single page came out thin.
@@ -6303,25 +6333,53 @@ async function regenerateLesson(draft, index) {
   if (rows[0] && rows[0].body) { l.body = String(rows[0].body); draft.updatedAt = Date.now(); }
 }
 
-// What stops a broken course reaching a staff member.
-function courseProblems(c) {
+// Two tiers, and the difference matters.
+//
+// Warnings are quality problems — a thin course, a question with no explanation.
+// The owner is entitled to publish anyway and tidy it later; it is their shop.
+//
+// Blockers are the two states the learner screens cannot survive. A course with
+// nothing readable has nothing to teach, and a quiz with no usable question
+// passes everyone automatically, because a score of zero clears a pass mark of
+// zero. Neither is a matter of taste, so neither can be overridden.
+function courseUsableQuestions(c) {
+  return (c.quiz || []).filter(q =>
+    q && (q.q || '').trim() &&
+    Array.isArray(q.a) && q.a.length === 4 && q.a.every(x => String(x == null ? '' : x).trim()) &&
+    q.correct >= 0 && q.correct <= 3);
+}
+
+function courseBlockers(c) {
   const out = [];
-  if (!c.title || !c.title.trim()) out.push('It needs a title.');
-  const bodied = (c.lessons || []).filter(l => l.h && l.h.trim() && l.body && l.body.trim());
-  if (!bodied.length) out.push('It needs at least one page with something on it.');
+  if (!(c.lessons || []).some(l => (l.body || '').trim())) {
+    out.push('There is nothing for staff to read — at least one page needs some text on it.');
+  }
+  if (!courseUsableQuestions(c).length) {
+    out.push('There is no complete question. A quiz with nothing usable in it marks everybody as passed, so this one cannot go out.');
+  }
+  return out;
+}
+
+function courseWarnings(c) {
+  const out = [];
+  if (!c.title || !c.title.trim()) out.push('It has no title — staff will see "Untitled course".');
   (c.lessons || []).forEach((l, i) => {
-    if (l.h && l.h.trim() && (!l.body || !l.body.trim())) out.push('Page ' + (i + 1) + ' (' + l.h + ') is empty.');
+    if (!(l.body || '').trim()) out.push('Page ' + (i + 1) + (l.h ? ' (' + l.h + ')' : '') + ' is empty.');
   });
   const qs = c.quiz || [];
-  if (qs.length < COURSE_MIN_QUESTIONS) out.push('It needs at least ' + COURSE_MIN_QUESTIONS + ' questions — there ' + (qs.length === 1 ? 'is 1' : 'are ' + qs.length) + '.');
+  if (qs.length && qs.length < COURSE_MIN_QUESTIONS) {
+    out.push('Only ' + qs.length + ' question' + (qs.length === 1 ? '' : 's') + ' — most courses want at least ' + COURSE_MIN_QUESTIONS + '.');
+  }
   qs.forEach((q, i) => {
-    if (!q.q || !q.q.trim()) out.push('Question ' + (i + 1) + ' has no question text.');
-    if (!Array.isArray(q.a) || q.a.length !== 4 || q.a.some(x => !String(x || '').trim())) out.push('Question ' + (i + 1) + ' needs all four answers filled in.');
-    if (!(q.correct >= 0 && q.correct <= 3)) out.push('Question ' + (i + 1) + ' has no correct answer marked.');
-    if (!q.why || !q.why.trim()) out.push('Question ' + (i + 1) + ' has no explanation.');
+    if (!(q.q || '').trim()) out.push('Question ' + (i + 1) + ' has no question text.');
+    else if (!Array.isArray(q.a) || q.a.length !== 4 || q.a.some(x => !String(x == null ? '' : x).trim())) out.push('Question ' + (i + 1) + ' is missing one or more answers.');
+    if (!(q.why || '').trim()) out.push('Question ' + (i + 1) + ' has no explanation, so staff will not be told why.');
   });
   return out;
 }
+
+// Kept for anything that just wants "is there anything wrong with this".
+function courseProblems(c) { return courseBlockers(c).concat(courseWarnings(c)); }
 
 function saveCourseDraft(draft) {
   const i = (state.customCourses || []).findIndex(c => c.id === draft.id);
@@ -6332,11 +6390,22 @@ function saveCourseDraft(draft) {
   persistState();
 }
 
-function publishCourse(draft) {
-  const problems = courseProblems(draft);
-  if (problems.length) {
-    uiAlert('This course is not ready to go to staff yet:\n\n' + problems.map(x => '• ' + x).join('\n'), 'Not ready');
+async function publishCourse(draft) {
+  const blockers = courseBlockers(draft);
+  if (blockers.length) {
+    await uiAlert('This course cannot go to staff:\n\n' + blockers.map(x => '• ' + x).join('\n'), 'Cannot publish');
     return false;
+  }
+  const warnings = courseWarnings(draft);
+  if (warnings.length) {
+    const shown = warnings.slice(0, 8);
+    const rest = warnings.length - shown.length;
+    const ok = await uiConfirm(
+      'Staff will see it as it is:\n\n' + shown.map(x => '• ' + x).join('\n') +
+      (rest > 0 ? '\n• …and ' + rest + ' more' : '') +
+      '\n\nYou can publish anyway and fix these later.',
+      { title: 'Publish with ' + warnings.length + ' thing' + (warnings.length === 1 ? '' : 's') + ' unfinished?', confirmLabel: 'Publish anyway' });
+    if (!ok) return false;
   }
   draft.status = 'published';
   draft.num = draft.num || nextCourseNum(draft.replaces);
@@ -6409,9 +6478,9 @@ function bindCoursePanel(screen) {
   const q = (sel, fn) => screen.querySelectorAll(sel).forEach(b => b.addEventListener('click', () => fn(b)));
 
   q('[data-course-edit]', b => openCourseEditor(b.dataset.courseEdit));
-  q('[data-course-pub]', b => {
+  q('[data-course-pub]', async b => {
     const c = (state.customCourses || []).find(x => x.id === b.dataset.coursePub);
-    if (c && publishCourse(c)) { renderTraining(); }
+    if (c && await publishCourse(c)) { renderTraining(); }
   });
   q('[data-course-unpub]', async b => {
     const c = (state.customCourses || []).find(x => x.id === b.dataset.courseUnpub);
@@ -6607,7 +6676,8 @@ function renderCourseEditor(screen) {
       <textarea class="input" data-q-why="${i}" rows="2" placeholder="Shown to staff after they answer">${escapeHtml(q.why || '')}</textarea>
     </div>`).join('');
 
-  const problems = courseProblems(c);
+  const blockers = courseBlockers(c);
+  const warnings = courseWarnings(c);
 
   screen.innerHTML = `
     <div class="screen-header">
@@ -6638,14 +6708,15 @@ function renderCourseEditor(screen) {
     ${quiz || '<p class="tr-panel-empty">No questions yet.</p>'}
     <button class="btn btn-secondary" id="c-add-q">+ Add a question</button>
 
-    ${problems.length ? `<div class="tr-problems"><strong>Before this can go to staff:</strong><ul>${problems.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}</ul></div>` : ''}
+    ${blockers.length ? `<div class="tr-problems block"><strong>This cannot go to staff yet:</strong><ul>${blockers.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}</ul></div>` : ''}
+    ${warnings.length ? `<div class="tr-problems"><strong>Unfinished — you can still publish, and fix these later:</strong><ul>${warnings.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}</ul></div>` : ''}
 
     <div class="step-actions" style="margin-top:20px">
       <button class="btn btn-ghost" id="c-back">&larr; Save and close</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${c.status === 'published'
           ? '<span class="tr-chip pass" style="align-self:center">Live for staff</span>'
-          : `<button class="btn btn-primary" id="c-publish" ${problems.length ? 'disabled' : ''}>Publish to staff</button>`}
+          : `<button class="btn btn-primary" id="c-publish" ${blockers.length ? 'disabled' : ''}>Publish to staff${warnings.length ? ' anyway' : ''}</button>`}
       </div>
     </div>`;
 
@@ -6721,8 +6792,8 @@ function renderCourseEditor(screen) {
     saveCourseDraft(c); state.courseDraft = null; renderTraining(); window.scrollTo(0, 0);
   });
   const pub = document.getElementById('c-publish');
-  if (pub) pub.addEventListener('click', () => {
-    if (publishCourse(c)) { state.courseDraft = null; renderTraining(); window.scrollTo(0, 0); }
+  if (pub) pub.addEventListener('click', async () => {
+    if (await publishCourse(c)) { state.courseDraft = null; renderTraining(); window.scrollTo(0, 0); }
   });
 }
 
