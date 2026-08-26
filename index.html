@@ -322,6 +322,24 @@
   .facts-panel { border: 1px solid var(--rule-strong); border-radius: 8px; padding: 16px; margin-bottom: 20px; background: var(--paper); }
   .facts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
   .facts-head h3 { font-size: 15px; margin: 0; }
+  /* The claim and facts panels sit between you and the letter, so both fold away.
+     Collapsed, the header still carries the answer — the offer, or what is still
+     missing — because a header that hides its own summary just gets reopened. */
+  .panel-toggle {
+    width: 100%; text-align: left; background: none; border: 0; padding: 0;
+    color: inherit; font: inherit; cursor: pointer;
+  }
+  .panel-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .panel-chev {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; margin-right: 2px; color: var(--muted);
+    transition: transform .15s ease;
+  }
+  .panel-chev svg { width: 11px; height: 11px; display: block; }
+  .is-collapsed .panel-chev { transform: rotate(-90deg); }
+  .is-collapsed .panel-body { display: none; }
+  .is-collapsed .facts-head { margin-bottom: 0; }
+  @media (prefers-reduced-motion: reduce) { .panel-chev { transition: none; } }
   .facts-note { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .facts-count { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .facts-count.gaps { color: #b45309; }
@@ -334,6 +352,17 @@
   .fact.missing label:after { content: " — missing"; }
   .fact.key label:before { content: "\2022 "; color: var(--accent); }
   .facts-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  /* Settings runs as one long column of fields; this marks where a genuinely
+     different subject starts, so an access setting does not read as branding. */
+  .settings-divider { display: flex; align-items: center; gap: 12px; margin: 28px 0 18px; }
+  .settings-divider::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+  .settings-divider span { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .pin-status { margin-top: 8px; font-size: 13px; color: var(--warn); }
+  .pin-status.on { color: var(--green); }
+  .pin-explain { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+  .pin-explain p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: var(--muted); max-width: 68ch; }
+  .pin-explain p:last-child { margin-bottom: 0; }
+  .pin-explain strong { color: var(--ink-2); }
   @media print { .facts-panel { display: none; } }
 
   /* Claim calculator */
@@ -497,15 +526,37 @@
 
   /* Settings tabs. One row that scrolls rather than wrapping into ragged
      rows — eight labels at varying widths wrapped badly, and "Price list"
-     broke across two lines. */
-  .step-nav {
-    display: flex; gap: 2px; margin-bottom: 24px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid var(--rule); padding-bottom: 0;
-    scrollbar-width: thin;
+     broke across two lines.
+
+     The rule lives on the wrapper, not the scroller, so the underline spans the
+     panel instead of scrolling away with the pills. Fades on the wrapper say
+     there is more to reach without relying on the scrollbar to advertise it. */
+  .step-nav-wrap { position: relative; margin-bottom: 24px; border-bottom: 1px solid var(--rule); }
+  .step-nav-wrap::before,
+  .step-nav-wrap::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 24px;
+    pointer-events: none; z-index: 1;
   }
+  .step-nav-wrap::before { left: 0; background: linear-gradient(to right, var(--surface), transparent); }
+  .step-nav-wrap::after { right: 0; background: linear-gradient(to left, var(--surface), transparent); }
+  /* overflow-x on its own is not enough: once one axis is non-visible the other
+     computes to auto, so the horizontal scrollbar's own height overflowed the
+     row and raised a second, vertical scrollbar beside it. Pin overflow-y. */
+  .step-nav {
+    display: flex; gap: 2px;
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-strong) transparent;
+  }
+  .step-nav::-webkit-scrollbar { height: 4px; }
+  .step-nav::-webkit-scrollbar-track { background: transparent; }
+  .step-nav::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 2px; }
+  .step-nav::-webkit-scrollbar-thumb:hover { background: var(--muted); }
   .step-pill {
     display: flex; align-items: center; gap: 7px; flex: none;
+    scroll-snap-align: start; scroll-margin-inline: 24px;
     padding: 9px 13px; background: none; border: 0;
     border-bottom: 2px solid transparent; margin-bottom: -1px;
     font-size: 13px; color: var(--muted); white-space: nowrap; cursor: pointer;
@@ -936,6 +987,10 @@ const state = {
   trainingSession: null,
   pendingImage: null,
   currentLetter: null,
+  // Which letter panels the owner has folded open or shut by hand. Deliberately
+  // transient and deliberately not in buildStateBlob — an empty object means
+  // "decide from the panel's own state", which is the right default per letter.
+  letterPanels: {},
   currentProblem: null,
   chartInstance: null,
   chatBusy: false
@@ -1134,11 +1189,11 @@ function openLegal(which) {
 const TABS = [
   { id: 'onboarding', num: '01', label: 'Onboarding' },
   { id: 'chat',       num: '02', label: 'Chat' },
-  { id: 'problems',   num: '07', label: 'Customer Problems' },
-  { id: 'letters',    num: '03', label: 'Letters' },
-  { id: 'staff',      num: '04', label: 'Staff' },
-  { id: 'claims',     num: '05', label: 'Claims' },
-  { id: 'bills',      num: '06', label: 'Bill Compare' },
+  { id: 'problems',   num: '03', label: 'Problem Solver' },
+  { id: 'letters',    num: '04', label: 'Letters' },
+  { id: 'staff',      num: '05', label: 'Staff' },
+  { id: 'claims',     num: '06', label: 'Claims' },
+  { id: 'bills',      num: '07', label: 'Bill Compare' },
   { id: 'training',   num: '08', label: 'Training' }
 ];
 
@@ -1370,6 +1425,8 @@ function saveLetter(l) {
 function openLetter(id) {
   const rec = state.letters.find(x => x.id === id);
   if (!rec) return;
+  // Panels are per letter, so a fold on the last one does not follow you here.
+  state.letterPanels = {};
   state.currentLetter = Object.assign({}, rec, { pending: false, error: false, stage: 'done' });
   state.activeTab = 'letters';
   render();
@@ -2832,7 +2889,7 @@ function renderScreens() {
 const COMING_SOON = new Set(['bills']);
 function renderComingSoon(tabId) {
   const meta = {
-    bills: { ix: 'Module 06', title: 'Bill Compare', blurb: 'Upload your power, gas and water bills and Hangr tracks them over time, flags a contract-renewal window before you get rolled onto a worse rate, and estimates what shopping around could save you.' }
+    bills: { ix: 'Module 07', title: 'Bill Compare', blurb: 'Upload your power, gas and water bills and Hangr tracks them over time, flags a contract-renewal window before you get rolled onto a worse rate, and estimates what shopping around could save you.' }
   }[tabId] || { ix: '', title: 'Coming soon', blurb: '' };
   const screen = document.getElementById('screen-' + tabId);
   if (!screen) return;
@@ -2873,7 +2930,7 @@ function renderOnboarding() {
       <p>Update anything about your business. Click a section below to jump straight to it — changes save as you go.</p>
     </div>
     <div class="card">
-      <div class="step-nav">${stepNav}</div>
+      ${stepNav}
       <div id="step-content">${stepContent}</div>
       <div class="step-actions">
         <button class="btn btn-ghost" onclick="resetAll()" style="color:var(--warn)">Reset all saved data</button>
@@ -2887,7 +2944,7 @@ function renderOnboarding() {
       <p>Quick setup so the consultant knows your sites, staff, equipment and suppliers — and never asks you twice. Skip anything you don't know yet.</p>
     </div>
     <div class="card">
-      <div class="step-nav">${stepNav}</div>
+      ${stepNav}
       <div id="step-content">${stepContent}</div>
       <div class="step-actions">
         ${state.onboardingStep === 0 ? `<button class="btn btn-ghost" onclick="resetAll()" style="color:var(--warn)">Reset all saved data</button>` : `<button class="btn btn-ghost" id="back-btn">&larr; Back</button>`}
@@ -2906,6 +2963,12 @@ function renderOnboarding() {
   document.querySelectorAll('[data-goto-step]').forEach(el => {
     el.addEventListener('click', () => { state.onboardingStep = parseInt(el.dataset.gotoStep, 10) || 0; render(); });
   });
+  // Jumping to a late section used to leave the strip parked at the left, so the
+  // section you were on was off-screen behind the fade.
+  const _activePill = screen.querySelector('.step-pill.active');
+  if (_activePill && _activePill.scrollIntoView) {
+    try { _activePill.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } catch (e) {}
+  }
   const doneBtn = document.getElementById('done-btn');
   if (doneBtn) doneBtn.addEventListener('click', () => { persistState(); state.activeTab = 'chat'; render(); });
   const _backBtn = document.getElementById('back-btn'); if (_backBtn) _backBtn.addEventListener('click', () => {
@@ -3114,6 +3177,7 @@ function utilitiesStep() {
 }
 
 function brandStep() {
+  const pinSet = !!(state.profile.ownerPin || '').trim();
   const p = state.profile;
   const logoHtml = p.logoDataUrl
     ? `<img src="${p.logoDataUrl}" alt="logo">`
@@ -3153,8 +3217,17 @@ function brandStep() {
         const nameFont = f.key === 'modern' ? SANS_STACK : SERIF_STACK;
         return `<button type="button" class="font-card ${on ? 'on' : ''}" data-font="${f.key}"><div class="fc-name" style="font-family:${nameFont.replace(/"/g,'&quot;')}">${f.label}</div><div class="fc-desc">${f.desc}</div></button>`;
       }).join('')}</div></div>
-    <div class="field"><label class="label">Staff view PIN <span class="opt">optional — the code to switch back out of staff view</span></label>
-      <input class="input" data-bind="ownerPin" value="${escapeHtml(p.ownerPin || '')}" inputmode="numeric" maxlength="6" placeholder="e.g. 1984" style="max-width:180px"></div>
+    <div class="settings-divider"><span>Access &amp; staff view</span></div>
+    <div class="field"><label class="label">Staff view PIN <span class="opt">optional — this locks the preview, not your data</span></label>
+      <input class="input" data-bind="ownerPin" value="${escapeHtml(p.ownerPin || '')}" inputmode="numeric" maxlength="6" placeholder="e.g. 1984" style="max-width:180px">
+      <div class="pin-status ${pinSet ? 'on' : ''}">${pinSet
+        ? 'Staff view is locked with a PIN. Leaving it needs the code.'
+        : 'No PIN set — anyone using this device can switch straight back to owner view.'}</div>
+      <div class="pin-explain">
+        <p><strong>What it does.</strong> &ldquo;Staff view&rdquo; lets you see the app exactly as your counter staff see it — restricted sections hidden, and the consultant refusing the things it refuses them. The PIN is what you type to switch <em>back out</em> of that preview. Switching in never asks for it, and the view survives a page reload, so you can leave a terminal sitting in staff view all day.</p>
+        <p><strong>What it does not do.</strong> It is not what protects your HR file, your bills or your claims. That is the role on each person's own login — anyone who signs in as staff gets staff permissions whether or not a PIN exists here, and setting one restricts nobody. Leaving it blank exposes nothing that a proper login would have protected. Treat this as a lock on a preview, not a password.</p>
+        <p>The code is stored in your business profile as plain text. Only a login that can already open Settings can read it, and staff view has no access to Settings — but it is a convenience, not a secret.</p>
+      </div></div>
   `;
 }
 
@@ -3371,7 +3444,7 @@ function stepNavHtml(editMode) {
       </div>`;
   }
 
-  return `<div class="step-nav" role="tablist">` + ONBOARDING_STEPS.map((st, i) => {
+  return `<div class="step-nav-wrap"><div class="step-nav" role="tablist">` + ONBOARDING_STEPS.map((st, i) => {
     const on = i === state.onboardingStep;
     const filled = stepFilled(st.id);
     return `<button class="step-pill ${on ? 'active' : ''}" data-goto-step="${i}"
@@ -3379,7 +3452,7 @@ function stepNavHtml(editMode) {
         <span class="step-dot ${filled ? 'filled' : ''}" aria-hidden="true"></span>
         <span class="step-pill-label">${escapeHtml(st.label)}</span>
       </button>`;
-  }).join('') + `</div>`;
+  }).join('') + `</div></div>`;
 }
 // ============ CHAT ============
 // Tracks chat scroll intent across renders: land at top on entry, pin to bottom on new/incoming messages.
@@ -3576,6 +3649,9 @@ async function draftLetterFromMessage(msgId, overrideType, factsOverride, claimO
     subject: msg.letterOffer.subject,
     type: overrideType || msg.letterOffer.type
   };
+  // A brand-new draft (no facts or claim carried in) gets the panels back on
+  // auto; a rebuild has already set them the way it wants them.
+  if (!factsOverride && !claimOverride) state.letterPanels = {};
   const existingDate = (state.currentLetter && state.currentLetter.sourceMsgId === msgId)
     ? state.currentLetter.date
     : new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -3963,7 +4039,7 @@ function renderClaims() {
   if (!state.claims.length) {
     screen.innerHTML = `
       <div class="screen-header">
-        <div class="ix">Module 04</div>
+        <div class="ix">Module 06</div>
         <h2>Claims</h2>
         <p>Every claim letter you generate is recorded here — what it was, who was at fault, what was at stake, what you paid. The number no operator has.</p>
       </div>
@@ -3980,7 +4056,7 @@ function renderClaims() {
   }
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 04</div>
+      <div class="ix">Module 06</div>
       <h2>Claims</h2>
       <p>Every claim letter you generate is recorded here. Over a year this tells you what claims actually cost you, which garments and brands keep failing, and how much you did not pay because the position held.</p>
     </div>
@@ -4011,6 +4087,15 @@ function downloadFile(text, filename, mime) {
 }
 
 // ============ LETTERS ============
+// A hand-set value always wins for the rest of the session; otherwise the panel
+// opens only when it still wants something from you.
+function panelOpen(which, autoOpen) {
+  const v = state.letterPanels[which];
+  return (v === true || v === false) ? v : autoOpen;
+}
+
+const PANEL_CHEV = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5L6 8.5L10 4.5"/></svg>';
+
 function claimPanelHtml(l) {
   if (l.type !== 'settlement') return '';
   const c = l.claim || {};
@@ -4036,12 +4121,23 @@ function claimPanelHtml(l) {
       <div class="claim-hint">${c.waiveCharge ? 'Cleaning charge waived (s6.M — negligence). ' : ''}${c.keepGarment ? 'Customer keeps the garment.' : 'On payment of the full adjusted value the garment becomes yours (s6.H/6.L) — the letter offers to return it if they\'d rather keep it.'}</div>`
     : `<div class="claim-working" style="margin:0">Pick the article and enter a replacement cost — the offer calculates itself off Table&nbsp;I and Table&nbsp;II.</div>`;
 
+  // Collapsed, the header has to answer the question the panel exists to answer:
+  // what is being offered, and off what.
+  const shut = calc
+    ? `${fmtAud(c.offer !== '' && c.offer != null && !isNaN(parseFloat(c.offer)) ? parseFloat(c.offer) : calc.amount)} offer &middot; ${escapeHtml(c.article || 'article')} &middot; ${calc.ageMonths} months &middot; ${escapeHtml(calc.condition)}`
+    : 'Nothing calculated yet';
+  // Open while there is still no figure; folded once the sum is done.
+  const open = panelOpen('claim', !calc);
+
   return `
-    <div class="claim-panel">
-      <div class="facts-head">
+    <div class="claim-panel ${open ? '' : 'is-collapsed'}">
+      <button type="button" class="facts-head panel-toggle" data-panel="claim"
+          aria-expanded="${open ? 'true' : 'false'}" aria-controls="claim-panel-body">
+        <span class="panel-chev">${PANEL_CHEV}</span>
         <h3>Claim calculation — Fair Claims Guide</h3>
-        <span class="facts-count">Depreciated value, not replacement cost</span>
-      </div>
+        <span class="facts-count">${open ? 'Depreciated value, not replacement cost' : shut}</span>
+      </button>
+      <div class="panel-body" id="claim-panel-body">
       <div class="claim-grid">
         <div class="claim-field">
           <label for="claim-article">Article (Table I)</label>
@@ -4082,6 +4178,7 @@ function claimPanelHtml(l) {
       <div class="facts-actions">
         <button class="btn btn-primary" id="rebuild-claim" ${(!calc || l.pending) ? 'disabled' : ''}>${calc ? 'Rebuild letter with this offer' : 'Enter the article and cost to calculate'}</button>
       </div>
+      </div>
     </div>`;
 }
 
@@ -4107,12 +4204,21 @@ function factsPanelHtml(l) {
     </div>`;
   }).join('');
 
+  // Open only while a fact that decides the position is still missing — those are
+  // the ones that leave a bracketed placeholder you must not print. Cosmetic gaps
+  // stay folded and are reported in the header, because the point of folding is to
+  // reach the letter, not to hide work that has to be done.
+  const open = panelOpen('facts', missingKey.length > 0);
+
   return `
-    <div class="facts-panel">
-      <div class="facts-head">
+    <div class="facts-panel ${open ? '' : 'is-collapsed'}">
+      <button type="button" class="facts-head panel-toggle" data-panel="facts"
+          aria-expanded="${open ? 'true' : 'false'}" aria-controls="facts-panel-body">
+        <span class="panel-chev">${PANEL_CHEV}</span>
         <h3>Facts this letter is built on</h3>
         <span class="${countClass}">${countText}</span>
-      </div>
+      </button>
+      <div class="panel-body" id="facts-panel-body">
       <div class="facts-note">${fam === 'garment'
         ? 'Pulled from the conversation. Anything marked missing is being left as a bracketed placeholder in the letter — fill it in and rebuild. The bulleted ones are the facts that decide the position if the retailer pushes back.'
         : fam === 'intake'
@@ -4122,6 +4228,7 @@ function factsPanelHtml(l) {
       <div class="facts-actions">
         <button class="btn btn-primary" id="rebuild-letter" ${l.pending ? 'disabled' : ''}>Rebuild letter with these facts</button>
         <span style="font-size:12px;color:var(--muted)">Facts carry across if you switch letter type.</span>
+      </div>
       </div>
     </div>`;
 }
@@ -4198,7 +4305,7 @@ function renderLetters() {
 
     screen.innerHTML = `
       <div class="screen-header">
-        <div class="ix">Module 03</div>
+        <div class="ix">Module 04</div>
         <h2>Letters</h2>
         <p>One-click branded letters with your letterhead, ABN and signature block. Every letter you draft is saved here — reopen it any time to edit or reprint.</p>
       </div>
@@ -4253,7 +4360,7 @@ function renderLetters() {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 03 — preview</div>
+      <div class="ix">Module 04 — preview</div>
       <h2>${isNote ? 'Advice note' : isTwimc ? 'Defence letter draft' : isSettle ? 'Settlement letter draft' : isIntake ? 'At-risk authorisation' : 'Letter draft'}</h2>
       <p>${isNote
         ? (l.scope === 'chat'
@@ -4331,12 +4438,31 @@ function renderLetters() {
     render();
   });
   const allLettersBtn = document.getElementById('all-letters');
-  if (allLettersBtn) allLettersBtn.addEventListener('click', () => { state.currentLetter = null; state.activeTab = 'letters'; render(); });
+  if (allLettersBtn) allLettersBtn.addEventListener('click', () => {
+    commitLetterBodyEdit();
+    state.currentLetter = null; state.letterPanels = {}; state.activeTab = 'letters'; render();
+  });
+  // Folded shut or open by hand. The collapsed inputs stay in the DOM, so the
+  // rebuild buttons still read every field whichever way the panel is sitting.
+  document.querySelectorAll('[data-panel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.panel;
+      const panel = btn.closest('.claim-panel, .facts-panel');
+      if (!panel) return;
+      const nowOpen = panel.classList.contains('is-collapsed');
+      state.letterPanels[key] = nowOpen;
+      panel.classList.toggle('is-collapsed', !nowOpen);
+      btn.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
+      render();
+    });
+  });
   const rebuildBtn = document.getElementById('rebuild-letter');
   if (rebuildBtn && !l.pending) {
     rebuildBtn.addEventListener('click', () => {
       const facts = {};
       document.querySelectorAll('[data-fact]').forEach(i => { facts[i.dataset.fact] = i.value.trim(); });
+      // You have just told it what to use; what you want to see next is the letter.
+      state.letterPanels = { claim: false, facts: false };
       if (l.sourceMsgId) {
         draftLetterFromMessage(l.sourceMsgId, l.type, facts, l.claim || null);
       } else {
@@ -4400,6 +4526,7 @@ function renderLetters() {
       rebuildClaim.addEventListener('click', () => {
         const facts = {};
         document.querySelectorAll('[data-fact]').forEach(i => { facts[i.dataset.fact] = i.value.trim(); });
+        state.letterPanels = { claim: false, facts: false };
         draftLetterFromMessage(l.sourceMsgId, 'settlement', Object.keys(facts).length ? facts : l.facts, state.currentLetter.claim);
       });
     }
@@ -4528,7 +4655,7 @@ function renderStaff() {
   if (!state.staff.length) {
     screen.innerHTML = `
       <div class="screen-header">
-        <div class="ix">Module 04</div>
+        <div class="ix">Module 05</div>
         <h2>Staff</h2>
         <p>Keep a simple record of each person — role, classification, employment type, start date. Then draft a standardised HR letter for anyone in one click, pre-filled from their details.</p>
       </div>
@@ -4578,7 +4705,7 @@ function renderStaff() {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 04</div>
+      <div class="ix">Module 05</div>
       <h2>Staff</h2>
       <p>Your team on file. Draft a standardised HR letter for anyone from their record — the name, classification, employment type and start date pre-fill, and you complete the specifics before it drafts.</p>
     </div>
@@ -7530,7 +7657,7 @@ function renderBills() {
 
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 06</div>
+      <div class="ix">Module 07</div>
       <h2>Bill Compare</h2>
       <p>Track utility bills over time, see the trend, and get an alert when contract renewal opens a savings window. Manual entry now; PDF upload in the next session.</p>
     </div>
@@ -8116,7 +8243,28 @@ function toggleSidebarCollapsed() {
   renderSidebar();
 }
 
+// The letter body is edited in place in a contenteditable div, and the edit only
+// reaches state when you press "Done editing" or print. Anything that navigates
+// away has to flush it first, or the edit dies with the DOM node.
+function commitLetterBodyEdit() {
+  const l = state.currentLetter;
+  if (!l || l.pending || l.type === 'advice-note') return;
+  const body = document.getElementById('letter-body');
+  if (!body || body.getAttribute('contenteditable') !== 'true') return;
+  if (body.innerText !== l.body) { l.body = body.innerText; saveLetter(l); }
+}
+
+// An open letter or problem report is held in state, and renderLetters/renderProblems
+// show their library only while it is null. Clicking the section in the sidebar means
+// "take me to the list", so clear it on the way — otherwise the menu item silently
+// reopens whatever you last had on screen.
 function goToTab(id) {
+  if (id === 'letters' && state.currentLetter) {
+    commitLetterBodyEdit();
+    // A draft still being written by the model is not yours to discard yet.
+    if (!state.currentLetter.pending) { state.currentLetter = null; state.letterPanels = {}; }
+  }
+  if (id === 'problems' && state.currentProblem) state.currentProblem = null;
   state.activeTab = id;
   if (isDrawer()) closeSidebar();
   render();
@@ -8709,8 +8857,8 @@ function renderProblems() {
     const list = visibleProblems().slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     screen.innerHTML = `
       <div class="screen-header">
-        <div class="ix">Module 07</div>
-        <h2>Customer Problems</h2>
+        <div class="ix">Module 03</div>
+        <h2>Problem Solver</h2>
         <p>A garment problem or a lost item taken over the counter. Fill this in while the customer is in front of you — it starts a chat with the consultant, and if it turns into a claim or a letter, everything stays joined to this one report.</p>
       </div>
       ${list.length ? `
@@ -8749,7 +8897,7 @@ function renderProblems() {
         : (canEmailAck ? '' : '<div class="facts-count" style="margin-top:12px">Add an email address to let the customer know it is logged.</div>'));
   screen.innerHTML = `
     <div class="screen-header">
-      <div class="ix">Module 07</div>
+      <div class="ix">Module 03</div>
       <h2>${escapeHtml(started ? problemLabel(p) : 'New problem report')}</h2>
       <p>${started
         ? 'Taken ' + escapeHtml(p.date || '') + '. Everything below stays linked to the chat, and to any claim or letter that comes out of it.'
