@@ -828,6 +828,7 @@
   .email-opt strong { display: block; font-size: 14px; font-weight: 500; }
   .email-opt small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
   .email-note { min-height: 18px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .email-hint { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -3708,7 +3709,7 @@ function chatTranscriptHtml(chat) {
     return `<div class="qa"><div class="who">${who}</div><div class="txt">${body}</div></div>`;
   }).join('');
 }
-function buildExportDocument(title, innerHtml, dateStr) {
+function buildExportDocument(title, innerHtml, dateStr, footNote) {
   const p = state.profile;
   const logo = p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:70px;max-width:180px;object-fit:contain">` : '';
   const contact = chatExportContact();
@@ -3731,7 +3732,7 @@ function buildExportDocument(title, innerHtml, dateStr) {
   <h1>${escapeHtml(title)}</h1>
   <div class="meta">${escapeHtml(dateStr)}</div>
   ${innerHtml}
-  <div class="foot">Prepared with Hangr Consultant — general information for Australian dry cleaning operators, not legal, tax or financial advice.</div>
+  <div class="foot">${footNote ? `<div style="margin-bottom:6px">${escapeHtml(footNote)}</div>` : ''}Prepared with Hangr Consultant — general information for Australian dry cleaning operators, not legal, tax or financial advice.</div>
 </body></html>`;
 }
 function printHtmlDocument(html) {
@@ -8630,14 +8631,23 @@ async function sendEmail({ toSelf, to, subject, html, body, replyTo }) {
   return j;
 }
 
+// The address these go out from is send-only — nothing is delivered back to it.
+// Every emailed copy says so, or says where a reply does land, so that nobody
+// answers into a black hole. Printed and downloaded copies never carry this.
+function emailReplyFootNote(replyTo) {
+  return replyTo
+    ? 'Replies to this email go to ' + replyTo + '.'
+    : 'This was sent from an address that is not monitored — replies to it are not received.';
+}
+
 // Everything an operator would want on the letter when it arrives: the same
 // paper-white sheet they would have printed.
-function letterEmailHtml(l) {
+function letterEmailHtml(l, replyTo) {
   const inner = (l.family === 'note' || l.type === 'note')
     ? renderMarkdown(l.body)
     : '<pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:15px;line-height:1.6">'
       + escapeHtml(l.body) + '</pre>';
-  return buildExportDocument(l.subject || 'Letter', inner, l.date || _exportDateStr());
+  return buildExportDocument(l.subject || 'Letter', inner, l.date || _exportDateStr(), emailReplyFootNote(replyTo));
 }
 
 async function openEmailLetter(l) {
@@ -8655,7 +8665,7 @@ async function openEmailLetter(l) {
       <div class="email-choice">
         <label class="email-opt">
           <input type="radio" name="email-dest" value="self" checked>
-          <span><strong>To me</strong><small>${own ? escapeHtml(own) : 'the address you log in with'} — forward it on from your own address</small></span>
+          <span><strong>To me</strong><small>${own ? escapeHtml(own) : 'the address you log in with'} — forward it on from your own address, so replies come to you</small></span>
         </label>
         <label class="email-opt" ${customerAllowed ? '' : 'data-disabled="1"'}>
           <input type="radio" name="email-dest" value="customer" ${customerAllowed ? '' : 'disabled'}>
@@ -8668,6 +8678,7 @@ async function openEmailLetter(l) {
           <input class="input" id="email-to" type="email" placeholder="customer@example.com">
           <label class="auth-label" style="margin-top:10px">Replies come back to</label>
           <input class="input" id="email-reply" type="email" value="${escapeHtml(own)}" placeholder="you@yourbusiness.com.au">
+          <small class="email-hint">The letter goes out from a send-only address. Leave this blank and they will have no way to answer it.</small>
         </div>
         <div class="email-note" id="email-note"></div>
       </div>`,
@@ -8690,7 +8701,7 @@ async function openEmailLetter(l) {
       note.style.color = 'var(--muted)';
       note.textContent = 'Sending…';
       try {
-        await sendEmail({ toSelf, to, replyTo, subject: l.subject || 'Letter', html: letterEmailHtml(l) });
+        await sendEmail({ toSelf, to, replyTo, subject: l.subject || 'Letter', html: letterEmailHtml(l, replyTo) });
         sentTo = toSelf ? 'self' : to;
         return true;
       } catch (e) {
@@ -8879,7 +8890,7 @@ async function draftRecommendation(id) {
 
 // A short acknowledgement so the customer knows it is logged and who has it. It
 // deliberately states no position on liability — that is what the letters are for.
-function problemAckHtml(p) {
+function problemAckHtml(p, replyTo) {
   const row = (k, v) => v ? `<div class="qa"><div class="who">${escapeHtml(k)}</div><p class="txt">${escapeHtml(v)}</p></div>` : '';
   const inner = `
     <p>Thank you for letting us know. We have logged the details below and it is with our team now.</p>
@@ -8887,8 +8898,10 @@ function problemAckHtml(p) {
     ${row('Item', garmentLine(p))}
     ${row('What you told us', p.whatHappened)}
     ${row('What we have done so far', p.actionTaken)}
-    <p>We will be in touch as soon as we have had a proper look. If anything below is wrong, reply to this email and we will correct it.</p>`;
-  return buildExportDocument('Your enquiry — ' + (p.docket ? 'docket ' + p.docket : 'received'), inner, p.date || _exportDateStr());
+    <p>We will be in touch as soon as we have had a proper look.${replyTo
+      ? ' If anything below is wrong, reply to this email and we will correct it.'
+      : ' If anything below is wrong, let us know next time you are in touch.'}</p>`;
+  return buildExportDocument('Your enquiry — ' + (p.docket ? 'docket ' + p.docket : 'received'), inner, p.date || _exportDateStr(), emailReplyFootNote(replyTo));
 }
 
 async function emailProblemAck(id) {
@@ -8905,6 +8918,7 @@ async function emailProblemAck(id) {
         <p class="facts-count" style="margin-bottom:12px">A short acknowledgement to <strong>${escapeHtml(to)}</strong> confirming we have logged the problem. It does not say who is at fault.</p>
         <label class="auth-label">Replies come back to</label>
         <input class="input" id="ack-reply" type="email" value="${escapeHtml(own)}" placeholder="you@yourbusiness.com.au">
+        <small class="email-hint">It goes out from a send-only address. Leave this blank and they will have no way to answer it.</small>
         <div class="email-note" id="ack-note"></div>
       </div>`,
     confirmLabel: 'Send',
@@ -8914,10 +8928,11 @@ async function emailProblemAck(id) {
       note.style.color = 'var(--muted)';
       note.textContent = 'Sending…';
       try {
+        const replyTo = (root.querySelector('#ack-reply').value || '').trim() || undefined;
         await sendEmail({
-          to, replyTo: (root.querySelector('#ack-reply').value || '').trim() || undefined,
+          to, replyTo,
           subject: 'We have logged your enquiry' + (rec.docket ? ' — docket ' + rec.docket : ''),
-          html: problemAckHtml(rec)
+          html: problemAckHtml(rec, replyTo)
         });
         sent = true;
         return true;

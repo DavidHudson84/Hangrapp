@@ -25,7 +25,7 @@ so.
 | Name | Value | Why |
 |------|-------|-----|
 | `RESEND_API_KEY` | `re_…` from the Resend dashboard | Sends the mail. Never goes near the browser. |
-| `EMAIL_FROM` | `Hangr <letters@hangr.au>` | The From address. The domain part **must** be the verified Resend domain. The mailbox part (`letters`) need not exist — nothing is delivered to it. |
+| `EMAIL_FROM` | `Hangr <noreply@hangr.au>` | The From address. The domain part **must** be the verified Resend domain. The mailbox part need not exist — nothing is delivered to it, which is why it is named `noreply`. See [Replies](#replies). |
 | `ALLOW_CUSTOMER_SEND` | `false` | Off until terms and liability are settled in writing. See below. |
 | `ALLOWED_ORIGIN` | the app's origin, e.g. `https://app.hangr.au` | CORS. Defaults to `*` if unset, which works but lets any site call the function. |
 
@@ -58,6 +58,33 @@ When it is on, only `owner`, `admin` and `manager` may use it, and the role is
 read from the `memberships` table, never from the request body. Staff draft
 letters; they do not post them out under the business name.
 
+## Replies
+
+Nothing can be replied to at the sending address. Receiving is switched off on
+the `hangr.au` domain in Resend, so a reply to `noreply@hangr.au` is not
+delivered anywhere and nobody is told it failed — it simply disappears. That is
+why the mailbox is named for what it does.
+
+Where a reply needs to reach a person, it goes through a **Reply-To** header
+carrying the operator's own address, which the send dialog collects. The app is
+explicit about this either way:
+
+- With a Reply-To set, the emailed copy says *"Replies to this email go to
+  you@yourbusiness.com.au."*
+- Without one, it says *"This was sent from an address that is not monitored —
+  replies to it are not received."*
+
+Emailing a letter **to yourself** sets no Reply-To and needs none: it lands in
+your own inbox and you forward it from your own address, which is where the
+customer's reply then goes.
+
+Printed and downloaded copies never carry either line — it is true of the email,
+not of the letter.
+
+Turning replies on properly later means enabling receiving on the domain in
+Resend and adding its MX records, which is a DNS change ([DNS.md](DNS.md)) and a
+decision about who reads that mailbox. Nothing in the app depends on it.
+
 ## Other guards already in the function
 
 - Anonymous callers are rejected — the publishable key alone yields no user,
@@ -72,7 +99,7 @@ letters; they do not post them out under the business name.
 
 1. Sign in to the app.
 2. Generate any letter, then **Email** → **to myself**.
-3. It should arrive from `letters@hangr.au` within a few seconds.
+3. It should arrive from `noreply@hangr.au` within a few seconds.
 4. Check the send is listed under Emails in the Resend dashboard.
 
 Then try **to a customer**: it should be refused with "Sending to customers is
