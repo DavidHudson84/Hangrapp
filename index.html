@@ -596,6 +596,12 @@
   /* ===== Added: subheadings, inline modals, letters library, staff ===== */
   .facts-subhead { grid-column: 1 / -1; font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--rule); }
   .facts-subhead:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.problem-more { margin: 0 0 16px; border: 1px solid var(--rule); border-radius: 8px; padding: 10px 14px; }
+.problem-more > summary { cursor: pointer; font-size: 12px; color: var(--muted); list-style: none; }
+.problem-more > summary::-webkit-details-marker { display: none; }
+.problem-more > summary::before { content: '+ '; color: var(--accent); font-weight: 600; }
+.problem-more[open] > summary::before { content: '\2212 '; }
+.problem-more[open] > summary { color: var(--accent); }
 
   .ui-modal-backdrop { position: fixed; inset: 0; background: rgba(20,20,25,.44); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
   .ui-modal { background: var(--paper); border: 1px solid var(--rule-strong); border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
@@ -1245,10 +1251,12 @@ function newProblem() {
   return {
     id: newId('P'),
     date: new Date().toISOString().slice(0, 10),
-    docket: '', customerName: '', phone: '', email: '', site: '',
-    garment: '', whatHappened: '', takenBy: '',
+    docket: '', customerName: '', phone: '', email: '', noEmail: false, site: '',
+    garment: '', colour: '', style: '', brand: '', purchasedFrom: '', identifying: '',
+    whatHappened: '', actionTaken: '', customerWants: '', recommended: '',
+    takenBy: '',
     status: 'open',
-    chatId: null, claimId: null,
+    chatId: null, claimId: null, ackSentAt: null, ackSentTo: null,
     createdBy: state.currentUserId || null,
     createdAt: Date.now(), updatedAt: Date.now()
   };
@@ -1293,13 +1301,19 @@ function problemLabel(p) {
 function applyProblemFacts(facts, p) {
   if (!p) return facts;
   const out = Object.assign({}, facts || {});
-  ['customerName', 'docket', 'garment', 'site'].forEach(k => { if (p[k]) out[k] = p[k]; });
+  ['customerName', 'docket', 'site'].forEach(k => { if (p[k]) out[k] = p[k]; });
+  const g = garmentLine(p);
+  if (g) out.garment = g;
+  if (p.purchasedFrom && !out.value) out.value = p.purchasedFrom;
   return out;
 }
 // The opening message of the chat. The AI transport flattens a conversation into a
 // single user turn, so there is no per-chat system slot to put this in — writing it
 // as the first user message is the seam that needs no change to buildSystemPrompt,
 // and it stays visible and editable in the transcript.
+function garmentLine(p) {
+  return [p.colour, p.brand, p.garment, p.style && '(' + p.style + ')'].filter(Boolean).join(' ');
+}
 function problemBrief(p) {
   const bits = [];
   if (p.date) bits.push('Date taken: ' + p.date);
@@ -1308,12 +1322,17 @@ function problemBrief(p) {
   if (p.phone) bits.push('Phone: ' + p.phone);
   if (p.email) bits.push('Email: ' + p.email);
   if (p.site) bits.push('Store / site: ' + p.site);
-  if (p.garment) bits.push('Item: ' + p.garment);
   if (p.takenBy) bits.push('Taken by: ' + p.takenBy);
-  return 'A customer has raised a problem over the counter. Here is the report:\n\n'
+  const g = garmentLine(p);
+  if (g) bits.push('Item: ' + g);
+  if (p.purchasedFrom) bits.push('Bought from / price: ' + p.purchasedFrom);
+  if (p.identifying) bits.push('Identifying features: ' + p.identifying);
+  let out = 'A customer has raised a problem over the counter. Here is the report:\n\n'
     + bits.join('\n')
-    + '\n\nWhat happened, in the customer\'s words and ours:\n' + (p.whatHappened || '(not recorded)')
-    + '\n\nPlease help me work out where we stand and what to do next.';
+    + '\n\nWhat happened, in the customer\'s words and ours:\n' + (p.whatHappened || '(not recorded)');
+  if (p.actionTaken) out += '\n\nWhat we have done so far:\n' + p.actionTaken;
+  if (p.customerWants) out += '\n\nWhat the customer is asking for:\n' + p.customerWants;
+  return out + '\n\nPlease help me work out where we stand and what to do next.';
 }
 
 function buildStateBlob() {
@@ -5836,7 +5855,17 @@ async function openEmailLetter(l) {
 // and a half-filled report survives a refresh — the same save-draft mechanism the
 // staff roster uses.
 
+// The field set is the JotForm customer problem solver report, regrouped around
+// what 230 real submissions show staff actually do:
+//   - colour, brand and type are filled 81-97% of the time, so they stay up top;
+//     style, price and identifying features run 8-38%, so they sit in an optional
+//     group rather than four boxes most people scroll past.
+//   - the three narrative fields were routinely confused on the JotForm (problem
+//     descriptions landing in "Customer Instructions", everything dumped into
+//     "Comments" on hard cases). They are named for the question they answer here,
+//     and the placeholders say plainly what belongs in each.
 function problemFieldsHtml(p) {
+  const siteNames = (state.profile.sites || []).filter(x => x.name).map(x => x.name);
   const f = (key, label, opts) => {
     const o = opts || {};
     return `
@@ -5844,31 +5873,64 @@ function problemFieldsHtml(p) {
         <div class="label">${escapeHtml(label)}</div>
         <input class="input" type="${o.type || 'text'}" data-problem="${key}"
                value="${escapeHtml(p[key] || '')}" placeholder="${escapeHtml(o.ph || '')}"
-               ${o.inputmode ? 'inputmode="' + o.inputmode + '"' : ''}>
+               ${o.inputmode ? 'inputmode="' + o.inputmode + '"' : ''} ${o.disabled ? 'disabled' : ''}>
       </div>`;
   };
+  const ta = (key, label, ph, rows) => `
+      <div class="field">
+        <div class="label">${escapeHtml(label)}</div>
+        <textarea class="textarea" rows="${rows || 4}" data-problem="${key}"
+          placeholder="${escapeHtml(ph)}">${escapeHtml(p[key] || '')}</textarea>
+      </div>`;
+  const siteField = siteNames.length ? `
+      <div class="field">
+        <div class="label">Store / site</div>
+        <select class="select" data-problem="site">
+          <option value="">— site —</option>
+          ${siteNames.map(n => `<option value="${escapeHtml(n)}" ${p.site === n ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+        </select>
+      </div>` : f('site', 'Store / site', { ph: 'Which shop took it in' });
+
   return `
+    <div class="facts-subhead">The customer</div>
     <div class="field-row">
       ${f('date', 'Date', { type: 'date' })}
       ${f('docket', 'Docket / order number', { ph: 'e.g. 4471' })}
     </div>
     <div class="field-row">
       ${f('customerName', 'Customer name', { ph: 'First and last name' })}
-      ${f('phone', 'Phone', { type: 'tel', ph: '04__ ___ ___', inputmode: 'tel' })}
+      ${f('phone', 'Contact number', { type: 'tel', ph: '04__ ___ ___', inputmode: 'tel' })}
     </div>
     <div class="field-row">
-      ${f('email', 'Email', { type: 'email', ph: 'name@example.com' })}
-      ${f('site', 'Store / site', { ph: 'Which shop took it in' })}
+      ${f('email', 'Customer email', { type: 'email', ph: p.noEmail ? 'No email on file' : 'name@example.com', disabled: p.noEmail })}
+      ${siteField}
     </div>
+    <label class="field" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:-6px">
+      <input type="checkbox" data-problem-check="noEmail" ${p.noEmail ? 'checked' : ''}>
+      <span class="facts-count">This customer has no email &mdash; we will phone them</span>
+    </label>
+    ${f('takenBy', 'Taken by', { ph: 'Who served the customer' })}
+
+    <div class="facts-subhead">The item</div>
     <div class="field-row">
-      ${f('garment', 'Item', { ph: 'e.g. wool coat, navy — or what was lost' })}
-      ${f('takenBy', 'Taken by', { ph: 'Who served the customer' })}
+      ${f('garment', 'Type of garment', { ph: 'e.g. jacket, trousers, doona' })}
+      ${f('colour', 'Colour', { ph: 'e.g. navy' })}
     </div>
-    <div class="field">
-      <div class="label">What happened</div>
-      <textarea class="textarea" rows="6" data-problem="whatHappened"
-        placeholder="What the customer says, what we can see, and anything they have asked for. Write it the way you would say it.">${escapeHtml(p.whatHappened || '')}</textarea>
-    </div>`;
+    ${f('brand', 'Brand', { ph: 'e.g. Country Road' })}
+    <details class="problem-more">
+      <summary>More detail &mdash; worth adding on a higher-value item</summary>
+      <div class="field-row" style="margin-top:12px">
+        ${f('style', 'Style', { ph: 'e.g. business, evening, school uniform' })}
+        ${f('purchasedFrom', 'Price and shop purchased', { ph: 'e.g. $650, Peter Jackson' })}
+      </div>
+      ${f('identifying', 'Any identifying features', { ph: 'e.g. shiny band down both outer leg seams' })}
+    </details>
+
+    <div class="facts-subhead">What happened</div>
+    ${ta('whatHappened', 'Nature of the problem', 'What the customer says, and what we can see. e.g. "Front of leg has a pull in the fabric and small hole."', 5)}
+    ${ta('actionTaken', 'What we have done so far', 'Steps already taken on our side. e.g. "Sent for a re-do, returned with best of." Leave blank if nothing yet.', 3)}
+    ${ta('customerWants', 'What the customer is asking for', 'Their words, not ours. e.g. "Wants reimbursement for the cost of the trousers."', 3)}
+    ${ta('recommended', 'Recommended next steps', 'What we intend to do. Start the chat and the consultant can draft this for you.', 4)}`;
 }
 
 // Once a report has started a chat it stops being a form and becomes the spine of
@@ -5908,7 +5970,7 @@ function problemsRegisterHtml(list) {
       <td>${escapeHtml(p.date || '')}</td>
       <td>${escapeHtml(p.customerName || '—')}${p.phone ? '<div style="font-size:11px;color:var(--muted)">' + escapeHtml(p.phone) + '</div>' : ''}</td>
       <td>${escapeHtml(p.docket || '—')}</td>
-      <td>${escapeHtml(p.garment || '—')}</td>
+      <td>${escapeHtml(garmentLine(p) || '—')}</td>
       <td><span class="claim-pill ${st.tone}">${escapeHtml(st.label)}</span></td>
     </tr>`;
   }).join('');
@@ -5925,6 +5987,97 @@ function problemsRegisterHtml(list) {
         </table>
       </div>
     </div>`;
+}
+
+// "Comments & recommendations" was the least-filled field on the JotForm (0-59%)
+// and the longest when it was filled — the bit staff most often left undone and
+// most needed help with. The consultant drafts it instead, from the report and
+// whatever the chat has established.
+async function draftRecommendation(id) {
+  const rec = findProblem(id);
+  if (!maySeeProblem(rec) || state.chatBusy) return;
+  state.chatBusy = true;
+  render();
+  try {
+    const thread = rec.chatId ? state.chats.find(c => c.id === rec.chatId) : null;
+    const history = thread ? thread.messages.filter(m => !m.pending && !m.error) : [];
+    const ask = 'Below is a customer problem report from the counter.\n\n' + problemBrief(rec)
+      + '\n\nWrite the RECOMMENDED NEXT STEPS for this report: what we should do next, in order. '
+      + 'Three to five short lines, plain sentences, no headings and no preamble. '
+      + 'Write it for our own staff to act on, not for the customer to read. '
+      + 'If the position depends on something we have not established yet, say what to check first.';
+    const raw = await askClaudeSafe(buildSystemPrompt(state.profile, history, ask));
+    const body = parseAIResponse(coerceAIResponse(raw)).body.trim();
+    const fresh = findProblem(id);
+    if (fresh && body) { fresh.recommended = body; saveProblem(fresh); }
+  } catch (err) {
+    await uiAlert('Could not draft the next steps just now (' + ((err && err.message) || 'unknown error') + ').');
+  } finally {
+    state.chatBusy = false;
+    render();
+  }
+}
+
+// A short acknowledgement so the customer knows it is logged and who has it. It
+// deliberately states no position on liability — that is what the letters are for.
+function problemAckHtml(p) {
+  const row = (k, v) => v ? `<div class="qa"><div class="who">${escapeHtml(k)}</div><p class="txt">${escapeHtml(v)}</p></div>` : '';
+  const inner = `
+    <p>Thank you for letting us know. We have logged the details below and it is with our team now.</p>
+    ${row('Reference / docket', p.docket)}
+    ${row('Item', garmentLine(p))}
+    ${row('What you told us', p.whatHappened)}
+    ${row('What we have done so far', p.actionTaken)}
+    <p>We will be in touch as soon as we have had a proper look. If anything below is wrong, reply to this email and we will correct it.</p>`;
+  return buildExportDocument('Your enquiry — ' + (p.docket ? 'docket ' + p.docket : 'received'), inner, p.date || _exportDateStr());
+}
+
+async function emailProblemAck(id) {
+  const rec = findProblem(id);
+  if (!maySeeProblem(rec)) return;
+  const to = (rec.email || '').trim();
+  if (!to) { await uiAlert('There is no email address on this report.'); return; }
+  const own = (state.profile.email || '').trim();
+  let sent = false;
+  await uiModal({
+    title: 'Let the customer know',
+    html: `
+      <div class="email-choice">
+        <p class="facts-count" style="margin-bottom:12px">A short acknowledgement to <strong>${escapeHtml(to)}</strong> confirming we have logged the problem. It does not say who is at fault.</p>
+        <label class="auth-label">Replies come back to</label>
+        <input class="input" id="ack-reply" type="email" value="${escapeHtml(own)}" placeholder="you@yourbusiness.com.au">
+        <div class="email-note" id="ack-note"></div>
+      </div>`,
+    confirmLabel: 'Send',
+    cancelLabel: 'Cancel',
+    onConfirm: async (root) => {
+      const note = root.querySelector('#ack-note');
+      note.style.color = 'var(--muted)';
+      note.textContent = 'Sending…';
+      try {
+        await sendEmail({
+          to, replyTo: (root.querySelector('#ack-reply').value || '').trim() || undefined,
+          subject: 'We have logged your enquiry' + (rec.docket ? ' — docket ' + rec.docket : ''),
+          html: problemAckHtml(rec)
+        });
+        sent = true;
+        return true;
+      } catch (e) {
+        note.style.color = 'var(--warn)';
+        // Until the Resend domain is verified the function refuses customer sends;
+        // say so plainly rather than leaving staff staring at a raw error.
+        note.textContent = (e.code === 'customer_send_disabled' || e.status === 403)
+          ? 'Sending to customers is not switched on yet. Once the Resend domain is verified this will work.'
+          : e.message;
+        return false;
+      }
+    },
+  });
+  if (sent) {
+    const fresh = findProblem(id);
+    if (fresh) { fresh.ackSentAt = Date.now(); fresh.ackSentTo = to; saveProblem(fresh); render(); }
+    await uiAlert('Sent to ' + to + '.', 'Customer notified');
+  }
 }
 
 function openProblem(id) {
@@ -5976,6 +6129,12 @@ function renderProblems() {
 
   const st = problemStatus(p);
   const started = !!p.chatId;
+  const canEmailAck = !!(p.email || '').trim() && !p.noEmail;
+  const ackLine = p.ackSentAt
+    ? `<div class="facts-count" style="margin-top:12px">Acknowledgement sent to ${escapeHtml(p.ackSentTo || '')} on ${escapeHtml(new Date(p.ackSentAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }))}.</div>`
+    : (p.noEmail
+        ? '<div class="facts-count" style="margin-top:12px">No email on file &mdash; phone the customer instead.</div>'
+        : (canEmailAck ? '' : '<div class="facts-count" style="margin-top:12px">Add an email address to let the customer know it is logged.</div>'));
   screen.innerHTML = `
     <div class="screen-header">
       <div class="ix">Module 07</div>
@@ -5994,6 +6153,8 @@ function renderProblems() {
         ${started
           ? `<button class="btn btn-primary" data-problem-openchat="${p.id}">${icons.chat} Open the chat</button>`
           : `<button class="btn btn-primary" id="problem-start">${icons.chat} Save and start the chat</button>`}
+        ${started ? `<button class="btn btn-secondary" id="problem-draft" ${state.chatBusy ? 'disabled' : ''}>${state.chatBusy ? 'Thinking…' : 'Draft the next steps'}</button>` : ''}
+        ${canEmailAck ? `<button class="btn btn-secondary" id="problem-ack">${icons.mail} ${p.ackSentAt ? 'Send again' : 'Let the customer know'}</button>` : ''}
         ${started ? `
           <select class="select" id="problem-status" style="max-width:230px">
             ${Object.keys(PROBLEM_STATUS).map(k =>
@@ -6002,12 +6163,26 @@ function renderProblems() {
         <button class="btn btn-ghost" data-problem-delete="${p.id}" style="color:var(--warn);margin-left:auto">Delete</button>
       </div>
       ${started ? '' : '<div class="facts-count" style="margin-top:12px">Starting the chat sends what you have written to the consultant. You can keep editing this report afterwards.</div>'}
+      ${ackLine}
     </div>
     ${problemLinksHtml(p)}
   `;
 
   // Write-through on every keystroke, no re-render — the same mechanism the staff
   // roster uses, so the field keeps focus and the draft is always saved.
+  screen.querySelectorAll('[data-problem-check]').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const rec = findProblem(p.id);
+      if (!rec) return;
+      rec[el.dataset.problemCheck] = e.target.checked;
+      // Ticking "no email" clears whatever placeholder was typed to get past the
+      // field — on the JotForm that was Not@Given.com and the like.
+      if (el.dataset.problemCheck === 'noEmail' && e.target.checked) rec.email = '';
+      rec.updatedAt = Date.now();
+      saveProblem(rec);
+      render();
+    });
+  });
   screen.querySelectorAll('[data-problem]').forEach(el => {
     const key = el.dataset.problem;
     const ev = (el.tagName === 'SELECT') ? 'change' : 'input';
@@ -6025,6 +6200,11 @@ function renderProblems() {
 
   const start = document.getElementById('problem-start');
   if (start) start.addEventListener('click', () => startProblemChat(p));
+
+  const dr = document.getElementById('problem-draft');
+  if (dr) dr.addEventListener('click', () => draftRecommendation(p.id));
+  const ack = document.getElementById('problem-ack');
+  if (ack) ack.addEventListener('click', () => emailProblemAck(p.id));
 
   const sel = document.getElementById('problem-status');
   if (sel) sel.addEventListener('change', (e) => {
