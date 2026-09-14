@@ -168,6 +168,25 @@ for everyone signed in, because the old client reads the table directly:
 Between 2 and 3 both paths work, so there is no moment where a signed-in browser
 has no way to load.
 
+## Two records for one person
+
+Adding a login offers to create a staff record. Picking that when the person is
+already on the roster leaves them on it twice, with their training split across
+both halves and neither telling the whole story.
+
+The Staff screen notices. Any name held by more than one record raises a banner
+at the top: pick which record to keep, and the rest fold into it. Letters and
+training move across, blank fields on the survivor are filled in from what is
+absorbed — never the other way round — and notes from both are kept, because
+that is the one field where picking a winner can lose something that matters in
+a dispute.
+
+A record carries at most one login. If both halves had one, the login on the
+record you keep stays and the other is left unlinked, which the confirmation says
+before you commit; re-tie it from the dropdown on the Users screen. Training
+records that were never tied to a record match by name, so they follow the
+survivor with nothing to do.
+
 ## Files
 
 | Where | What |
@@ -176,6 +195,7 @@ has no way to load.
 | `index.html` → `renderUsers()` | the screen |
 | `index.html` → `inviteMessage()` | the message to copy and paste |
 | `index.html` → `linkUserToStaff()` | tying a login to a roster record |
+| `index.html` → `duplicateStaffGroups()`, `mergeStaffRecords()` | folding two records for one person back together |
 | `supabase/functions/state/index.ts` | what each role may read and write of the blob |
 | `supabase/migrations/20260914_lock_business_blob.sql` | took the table away from the browser |
 | `supabase/functions/manage-access/index.ts` | every rule that matters, and the emailed copy (`inviteBody`) |
