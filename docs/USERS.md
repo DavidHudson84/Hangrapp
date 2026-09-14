@@ -108,20 +108,90 @@ history — those belong to the business. The browser releases the `staff.userId
 link on the way out, so the record can be re-tied to whoever replaces them and
 does not sit unpickable behind a dead account.
 
-## Known gap — worth reading before you add staff
+## The blob, and how the role is actually enforced
 
-`businesses` has an RLS policy allowing **any member** to UPDATE the row, and the
-entire app state — chats, letters, claims, price lists, training — is one `data`
-blob on that row.
+The entire app state — chats, letters, claims, price lists, staff records,
+training — is one `data` blob on one row of `businesses`. That used to mean the
+role system was decoration. Two RLS policies let **any member** SELECT and UPDATE
+that row, so every staff login downloaded the wage dispute along with everything
+else and could write the whole thing back over the top. Hiding a screen is not
+access control when devtools is one keystroke away.
 
-So a staff login cannot *see* the claims register, but the database would not
-stop it *overwriting* the blob that contains it. Nothing in the UI does this, and
-it needs deliberate effort rather than an accident; but it is a real hole and the
-role system does not close it.
+The browser no longer touches the table. `supabase/functions/state/index.ts` holds
+the service role key and is the only reader and the only writer:
 
-Fixing it properly means splitting the blob so each role writes only its own
-part, which is an architectural change, not a policy tweak. Until then, treat
-staff logins as trusted-but-limited rather than untrusted.
+- **load** returns only what the caller's role may see.
+- **save** merges the request into the stored blob key by key. A section the
+  caller may not write is taken from the stored copy, never from the request.
+
+So a staff login that posts a doctored blob changes nothing it could not already
+change through its own screens, and never receives the sections it has no
+business holding in the first place.
+
+### What each role is sent
+
+| Section | owner / admin | manager | staff |
+|---|---|---|---|
+| profile | all | no owner PIN | no owner PIN |
+| chats, problems | all | all | their own |
+| letters | all | all | their own, minus HR |
+| claims | yes | yes | **withheld** |
+| bills | yes | **withheld** | **withheld** |
+| staff records | full | name, login, start date | name, login, start date |
+| documents | all | all | manuals and SOPs only |
+| price list | yes | yes | yes |
+| training, sign-offs | all | all | all |
+
+Training is everyone's on purpose — a course the person on the counter cannot
+open trains nobody — and it is merged rather than replaced, by union on id. So are
+practical sign-offs, which are the same shape of record; but only a role with
+`training.signoff` can add one, so a staff login cannot sign its own practical
+off. Merging on the server also fixes the read-then-write race the old
+browser-side merge could only narrow.
+
+Dismissed one-time notices (`seenNotices`) are a union of ids, so one login
+cannot un-dismiss a notice for everybody else.
+
+### The invariant that keeps merging safe
+
+For the sections filtered per item rather than per key — chats, letters,
+problems — the `owns` predicate used by the merge **must match the read filter
+exactly**. The merge reads "the caller owns it and did not send it back" as a
+deletion, so a filter that hid an item the merge believed they owned would delete
+that item on their next save. The two are written next to each other in the
+function for that reason. Change them together, and re-run the round-trip test:
+loading as a role and immediately saving must leave every key byte-identical.
+
+### Deploy order
+
+Applying the migration before the matching `index.html` is live breaks the app
+for everyone signed in, because the old client reads the table directly:
+
+1. `supabase functions deploy state --project-ref cntwhojxperdrrufpokl`
+2. publish `index.html` (merge to `main`; GitHub Pages does the rest)
+3. `supabase/migrations/20260914_lock_business_blob.sql`
+
+Between 2 and 3 both paths work, so there is no moment where a signed-in browser
+has no way to load.
+
+## Two records for one person
+
+Adding a login offers to create a staff record. Picking that when the person is
+already on the roster leaves them on it twice, with their training split across
+both halves and neither telling the whole story.
+
+The Staff screen notices. Any name held by more than one record raises a banner
+at the top: pick which record to keep, and the rest fold into it. Letters and
+training move across, blank fields on the survivor are filled in from what is
+absorbed — never the other way round — and notes from both are kept, because
+that is the one field where picking a winner can lose something that matters in
+a dispute.
+
+A record carries at most one login. If both halves had one, the login on the
+record you keep stays and the other is left unlinked, which the confirmation says
+before you commit; re-tie it from the dropdown on the Users screen. Training
+records that were never tied to a record match by name, so they follow the
+survivor with nothing to do.
 
 ## Files
 
@@ -131,6 +201,9 @@ staff logins as trusted-but-limited rather than untrusted.
 | `index.html` → `renderUsers()` | the screen |
 | `index.html` → `inviteMessage()` | the message to copy and paste |
 | `index.html` → `linkUserToStaff()` | tying a login to a roster record |
+| `index.html` → `duplicateStaffGroups()`, `mergeStaffRecords()` | folding two records for one person back together |
+| `supabase/functions/state/index.ts` | what each role may read and write of the blob |
+| `supabase/migrations/20260914_lock_business_blob.sql` | took the table away from the browser |
 | `supabase/functions/manage-access/index.ts` | every rule that matters, and the emailed copy (`inviteBody`) |
 | `supabase/migrations/20260826_manager_role.sql` | made `manager` a legal role |
 
@@ -143,6 +216,7 @@ lived on Supabase, where a bad deploy would have lost them.
 ```
 supabase functions deploy manage-access --project-ref cntwhojxperdrrufpokl
 supabase functions deploy send-letter   --project-ref cntwhojxperdrrufpokl
+supabase functions deploy state         --project-ref cntwhojxperdrrufpokl
 supabase functions deploy ai            --project-ref cntwhojxperdrrufpokl
 ```
 

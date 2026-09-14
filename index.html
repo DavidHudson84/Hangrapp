@@ -1387,64 +1387,72 @@ let sb = null;
 let currentBusinessId = null;
 let cloudSaveTimer = null;
 
+// The browser no longer reads or writes public.businesses, and as of the blob
+// migration it cannot: the policies that let any member do both are gone, and the
+// service role key that replaced them lives in the state function. Every read is
+// filtered to the signed-in role and every write is merged against what is stored,
+// so a section this login may not see is one it also cannot overwrite. The rules
+// are in supabase/functions/state/index.ts, which is the copy that counts — the
+// capability map further down this file only decides what the screens look like.
+const STATE_ENDPOINT = SB_URL + '/functions/v1/state';
+
+async function stateApi(body) {
+  let token = SB_ANON;
+  try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
+  const r = await fetch(STATE_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, apikey: SB_ANON, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    const err = new Error(j.error || 'The server could not be reached.');
+    err.code = j.code;
+    err.status = r.status;
+    throw err;
+  }
+  return j;
+}
+
 function scheduleCloudSave(blob) {
   if (!sb || !currentBusinessId) return;
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
     try {
-      await mergeTrainingBeforeSave(blob);
-      await sb.from('businesses').update({ data: blob, name: state.profile.businessName || null }).eq('id', currentBusinessId);
+      const j = await stateApi({ action: 'save', blob });
+      // Completions other people recorded while this device was away. The union
+      // itself now happens inside the function, which closes the read-then-write
+      // race the old client-side merge could only narrow.
+      if (Array.isArray(j.training)) state.training = j.training;
     } catch (e) { /* offline — localStorage still holds the latest */ }
   }, 1000);
 }
 
-// Every save writes the whole blob back, so the last device to write wins. That
-// was harmless while one owner used one machine. Training breaks the assumption
-// on purpose: several people record results, often on the counter iPad and the
-// back-office computer in the same afternoon, and a stale device would quietly
-// erase a completion someone earned ten minutes ago.
-//
-// So training is the one key we merge rather than overwrite. A completion record
-// is never edited once written, which makes a union by id safe and order-blind —
-// whoever writes second keeps both sets. It narrows the race to the gap between
-// this read and the update below rather than closing it; the real fix is a
-// server-side jsonb append, and that needs a migration.
-//
-// Practical sign-offs are the same shape of thing and merge the same way. They
-// are also the reason a sign-off is its own record rather than a field on the
-// attempt it completes: a union by id keeps whichever copy was written last, so
-// editing an existing attempt on the back-office machine would be quietly undone
-// by the counter iPad's untouched copy of that same id.
-const MERGED_KEYS = ['training', 'signoffs'];
-
-async function mergeTrainingBeforeSave(blob) {
-  if (!MERGED_KEYS.some(k => Array.isArray(blob[k]))) return;
-  const { data, error } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
-  if (error || !data) return;
-  const when = (r) => r.completedAt || r.at || 0;
-  MERGED_KEYS.forEach(key => {
-    if (!Array.isArray(blob[key])) return;
-    const remote = (data.data && Array.isArray(data.data[key])) ? data.data[key] : [];
-    if (!remote.length) return;
-    const byId = new Map();
-    remote.concat(blob[key]).forEach(r => { if (r && r.id) byId.set(r.id, r); });
-    const merged = Array.from(byId.values()).sort((a, b) => when(b) - when(a));
-    blob[key] = merged;
-    state[key] = merged;
-  });
-}
+// Training used to be merged here, by reading the row back and unioning before
+// the write. It moved into the state function along with everything else, and so
+// did practical sign-offs, which are the same shape of thing: a record that is
+// never edited once written, so a union by id is safe and order-blind. Both are
+// written by several people in the same afternoon — the counter iPad and the
+// back-office machine — and doing the union on the server closes the
+// read-then-write race rather than narrowing it. The browser no longer has a row
+// to read in any case.
 
 async function loadCloud() {
-  const { data: mem, error: me } = await sb.from('memberships').select('business_id, role').limit(1);
-  if (me) throw me;
-  if (!mem || !mem.length) return false;
-  currentBusinessId = mem[0].business_id;
-  state.currentRole = mem[0].role;
-  // Needed to tell a staff member's own letters from everyone else's.
-  try { const u = await sb.auth.getUser(); state.currentUserId = u.data.user ? u.data.user.id : null; } catch (e) {}
-  const { data: biz, error: be } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
-  if (be) throw be;
-  applyStateBlob(biz.data || {});
+  let j;
+  try {
+    j = await stateApi({ action: 'load' });
+  } catch (e) {
+    // A login attached to no business is the signed-out shape, not a failure.
+    if (e.code === 'no_business') return false;
+    throw e;
+  }
+  currentBusinessId = j.businessId || null;
+  state.currentRole = j.role || 'staff';
+  // Needed to tell a staff member's own letters from everyone else's. It comes
+  // back with the blob because the same request already had to establish it.
+  state.currentUserId = j.userId || null;
+  applyStateBlob(j.blob || {});
   adoptOwnerlessChats();
   return true;
 }
@@ -4913,6 +4921,123 @@ function staffLettersHtml(staffId) {
     </div>`;
 }
 
+// Two records for one person. The usual way in is the Users screen: adding a
+// login offers to create a staff record, and picking that instead of linking to
+// the one already on the roster leaves the person on it twice — with their
+// training split across both halves and neither telling the whole story.
+const STAFF_SAME_NAME = (n) => String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+function duplicateStaffGroups() {
+  const byName = new Map();
+  (state.staff || []).forEach(s => {
+    const key = STAFF_SAME_NAME(s.name);
+    if (!key) return;                       // blank rows are not duplicates of each other
+    if (!byName.has(key)) byName.set(key, []);
+    byName.get(key).push(s);
+  });
+  return Array.from(byName.values()).filter(g => g.length > 1);
+}
+
+// Enough to tell two rows with the same name apart in a dropdown.
+function staffDescriptor(s) {
+  const bits = [];
+  // The stored value is yyyy-mm-dd off a date input, which is not how anyone
+  // reads a start date out loud.
+  if (s.startDate) {
+    let when = s.startDate;
+    try {
+      const d = new Date(s.startDate + 'T00:00:00');
+      if (!isNaN(d)) when = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (e) {}
+    bits.push('started ' + when);
+  }
+  if (s.role) bits.push(s.role);
+  if (s.site) bits.push(s.site);
+  if (s.userId) bits.push('has a login');
+  const t = (state.training || []).filter(r => r.staffId === s.id).length;
+  if (t) bits.push(t + (t === 1 ? ' training record' : ' training records'));
+  const notes = String(s.notes || '').trim();
+  if (notes) bits.push('has notes');
+  return bits.length ? bits.join(' · ') : 'nothing filled in yet';
+}
+
+// Fold `dropId` into `keepId`. Everything that points at a staff record by id is
+// repointed first, because the record is about to stop existing and a dangling
+// staffId would make a letter or a completion unattributable for good.
+function mergeStaffRecords(keepId, dropId) {
+  const keep = (state.staff || []).find(x => x.id === keepId);
+  const drop = (state.staff || []).find(x => x.id === dropId);
+  if (!keep || !drop || keepId === dropId) return null;
+
+  let letters = 0, training = 0;
+  (state.letters || []).forEach(l => { if (l.staffId === dropId) { l.staffId = keepId; letters++; } });
+  (state.training || []).forEach(r => {
+    if (r.staffId === dropId) { r.staffId = keepId; r.staffName = keep.name || r.staffName; training++; }
+  });
+  // Records with no staffId match by name, and both halves share one — so they
+  // already point at whichever record survives. Nothing to do for those.
+
+  // Fill the survivor's blanks from the record being absorbed, and never the
+  // other way round: the owner chose which one to keep, so a field it already
+  // has is not the merge's to overwrite.
+  ['role', 'classification', 'employmentType', 'startDate', 'site'].forEach(f => {
+    if (!String(keep[f] || '').trim() && String(drop[f] || '').trim()) keep[f] = drop[f];
+  });
+
+  // Notes are the one field where picking a winner throws away something that
+  // may matter in a dispute, so both are kept.
+  const a = String(keep.notes || '').trim();
+  const b = String(drop.notes || '').trim();
+  if (b && b !== a) keep.notes = a ? a + '\n\n' + b : b;
+
+  // One record, one login — the register stops meaning anything otherwise. If
+  // both carried one, the caller has already been warned which is set adrift.
+  const orphanedLogin = (keep.userId && drop.userId && keep.userId !== drop.userId) ? drop.userId : null;
+  if (!keep.userId && drop.userId) keep.userId = drop.userId;
+
+  state.staff = (state.staff || []).filter(x => x.id !== dropId);
+  return { letters, training, orphanedLogin };
+}
+
+async function mergeStaffGroup(keepId, dropIds) {
+  const keep = (state.staff || []).find(x => x.id === keepId);
+  if (!keep) return;
+  const drops = dropIds.map(id => (state.staff || []).find(x => x.id === id)).filter(Boolean);
+  if (!drops.length) return;
+
+  const bothLogins = drops.filter(d => d.userId && keep.userId && d.userId !== keep.userId).length;
+  const lines = [
+    drops.length + (drops.length === 1 ? ' record is' : ' records are') + ' folded into the one you are keeping. ' +
+    'Letters and training move across, blank fields are filled in from what is absorbed, and notes from both are kept.',
+  ];
+  if (bothLogins) {
+    lines.push('Both records have a login attached, and a record can only carry one. ' +
+      'The login on the record you are keeping stays; the other is left unlinked and can be re-tied to any record on the Users screen.');
+  }
+  lines.push('This cannot be undone.');
+
+  if (!(await uiConfirm(lines.join('\n\n'), { title: 'Merge ' + (keep.name || 'these records'), confirmLabel: 'Merge' }))) return;
+
+  let letters = 0, training = 0, orphans = 0;
+  drops.forEach(d => {
+    const r = mergeStaffRecords(keepId, d.id);
+    if (!r) return;
+    letters += r.letters; training += r.training;
+    if (r.orphanedLogin) orphans++;
+  });
+  persistState();
+  render();
+
+  const moved = [];
+  if (letters) moved.push(letters + (letters === 1 ? ' letter' : ' letters'));
+  if (training) moved.push(training + (training === 1 ? ' training record' : ' training records'));
+  await uiAlert(
+    (keep.name || 'The record') + ' is now one record' +
+    (moved.length ? ', with ' + moved.join(' and ') + ' moved across' : '') + '.' +
+    (orphans ? ' A login was left unlinked — re-tie it under Users.' : '')
+  );
+}
+
 function renderStaff() {
   const screen = $('#screen-staff');
   const siteNames = (state.profile.sites || []).filter(s => s.name).map(s => s.name);
@@ -4968,12 +5093,29 @@ function renderStaff() {
       ${staffLettersHtml(s.id)}
     </div>`).join('');
 
+  // Surfaced at the top rather than left for the owner to notice, because the
+  // cost of not noticing is a training register that quietly under-reports.
+  const dupes = duplicateStaffGroups();
+  const dupeHtml = dupes.map((g, i) => `
+    <div class="staff-card" style="border-color:var(--warn);margin-bottom:12px">
+      <div class="staff-card-head"><div class="who">${escapeHtml(g[0].name)} is on the list ${g.length === 2 ? 'twice' : g.length + ' times'}</div></div>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">Training and letters are split across ${g.length === 2 ? 'both records' : 'all ' + g.length + ' records'}, so none of them tells the whole story. Merging puts the person back together — pick the one to keep and the rest fold into it.</p>
+      <div class="staff-field" style="margin-bottom:10px">
+        <label>Keep this record</label>
+        <select class="select" data-dupe-keep="${i}">
+          ${g.map((x, j) => `<option value="${escapeHtml(x.id)}" ${j === 0 ? 'selected' : ''}>${escapeHtml(staffDescriptor(x))}</option>`).join('')}
+        </select>
+      </div>
+      <div class="staff-actions"><button class="btn btn-primary" data-dupe-merge="${i}">Merge into one</button></div>
+    </div>`).join('');
+
   screen.innerHTML = `
     <div class="screen-header">
       <div class="ix">Module 05</div>
       <h2>Staff</h2>
       <p>Your team on file. Draft a standardised HR letter for anyone from their record — the name, classification, employment type and start date pre-fill, and you complete the specifics before it drafts.</p>
     </div>
+    ${dupeHtml}
     <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-secondary" id="staff-add">+ Add staff member</button></div>
     <div class="staff-list">${cards}</div>
     <p style="font-size:12px;color:var(--muted);margin-top:16px">HR letters follow a fair-process structure (Fair Work Act / MA000096). They are general information, not a substitute for advice on a specific termination or dispute.</p>`;
@@ -4981,6 +5123,17 @@ function renderStaff() {
   document.querySelectorAll('[data-staff-training]').forEach(b => b.addEventListener('click', () => {
     state.trainingSession = { view: 'list', tab: can('training.manage') ? 'team' : 'mine' };
     goToTab('training');
+  }));
+
+  document.querySelectorAll('[data-dupe-merge]').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.dataset.dupeMerge);
+    // Recomputed rather than captured: the list may have changed since the render
+    // that drew this button, and merging the wrong pair is not recoverable.
+    const group = duplicateStaffGroups()[i];
+    if (!group) { render(); return; }
+    const sel = document.querySelector(`[data-dupe-keep="${i}"]`);
+    const keepId = (sel && group.some(x => x.id === sel.value)) ? sel.value : group[0].id;
+    mergeStaffGroup(keepId, group.filter(x => x.id !== keepId).map(x => x.id));
   }));
 
   const addBtn = document.getElementById('staff-add');
