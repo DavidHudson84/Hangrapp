@@ -135,7 +135,7 @@ async function sendInvite(o: Invite): Promise<{ ok: boolean; error?: string; cod
       ok: false,
       code: 'not_configured',
       error:
-        'Emailing the handover is not switched on — RESEND_API_KEY and EMAIL_FROM need adding to this function\u2019s secrets in Supabase.',
+        'Emailing the handover is not switched on — RESEND_API_KEY and EMAIL_FROM need adding to this project\u2019s Edge Function secrets in Supabase.',
     };
   }
   try {
