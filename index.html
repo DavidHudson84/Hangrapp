@@ -1361,52 +1361,68 @@ let sb = null;
 let currentBusinessId = null;
 let cloudSaveTimer = null;
 
+// The browser no longer reads or writes public.businesses, and as of the blob
+// migration it cannot: the policies that let any member do both are gone, and the
+// service role key that replaced them lives in the state function. Every read is
+// filtered to the signed-in role and every write is merged against what is stored,
+// so a section this login may not see is one it also cannot overwrite. The rules
+// are in supabase/functions/state/index.ts, which is the copy that counts — the
+// capability map further down this file only decides what the screens look like.
+const STATE_ENDPOINT = SB_URL + '/functions/v1/state';
+
+async function stateApi(body) {
+  let token = SB_ANON;
+  try { const s = await sb.auth.getSession(); if (s.data.session) token = s.data.session.access_token; } catch (e) {}
+  const r = await fetch(STATE_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, apikey: SB_ANON, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    const err = new Error(j.error || 'The server could not be reached.');
+    err.code = j.code;
+    err.status = r.status;
+    throw err;
+  }
+  return j;
+}
+
 function scheduleCloudSave(blob) {
   if (!sb || !currentBusinessId) return;
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
     try {
-      await mergeTrainingBeforeSave(blob);
-      await sb.from('businesses').update({ data: blob, name: state.profile.businessName || null }).eq('id', currentBusinessId);
+      const j = await stateApi({ action: 'save', blob });
+      // Completions other people recorded while this device was away. The union
+      // itself now happens inside the function, which closes the read-then-write
+      // race the old client-side merge could only narrow.
+      if (Array.isArray(j.training)) state.training = j.training;
     } catch (e) { /* offline — localStorage still holds the latest */ }
   }, 1000);
 }
 
-// Every save writes the whole blob back, so the last device to write wins. That
-// was harmless while one owner used one machine. Training breaks the assumption
-// on purpose: several people record results, often on the counter iPad and the
-// back-office computer in the same afternoon, and a stale device would quietly
-// erase a completion someone earned ten minutes ago.
-//
-// So training is the one key we merge rather than overwrite. A completion record
-// is never edited once written, which makes a union by id safe and order-blind —
-// whoever writes second keeps both sets. It narrows the race to the gap between
-// this read and the update below rather than closing it; the real fix is a
-// server-side jsonb append, and that needs a migration.
-async function mergeTrainingBeforeSave(blob) {
-  if (!Array.isArray(blob.training)) return;
-  const { data, error } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
-  if (error || !data) return;
-  const remote = (data.data && Array.isArray(data.data.training)) ? data.data.training : [];
-  if (!remote.length) return;
-  const byId = new Map();
-  remote.concat(blob.training).forEach(r => { if (r && r.id) byId.set(r.id, r); });
-  const merged = Array.from(byId.values()).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
-  blob.training = merged;
-  state.training = merged;
-}
+// Training used to be merged here, by reading the row back and unioning before
+// the write. It moved into the state function with everything else: the union is
+// the same, but doing it on the server closes the race rather than narrowing it,
+// and the browser no longer has a row to read.
 
 async function loadCloud() {
-  const { data: mem, error: me } = await sb.from('memberships').select('business_id, role').limit(1);
-  if (me) throw me;
-  if (!mem || !mem.length) return false;
-  currentBusinessId = mem[0].business_id;
-  state.currentRole = mem[0].role;
-  // Needed to tell a staff member's own letters from everyone else's.
-  try { const u = await sb.auth.getUser(); state.currentUserId = u.data.user ? u.data.user.id : null; } catch (e) {}
-  const { data: biz, error: be } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
-  if (be) throw be;
-  applyStateBlob(biz.data || {});
+  let j;
+  try {
+    j = await stateApi({ action: 'load' });
+  } catch (e) {
+    // A login attached to no business is the signed-out shape, not a failure.
+    if (e.code === 'no_business') return false;
+    throw e;
+  }
+  currentBusinessId = j.businessId || null;
+  state.currentRole = j.role || 'staff';
+  // Needed to tell a staff member's own letters from everyone else's. It comes
+  // back with the blob because the same request already had to establish it.
+  state.currentUserId = j.userId || null;
+  applyStateBlob(j.blob || {});
   adoptOwnerlessChats();
   return true;
 }
