@@ -140,11 +140,17 @@ business holding in the first place.
 | staff records | full | name, login, start date | name, login, start date |
 | documents | all | all | manuals and SOPs only |
 | price list | yes | yes | yes |
-| training | all | all | all |
+| training, sign-offs | all | all | all |
 
 Training is everyone's on purpose — a course the person on the counter cannot
-open trains nobody — and it is merged rather than replaced, by union on id. That
-also fixes the read-then-write race the old browser-side merge could only narrow.
+open trains nobody — and it is merged rather than replaced, by union on id. So are
+practical sign-offs, which are the same shape of record; but only a role with
+`training.signoff` can add one, so a staff login cannot sign its own practical
+off. Merging on the server also fixes the read-then-write race the old
+browser-side merge could only narrow.
+
+Dismissed one-time notices (`seenNotices`) are a union of ids, so one login
+cannot un-dismiss a notice for everybody else.
 
 ### The invariant that keeps merging safe
 

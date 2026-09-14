@@ -48,11 +48,11 @@ const MAX_BLOB = 12_000_000;
 // The same capability map index.html uses, minus the ones that only decide what a
 // screen looks like. This is the copy that matters: the browser's is a suggestion.
 const ROLE_CAPS: Record<string, string[]> = {
-  owner: ['chats.all', 'letters.all', 'claims', 'priceLists', 'documents',
-          'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
-  admin: ['chats.all', 'letters.all', 'claims', 'priceLists', 'documents',
-          'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
-  manager: ['chats.all', 'letters.all', 'claims', 'priceLists', 'documents'],
+  owner: ['chats.all', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit',
+          'staffRecords', 'financials', 'settings', 'training.manage', 'training.signoff'],
+  admin: ['chats.all', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit',
+          'staffRecords', 'financials', 'settings', 'training.manage', 'training.signoff'],
+  manager: ['chats.all', 'letters.all', 'claims', 'priceLists', 'documents', 'training.signoff'],
   staff: ['priceLists', 'documents'],
 };
 
@@ -139,8 +139,12 @@ function forRole(stored: Record<string, unknown>, role: string, uid: string) {
     staff: can(role, 'staffRecords') ? arr(stored.staff) : arr(stored.staff).map(redactStaff),
 
     // Everyone's, on purpose. Training is the staff member's own record, and a
-    // course the person on the counter cannot open trains nobody.
+    // course the person on the counter cannot open trains nobody. Sign-offs are
+    // shown alongside the attempts they complete, so they travel with them.
     training: arr(stored.training),
+    signoffs: arr(stored.signoffs),
+    // Which one-time notices have been dismissed. Shared, and only ever added to.
+    seenNotices: arr(stored.seenNotices),
     customCourses: arr(stored.customCourses),
     hiddenCourses: arr(stored.hiddenCourses),
     courseRules: obj(stored.courseRules),
@@ -186,20 +190,30 @@ function mergeOwned(
   return out;
 }
 
-// Training is append-only by design. A completion record is never edited once
-// written, so a union by id is safe and order-blind, and it is the one key several
-// people write in the same afternoon — the counter iPad and the back office both.
-// Doing it here rather than in the browser closes the read-then-write race the old
-// client-side merge could only narrow.
-function mergeTraining(
+// Training attempts and practical sign-offs are append-only by design. Neither is
+// edited once written, so a union by id is safe and order-blind, and they are the
+// keys several people write in the same afternoon — the counter iPad and the back
+// office both. Doing the union here rather than in the browser closes the
+// read-then-write race the old client-side merge could only narrow.
+//
+// It is also why a sign-off is its own record rather than a field on the attempt
+// it completes: a union keeps whichever copy of an id was written last, so editing
+// an existing attempt in one place would be quietly undone by another device's
+// untouched copy of that same id.
+function mergeAppendOnly(
   storedArr: Record<string, unknown>[],
   incomingArr: Record<string, unknown>[],
 ) {
   const byId = new Map<string, Record<string, unknown>>();
   for (const r of storedArr.concat(incomingArr)) if (r && idOf(r)) byId.set(idOf(r), r);
-  return Array.from(byId.values()).sort(
-    (a, b) => Number(b.completedAt ?? 0) - Number(a.completedAt ?? 0),
-  );
+  const when = (r: Record<string, unknown>) => Number(r.completedAt ?? r.at ?? 0);
+  return Array.from(byId.values()).sort((a, b) => when(b) - when(a));
+}
+
+// Dismissed notices are ids, not records, and are only ever added to. A union
+// means one login cannot un-dismiss a notice for everybody else.
+function mergeNotices(storedArr: unknown[], incomingArr: unknown[]) {
+  return Array.from(new Set(storedArr.concat(incomingArr).map(String)));
 }
 
 function mergeBlob(
@@ -246,7 +260,19 @@ function mergeBlob(
     ? (Array.isArray(incoming.letters) ? incoming.letters : stored.letters ?? [])
     : mergeOwned(arr(stored.letters), arr(incoming.letters), ownsLetter(uid));
 
-  next.training = mergeTraining(arr(stored.training), arr(incoming.training));
+  next.training = mergeAppendOnly(arr(stored.training), arr(incoming.training));
+
+  // Anyone may record their own attempt; only a supervisor may sign a practical
+  // off, and the browser already refuses to let most people sign off their own.
+  // A login without the capability has its sign-offs ignored rather than merged.
+  next.signoffs = can(role, 'training.signoff')
+    ? mergeAppendOnly(arr(stored.signoffs), arr(incoming.signoffs))
+    : (stored.signoffs ?? []);
+
+  next.seenNotices = mergeNotices(
+    Array.isArray(stored.seenNotices) ? stored.seenNotices : [],
+    Array.isArray(incoming.seenNotices) ? incoming.seenNotices : [],
+  );
 
   return next;
 }
