@@ -87,8 +87,15 @@ The browser copy of a rule is a suggestion, and this one hands out access.
   locking the owner out.
 - Minimum 10 characters on the temporary password.
 - **One person, one business.** An email that already has a Hangr login is
-  refused. `loadCloud()` reads a single membership at sign-in, so a second one
-  would silently decide which business that person lands in.
+  refused, and `memberships` now carries a unique index on `user_id` so the rule
+  holds even when nobody thought to check it. See below — the refusal was never
+  the thing that broke.
+- **An invited login is not a new business.** `handle_new_user()` fires on every
+  insert into `auth.users` and creates a business with that user as owner. That
+  is right for a signup and wrong for a staff login, because
+  `auth.admin.createUser` is an insert like any other. manage-access sets
+  `app_metadata.invited`, which only the service role can write, and the trigger
+  skips business creation when it sees it.
 - Removing someone deletes the membership *and* the login, so no orphan account
   is left able to sign in and reach an empty app.
 - **The email body is built on the server**, from a fixed template. The caller
@@ -173,6 +180,33 @@ for everyone signed in, because the old client reads the table directly:
 
 Between 2 and 3 both paths work, so there is no moment where a signed-in browser
 has no way to load.
+
+## The bug this all came from
+
+Three logins created on the Users screen ended up in **two** businesses each: the
+real one, and an empty one created by `handle_new_user()` a fraction of a second
+earlier. Nothing errored. `loadCloud()` and the state function both read one
+membership with `limit 1` and no ordering, so Postgres was free to return either,
+and returning the empty one put a new staff member into onboarding for a business
+that should never have existed — which is exactly what it looked like from the
+counter: "I logged in and it asked me to set up a business."
+
+Three things were wrong, and all three are fixed:
+
+1. The trigger created a business for an invited login. It now skips them.
+2. manage-access did not say the login was invited. It now sets
+   `app_metadata.invited`, which a signing-up user cannot forge.
+3. Nothing stopped a person holding two memberships. A unique index on
+   `memberships.user_id` does now, so the next variation of this fails loudly at
+   the database instead of turning into a support question.
+
+The order matters if any of it is ever reapplied from scratch: clear duplicates,
+fix the trigger, deploy manage-access, then add the index. The index applied
+before the other two turns every attempt to add a staff member into a failure.
+
+The mock tenant never caught this because `mock/sql/00-users.sql` repoints
+memberships with an `update` rather than creating a second one, so its six logins
+were always on exactly one business.
 
 ## Two records for one person
 
