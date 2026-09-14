@@ -730,6 +730,21 @@
   .tr-due { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 7px; }
   .tr-due.late { color: var(--warn); }
   .tr-table .tr-cell.due { color: var(--warn); background: rgba(224,120,95,.08); }
+  .tr-chip.wait { background: rgba(176,137,79,.2); color: var(--accent); }
+  .tr-table .tr-cell.wait { color: var(--accent); background: rgba(176,137,79,.09); }
+  .tr-fig { margin: 20px 0 4px; padding: 16px 18px 12px; border: 1px solid var(--rule); border-radius: 7px; background: var(--paper-2); }
+  .tr-fig svg { display: block; width: 100%; max-width: 470px; height: auto; margin: 0 auto; }
+  .tr-fig figcaption { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-top: 12px; text-align: center; }
+  .tr-queue { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 7px; background: var(--surface); padding: 16px 18px; margin-bottom: 18px; }
+  .tr-queue h3 { font-size: 15px; font-weight: 500; margin: 0 0 4px; }
+  .tr-queue > p { font-size: 13px; color: var(--muted); margin: 0 0 12px; line-height: 1.55; }
+  .tr-queue-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 9px 0; border-top: 1px solid var(--rule); }
+  .tr-queue-who { flex: 1; min-width: 190px; font-size: 14px; }
+  .tr-queue-when { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tr-check { display: flex; gap: 11px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; font-size: 14px; line-height: 1.45; margin-bottom: 8px; transition: border-color .12s ease, background .12s ease; }
+  .tr-check:hover { border-color: var(--rule-strong); }
+  .tr-check.on { border-color: var(--accent); background: var(--paper-2); }
+  .tr-check input { margin-top: 3px; flex: none; accent-color: var(--accent); }
   .tr-rule { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px dashed var(--rule); font-size: 13.5px; }
   .tr-rule:last-child { border-bottom: none; }
   .tr-rule-name { flex: 1; min-width: 190px; }
@@ -1046,6 +1061,14 @@ const state = {
   letters: [],
   staff: [],
   training: [],
+  // The practical half of a course that has one. Separate records rather than a
+  // field on the attempt, because they are written later, usually by someone
+  // else, and attempts are merged by id — see mergeTrainingBeforeSave().
+  signoffs: [],
+  // Notices the owner has read and dismissed, by id. A new required course
+  // changes what every existing business is asked for, and it should say so once
+  // rather than silently turning a register red.
+  seenNotices: [],
   // A business's own courses, built from its own SOPs. Drafts live here too —
   // a generated course is not shown to staff until the owner has read it.
   customCourses: [],
@@ -1056,6 +1079,9 @@ const state = {
   courseRules: {},
   // Transient generation and editing state — not persisted.
   courseDraft: null,
+  // A practical sign-off being filled in. Transient for the same reason a
+  // half-finished quiz is: a partly ticked checklist is not an observation.
+  signoffDraft: null,
   // Where a trainee is up to right now: who they are, which module, which page,
   // which answers. Deliberately not persisted — a half-finished quiz is not a
   // training record, and reloading should put you back on the module list.
@@ -1370,17 +1396,29 @@ function scheduleCloudSave(blob) {
 // whoever writes second keeps both sets. It narrows the race to the gap between
 // this read and the update below rather than closing it; the real fix is a
 // server-side jsonb append, and that needs a migration.
+//
+// Practical sign-offs are the same shape of thing and merge the same way. They
+// are also the reason a sign-off is its own record rather than a field on the
+// attempt it completes: a union by id keeps whichever copy was written last, so
+// editing an existing attempt on the back-office machine would be quietly undone
+// by the counter iPad's untouched copy of that same id.
+const MERGED_KEYS = ['training', 'signoffs'];
+
 async function mergeTrainingBeforeSave(blob) {
-  if (!Array.isArray(blob.training)) return;
+  if (!MERGED_KEYS.some(k => Array.isArray(blob[k]))) return;
   const { data, error } = await sb.from('businesses').select('data').eq('id', currentBusinessId).single();
   if (error || !data) return;
-  const remote = (data.data && Array.isArray(data.data.training)) ? data.data.training : [];
-  if (!remote.length) return;
-  const byId = new Map();
-  remote.concat(blob.training).forEach(r => { if (r && r.id) byId.set(r.id, r); });
-  const merged = Array.from(byId.values()).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
-  blob.training = merged;
-  state.training = merged;
+  const when = (r) => r.completedAt || r.at || 0;
+  MERGED_KEYS.forEach(key => {
+    if (!Array.isArray(blob[key])) return;
+    const remote = (data.data && Array.isArray(data.data[key])) ? data.data[key] : [];
+    if (!remote.length) return;
+    const byId = new Map();
+    remote.concat(blob[key]).forEach(r => { if (r && r.id) byId.set(r.id, r); });
+    const merged = Array.from(byId.values()).sort((a, b) => when(b) - when(a));
+    blob[key] = merged;
+    state[key] = merged;
+  });
 }
 
 async function loadCloud() {
@@ -1651,6 +1689,8 @@ function buildStateBlob() {
     letters: state.letters,
     staff: state.staff,
     training: state.training,
+    signoffs: state.signoffs,
+    seenNotices: state.seenNotices,
     customCourses: state.customCourses,
     hiddenCourses: state.hiddenCourses,
     courseRules: state.courseRules,
@@ -1696,6 +1736,8 @@ function applyStateBlob(s) {
     if (Array.isArray(s.letters)) state.letters = s.letters;
     if (Array.isArray(s.staff)) state.staff = s.staff;
     if (Array.isArray(s.training)) state.training = s.training;
+    if (Array.isArray(s.signoffs)) state.signoffs = s.signoffs;
+    if (Array.isArray(s.seenNotices)) state.seenNotices = s.seenNotices;
     if (Array.isArray(s.customCourses)) state.customCourses = s.customCourses;
     if (Array.isArray(s.hiddenCourses)) state.hiddenCourses = s.hiddenCourses;
     if (s.courseRules && typeof s.courseRules === 'object' && !Array.isArray(s.courseRules)) state.courseRules = s.courseRules;
@@ -4200,6 +4242,7 @@ function exportBackup() {
     letters: state.letters,
     staff: state.staff,
     training: state.training,
+    signoffs: state.signoffs,
     customCourses: state.customCourses,
     hiddenCourses: state.hiddenCourses,
     courseRules: state.courseRules,
@@ -4227,6 +4270,7 @@ function importBackup(file) {
     state.letters = Array.isArray(data.letters) ? data.letters : [];
     state.staff = Array.isArray(data.staff) ? data.staff : [];
     state.training = Array.isArray(data.training) ? data.training : [];
+    state.signoffs = Array.isArray(data.signoffs) ? data.signoffs : [];
     state.customCourses = Array.isArray(data.customCourses) ? data.customCourses : [];
     state.hiddenCourses = Array.isArray(data.hiddenCourses) ? data.hiddenCourses : [];
     state.courseRules = (data.courseRules && typeof data.courseRules === 'object' && !Array.isArray(data.courseRules)) ? data.courseRules : {};
@@ -5001,6 +5045,126 @@ function draftLetterFromStaff(staffId, type) {
 // ### headings and simple lists — no tables, no links, no H1. Write to that.
 
 const TRAINING_PASS_MARK = 0.8;
+
+// ===== Diagrams for the manual handling course =====
+// Line drawings rather than photographs, and inline rather than hosted: they
+// cost nothing to ship, stay sharp at any size, and draw themselves in
+// currentColor so they work in both themes. A photograph of our plant would be
+// more convincing and would also be wrong for every other business using this.
+//
+// These are only ever rendered for built-in courses — see lessonFiguresHtml().
+const MH_FIG_LIFT = `<svg viewBox="0 0 420 212" role="img" aria-label="Two side views of the same lift. On the left the person has their hips back, their back straight and the load held close in against their shins. On the right the person has bent at the waist with straight legs and the load held well out in front of them.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="20" y1="168" x2="400" y2="168" stroke-opacity=".28"/>
+    <circle cx="112" cy="54" r="10"/>
+    <path d="M112 64 L120 108"/>
+    <path d="M120 108 L100 134 L108 166"/>
+    <path d="M120 108 L114 136 L124 166"/>
+    <path d="M114 76 L104 106 L98 126"/>
+    <rect x="74" y="126" width="32" height="26" rx="2"/>
+    <circle cx="316" cy="86" r="10"/>
+    <path d="M324 92 L358 112"/>
+    <path d="M358 112 L352 166"/>
+    <path d="M358 112 L364 166"/>
+    <path d="M328 98 L308 132"/>
+    <rect x="278" y="132" width="32" height="26" rx="2"/>
+    <path d="M310 152 L352 152" stroke-dasharray="3 4" stroke-opacity=".5"/>
+  </g>
+  <g font-family="inherit" font-size="12" fill="currentColor" fill-opacity=".75">
+    <text x="105" y="192" text-anchor="middle">Hips back, load close</text>
+    <text x="315" y="192" text-anchor="middle">Back bent, load out front</text>
+  </g>
+  <g font-size="16" font-weight="600">
+    <text x="158" y="58" fill="var(--green)">&#10003;</text>
+    <text x="386" y="60" fill="var(--warn)">&#10007;</text>
+  </g>
+</svg>`;
+
+const MH_FIG_TWIST = `<svg viewBox="0 0 420 236" role="img" aria-label="Footprints seen from above. On the left the feet point straight ahead while the load is being swung away to one side, so the twist happens in the back. On the right the feet have been stepped round to face the same way as the load.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="88" y="124" width="14" height="34" rx="7"/>
+    <rect x="110" y="124" width="14" height="34" rx="7"/>
+    <path d="M105 120 L105 74" stroke-dasharray="4 5" stroke-opacity=".4"/>
+    <path d="M105 120 L70 82"/>
+    <path d="M70 82 L74 94 M70 82 L82 80"/>
+    <rect x="44" y="52" width="24" height="20" rx="2"/>
+    <g transform="rotate(-47 315 120)">
+      <rect x="298" y="124" width="14" height="34" rx="7"/>
+      <rect x="320" y="124" width="14" height="34" rx="7"/>
+    </g>
+    <path d="M315 120 L280 82"/>
+    <path d="M280 82 L284 94 M280 82 L292 80"/>
+    <rect x="254" y="52" width="24" height="20" rx="2"/>
+  </g>
+  <g fill="none" stroke-width="3" stroke-linecap="round">
+    <path d="M105 82 A 38 38 0 0 0 78 99" stroke="var(--warn)"/>
+    <path d="M78 99 L89 98 M78 99 L83 108" stroke="var(--warn)"/>
+    <path d="M366 146 A 54 54 0 0 0 352 104" stroke="var(--green)"/>
+    <path d="M352 104 L351 115 M352 104 L361 109" stroke="var(--green)"/>
+  </g>
+  <g font-family="inherit" font-size="11" font-weight="600">
+    <text x="62" y="116" fill="var(--warn)">twist</text>
+    <text x="374" y="172" text-anchor="end" fill="var(--green)">step round</text>
+  </g>
+  <g font-family="inherit" font-size="12" fill="currentColor" fill-opacity=".75">
+    <text x="105" y="196" text-anchor="middle">Feet one way, load the other</text>
+    <text x="315" y="196" text-anchor="middle">Feet turned to face the load</text>
+    <text x="210" y="220" text-anchor="middle" font-size="11" fill-opacity=".55">your feet seen from above &mdash; the box is where the load is going</text>
+  </g>
+  <g font-size="16" font-weight="600">
+    <text x="170" y="60" fill="var(--warn)">&#10007;</text>
+    <text x="382" y="60" fill="var(--green)">&#10003;</text>
+  </g>
+</svg>`;
+
+const MH_FIG_PUSH = `<svg viewBox="0 0 420 206" role="img" aria-label="Side view of a person pushing a loaded cage on castors. Their hands are on the cage at about waist to chest height, elbows in, with the body leaning slightly into the push.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="20" y1="172" x2="400" y2="172" stroke-opacity=".28"/>
+    <circle cx="104" cy="56" r="10"/>
+    <path d="M104 66 L116 114"/>
+    <path d="M116 114 L100 144 L94 170"/>
+    <path d="M116 114 L130 142 L140 170"/>
+    <path d="M108 76 L136 94 L154 98"/>
+    <rect x="158" y="62" width="98" height="96" rx="3"/>
+    <path d="M158 94 L256 94 M158 126 L256 126 M190 62 L190 158 M223 62 L223 158" stroke-opacity=".35"/>
+    <circle cx="176" cy="166" r="7"/>
+    <circle cx="238" cy="166" r="7"/>
+    <path d="M284 98 L350 98 M350 98 L339 90 M350 98 L339 106" stroke-opacity=".65"/>
+  </g>
+  <g font-family="inherit" font-size="12" fill="currentColor" fill-opacity=".75">
+    <text x="210" y="196" text-anchor="middle">Waist to chest height, elbows in, legs doing the work</text>
+  </g>
+</svg>`;
+
+const MH_FIG_HEIGHT = `<svg viewBox="0 0 420 214" role="img" aria-label="Two side views at a bench. On the left the bench is too low and the person is stooped over it all day. On the right the bench is at about elbow height and the person stands upright.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="20" y1="176" x2="400" y2="176" stroke-opacity=".28"/>
+    <circle cx="70" cy="54" r="10"/>
+    <path d="M70 64 L90 112"/>
+    <path d="M90 112 L84 176 M90 112 L98 176"/>
+    <path d="M76 74 L96 110 L110 142"/>
+    <rect x="110" y="144" width="76" height="6" rx="2"/>
+    <path d="M124 150 L124 176 M172 150 L172 176" stroke-opacity=".4"/>
+    <circle cx="296" cy="54" r="10"/>
+    <path d="M296 64 L298 122"/>
+    <path d="M298 122 L290 176 M298 122 L306 176"/>
+    <path d="M298 74 L308 102 L328 116"/>
+    <rect x="328" y="118" width="62" height="6" rx="2"/>
+    <path d="M340 124 L340 176 M378 124 L378 176" stroke-opacity=".4"/>
+    <path d="M262 116 L322 116" stroke-dasharray="4 5" stroke-opacity=".5"/>
+  </g>
+  <g font-family="inherit" font-size="12" fill="currentColor" fill-opacity=".75">
+    <text x="256" y="112" text-anchor="end" font-size="11" fill-opacity=".6">elbow height</text>
+    <text x="105" y="200" text-anchor="middle">Stooped over it all shift</text>
+    <text x="315" y="200" text-anchor="middle">Upright, work at elbow height</text>
+  </g>
+  <g font-size="16" font-weight="600">
+    <text x="34" y="58" fill="var(--warn)">&#10007;</text>
+    <text x="258" y="58" fill="var(--green)">&#10003;</text>
+  </g>
+</svg>`;
+
+const TRAINING_FIGURES = { lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_PUSH, height: MH_FIG_HEIGHT };
 
 const TRAINING_MODULES = [
 {
@@ -6028,7 +6192,251 @@ Do not put more customer personal information into a chat than the question actu
       correct: 1,
       why: 'Give it what the question needs and no more. A first name and the garment is almost always enough, and it is good privacy practice.' }
   ]
-}
+},
+{
+  id: 'manual-handling',
+  num: '07',
+  title: 'Lifting and moving things safely',
+  blurb: 'The tasks in this trade that wreck backs and shoulders, how to do them so they do not, and why saying something early matters more than being tough about it.',
+  minutes: 15,
+  reviewed: 'September 2026',
+  source: 'Victorian OHS Regulations 2017 Part 3.1, the WHS Regulations reg 60 used in the other states, and the WorkSafe and Safe Work Australia guidance on hazardous manual handling',
+  // The only course with a practical half. Reading about a lift is not the same
+  // as being able to do one, and every regulator in the country says so — see
+  // courseStanding() for how the sign-off gates the pass.
+  practical: true,
+  practicalBlurb: 'Once you have passed the questions, a supervisor watches you do the work and records that you can do it properly. That second half is what finishes the course.',
+  lessons: [
+    { h: 'What the law actually asks of us',
+      body: `Most people think manual handling training means being shown how to lift a box. That is part of it, and it is the smallest part.
+
+What the law actually asks is that the business finds the tasks that are likely to hurt someone and **does something about them** — and only falls back on telling people to be careful when it genuinely cannot do anything else.
+
+### The rules that apply here
+Victoria runs its own scheme. Under the **Occupational Health and Safety Regulations 2017, Part 3.1**, an employer must identify hazardous manual handling, and then eliminate the risk so far as is reasonably practicable. If it cannot be eliminated, it has to be reduced — by changing the task, the object, the workplace, or the system of work.
+
+Every other state and territory uses the harmonised **WHS Regulations, regulation 60**, which asks for the same thing in slightly different words. If you have worked interstate, nothing you learned there is wrong here.
+
+### The order matters
+The law puts the controls in an order, and it is not the order most workplaces use:
+
+1. **Change the task or the layout** so the lift is not needed — a trolley, a cage at the right height, a delivery stacked where it is used.
+2. **Change the object** — split the bulk bag, use two smaller loads.
+3. **Change the system of work** — rotate people through it, share it, allow the time.
+4. **Then** train and instruct.
+
+Training is last on that list for a reason. If the only control is telling you to lift carefully, the risk has not really been controlled at all.
+
+### What this means for you
+Two things. First, you are entitled to expect the equipment and the time — a task that can only be done safely by rushing it is not safe. Second, you are the person who knows which tasks are actually dangerous, and the law requires that you be consulted about them. If something on your list is hurting people, saying so is part of the job.` },
+
+    { h: 'What actually hurts people in this trade',
+      body: `Nobody in a dry cleaner is lifting engine blocks. The injuries here come from ordinary things done heavy, awkwardly, or four hundred times a day.
+
+### The tasks worth naming
+- **Cages and rails.** A full cage is the heaviest thing most of us move, it moves on castors that catch, and it goes up and down a ramp into a van.
+- **Wet work.** Curtains, quilts, doonas and rugs gain enormous weight wet. A curtain that went in at six kilos comes out at twenty, and it comes out of a drum at knee height.
+- **Bulk bags and hampers.** Awkward rather than heavy, no handles, and usually lifted from the floor.
+- **Solvent and chemical drums.** Heavy, rigid, and the worst possible thing to catch on the way down.
+- **Loading the van.** Overhead, at arm's length, on a slope, often in the rain, usually in a hurry.
+- **Reaching into machines.** Bending forward into a washer or a dry cleaning machine puts your back at its weakest point while your arms are taking the load.
+- **Press and finishing work.** Light, repetitive, and done for hours at a fixed height that may not be your height.
+- **Standing.** All day, on concrete.
+
+### The four things that make any of them risky
+Regulators look at the same four factors, and so should you:
+
+- **Force** — how hard you have to pull, push or hold.
+- **Posture** — bent, twisted, reaching, or above shoulder height.
+- **Repetition and duration** — how many times, and for how long without a change.
+- **Vibration** — less common here, but present on some equipment.
+
+A task with two or three of those together is the one that hurts someone. Lifting a wet quilt out of a drum is force and posture at the same time. That is why it is on the list and a heavier box lifted from a bench is not.` },
+
+    { h: 'Before you lift anything',
+      body: `The most useful decision you make is not how to lift. It is **whether to lift at all**.
+
+### Ask four questions, quickly
+1. **How heavy, and how awkward?** Tip it or lift a corner first. A load that does not want to move is telling you something.
+2. **Where is it going, and is the path clear?** Doors propped, floor dry, nothing to step over, somewhere to put it down at the other end.
+3. **Is there something that would do this better?** A trolley, a cage, a hoist, a second person.
+4. **Do I need help?** Asking is the cheap option. A week off is not.
+
+### There is no legal maximum weight
+People ask constantly what the limit is. There is no number in the regulations, and any number you have been told is somebody's rule of thumb rather than the law. It depends on the shape of the load, where it starts, where it is going, how often, and who is lifting it.
+
+What that means in practice is that the judgement is yours, on the day, on that load — which is exactly why the four questions above matter more than a number would.
+
+### Get help for these, every time
+- Anything you cannot get a proper grip on
+- Anything that blocks your view of where you are walking
+- Anything above shoulder height coming down
+- Anything wet and heavy coming out of a machine
+- Anything going up or down the van ramp that you would not comfortably carry on the flat
+
+### Push rather than carry
+Wherever there is a cage or a trolley, use it. Pushing uses your legs and your body weight; carrying puts the whole load through your spine and your shoulders. Push rather than pull where you can — you can see where you are going, and you are not dragging the weight behind you.`,
+      figures: [{ fig: 'push', caption: 'Pushing a loaded cage: hands between waist and chest, elbows in, and the push coming from your legs rather than your back.' }] },
+
+    { h: 'Lifting, carrying and putting things down',
+      body: `When you have decided the lift is on, this is the shape of it.
+
+### The lift
+- **Feet apart, one slightly forward.** A stable base beats a strong back every time.
+- **Hips back, knees bent.** Not a deep squat — a comfortable, braced position you can actually stand up out of.
+- **Get the load in against you before you stand.** The further out it is, the more it weighs as far as your spine is concerned. A load at arm's length can put several times its own weight through your lower back.
+- **Grip, brace, then stand with your legs.** Smoothly. No jerking, and no rushing the last bit.
+- **Head up.** Where your eyes go, your back tends to follow.
+
+### Never twist under load
+This is the single most common way people hurt themselves here, and it almost never feels dangerous at the time. You lift a bundle off the bench, turn your shoulders to put it on the rail behind you, and something goes.
+
+**Move your feet.** Turn your whole body, not your spine. It takes half a second longer and it is the difference between a normal day and six weeks of physio.
+
+### Putting it down
+Half the injuries happen on the way down, because people relax. Lower it the same way you lifted it — legs bent, load close, back straight — and put it down before you adjust its position, rather than shuffling it while you are still holding it.
+
+### Team lifts
+Two people lifting badly is worse than one person lifting well.
+
+- **One person calls it.** Agree who before you start.
+- **Agree the plan out loud** — where it is going, and where you will set it down.
+- **Lift on the call, move on the call, lower on the call.** Most team lift injuries happen because one person let go or lifted early.
+- **Match people up sensibly** where you can. A big height difference tips the load onto the shorter person.`,
+      figures: [
+        { fig: 'lift', caption: 'The same load, two ways. On the left the legs are taking it and the weight is in against the body. On the right the back is taking all of it, and the load being out in front multiplies what the spine is carrying.' },
+        { fig: 'twist', caption: 'Turning under load. Planted feet with turned shoulders is the classic way to injure a back on an ordinary weight. Step round so your feet, hips and shoulders all end up facing the same way.' }
+      ] },
+
+    { h: 'The small things, done four hundred times',
+      body: `The injuries people expect come from one heavy lift. Most of the injuries that actually happen in this trade come from something light repeated all day — pressing, bagging, tagging, hanging.
+
+That is the bit no lifting demonstration covers, and it is most of the work.
+
+### Working height
+If a bench or a press is too low you will stoop over it for hours. Too high and you will work with your shoulders up around your ears. Roughly **elbow height** is right for most work, a little lower for anything you have to push down on.
+
+Where the height cannot be changed, change your position — a mat, a footrest, standing a step closer, alternating which side you work from.
+
+### Reaching
+Keep what you use most within an easy arm's reach and in front of you. Anything stored above shoulder height gets brought down with something to stand on, not by stretching and hooking it with your fingertips.
+
+### Mix it up
+A shift spent doing one movement is harder on your body than a shift spent doing four. Where the work allows it, rotate tasks between people rather than having one person on the press all day. Small breaks in the pattern do more good than one long break at the end.
+
+### Standing all day
+Concrete is unforgiving. Anti-fatigue matting where you stand, shoes that actually support you, and shifting your weight rather than locking your knees and staying put.
+
+### The tell-tale signs
+Aches that turn up at the same time each day, or on the same task, are not a coincidence and they are not just part of the job. They are the early version of the thing that later stops you working. Which brings us to the last page.`,
+      figures: [{ fig: 'height', caption: 'Working height. The same task at two bench heights: stooped over it for a shift on the left, upright at about elbow height on the right.' }] },
+
+    { h: 'Say something early',
+      body: `This is the page that matters most, and it is the one people skip.
+
+### Report it while it is still nothing
+A twinge you mention today is a conversation about changing how a task is done. The same back six weeks later, after you have worked through it and it has gone properly wrong, is a WorkCover claim, time off, and something you may be managing for years.
+
+Early is better for you and it is better for the business. Those are not in conflict here.
+
+### How to report it
+- **Tell your supervisor or the owner as soon as you notice it.** In person, on the phone, however you can. Do not wait for a form.
+- **Say which task brought it on.** That is the part that lets us actually change something.
+- **It goes in the incident record**, whether or not you need to see anyone about it.
+- **If you need treatment, you get it.** Work-related injuries are covered by WorkCover, and the business handles that end of it.
+
+### Nobody is in trouble for this
+Reporting an injury or a near miss is not an admission that you did something wrong, and it does not count against you. The opposite — a hazard that gets reported is a hazard that can be fixed before it catches somebody else.
+
+The same goes for near misses and for equipment. A cage with a seized castor, a ramp that slips, a trolley nobody can steer: tell someone. Those are the things that turn an ordinary task into a hazardous one, and they are usually cheap to fix once anyone knows.
+
+### And the part that finishes this course
+Passing the questions on the next page records that you know this. It does not record that you can do it.
+
+So once you have passed, a supervisor will watch you do the real work — a lift, a cage, a team lift, the bench you work at — and record that they have seen you do it properly. That sign-off is what completes the course, and it is worth taking seriously in both directions: if something in it does not work the way the course describes, that is worth saying out loud while somebody is standing there watching.` }
+  ],
+  quiz: [
+    { q: 'Under the manual handling rules, where does training and instruction sit in the list of controls?',
+      a: ['First — telling people how to lift is the main control',
+          'Last — after changing the task, the object and the system of work',
+          'It is not a control at all',
+          'It is the only control the regulations require'],
+      correct: 1,
+      why: 'The regulations ask that the risk be eliminated or reduced by changing the task, the object, the workplace or the system of work first. Training is the fallback, not the answer.' },
+
+    { q: 'What is the legal maximum weight one person may lift in a dry cleaning business?',
+      a: ['20 kilograms',
+          '25 kilograms for men and 16 for women',
+          'There is no set maximum — it depends on the load, the posture, the frequency and the person',
+          '55 kilograms, from the Fair Work Act'],
+      correct: 2,
+      why: 'There is no number in the regulations, and any figure you have been told is somebody’s rule of thumb. Risk comes from force, posture, repetition and duration together, which is why the judgement has to be made on the load in front of you.' },
+
+    { q: 'Which four factors do the regulations use to judge whether a manual handling task is hazardous?',
+      a: ['Weight, height, distance and time of day',
+          'Force, posture, repetition or duration, and vibration',
+          'Age, fitness, experience and rostered hours',
+          'Temperature, lighting, noise and floor surface'],
+      correct: 1,
+      why: 'Force, posture, repetition and duration, and vibration. A task carrying two or three of them at once is the one that injures someone, which is why a wet quilt at knee height rates worse than a heavier box off a bench.' },
+
+    { q: 'You are lifting a bundle off the bench and need to put it on the rail behind you. What do you do?',
+      a: ['Turn your shoulders while keeping your feet planted',
+          'Move your feet and turn your whole body',
+          'Lift higher first, then swing it round',
+          'Bend at the waist and reach behind you'],
+      correct: 1,
+      why: 'Twisting under load is the most common way people are injured on an ordinary weight. Step round so your feet, hips and shoulders finish facing the same way.' },
+
+    { q: 'Why does holding a load out in front of you matter so much?',
+      a: ['It does not — the weight is the same wherever you hold it',
+          'It makes the load harder to see past',
+          'The further the load is from your body, the more force goes through your lower back',
+          'It only matters for loads over 20 kilograms'],
+      correct: 2,
+      why: 'Distance multiplies the load as far as your spine is concerned — a weight at arm’s length can put several times its own weight through your lower back. Get it in against you before you stand.' },
+
+    { q: 'A cage is loaded and has to go across the floor and up the van ramp. What is the better approach?',
+      a: ['Carry the contents across in armfuls instead',
+          'Push the cage, with your hands between waist and chest height and the push coming from your legs',
+          'Pull the cage behind you so you can watch the load',
+          'Drag it by one corner to keep it straight'],
+      correct: 1,
+      why: 'Pushing uses your legs and body weight rather than putting the whole load through your spine, and pushing beats pulling because you can see where you are going and you are not dragging the weight behind you.' },
+
+    { q: 'Two of you are lifting a heavy rug together. What matters most?',
+      a: ['That you are both strong enough to lift it alone',
+          'That one person calls the lift, and you lift, move and lower on their call',
+          'That you lift from opposite corners',
+          'That you do it quickly to spend less time under load'],
+      correct: 1,
+      why: 'Most team lift injuries happen because one person lifted early or let go. Agree who is calling it and agree the plan out loud before you start.' },
+
+    { q: 'You have been on the press all day and your shoulders have ached at the same point every afternoon this week. What is the right response?',
+      a: ['Work through it — it is part of the job',
+          'Say something now, and say which task brings it on',
+          'Wait until it stops you working, then report it',
+          'Swap shifts with someone without telling anyone why'],
+      correct: 1,
+      why: 'An ache reported early is a conversation about changing the task. The same problem six weeks later is a claim and time off. Naming the task is what lets anything actually be changed.' },
+
+    { q: 'Roughly what height should a bench or work surface be for most standing work?',
+      a: ['About knee height',
+          'About elbow height',
+          'About shoulder height',
+          'As low as possible so you can see the work'],
+      correct: 1,
+      why: 'About elbow height for most work, a little lower for anything you push down on. Too low and you stoop over it all shift; too high and you work with your shoulders around your ears.' },
+
+    { q: 'What finishes this course, once you have passed these questions?',
+      a: ['Nothing — the pass completes it',
+          'A supervisor watching you do the work and recording that you can do it properly',
+          'Signing a form saying you have read the pages',
+          'Twelve months without an injury'],
+      correct: 1,
+      why: 'Knowing it and doing it are different things. The practical sign-off is what completes the course, and both halves fall due again at the refresh.' }
+  ]
+},
 ];
 
 // ===== Records and progress =====
@@ -6112,8 +6520,23 @@ const DAY_MS = 86400000;
 // How long before a refresh falls due that we start saying so.
 const REFRESH_WARN_DAYS = 30;
 
+// What a course asks when the business has never said otherwise. Everything
+// defaults to required of everyone, no deadline, no expiry — which is how the
+// first six shipped and what keeps an untouched business carrying no rules at
+// all. Manual handling is the exception, and deliberately so: a lifting course
+// with no deadline and no refresh is a tick in a box rather than a control.
+const COURSE_RULE_DEFAULTS = {
+  'manual-handling': { required: true, dueDays: 30, refreshMonths: 12 },
+};
+
+function courseRuleDefault(courseId) {
+  return Object.assign({ required: true, dueDays: null, refreshMonths: null },
+                       COURSE_RULE_DEFAULTS[courseId] || {});
+}
+
 function courseRule(courseId) {
-  const r = (state.courseRules || {})[courseId] || {};
+  const r = (state.courseRules || {})[courseId];
+  if (!r) return courseRuleDefault(courseId);
   const num = (v) => (typeof v === 'number' && isFinite(v) && v > 0) ? Math.round(v) : null;
   return {
     required: r.required !== false,
@@ -6125,9 +6548,10 @@ function courseRule(courseId) {
 function setCourseRule(courseId, patch) {
   if (!state.courseRules || typeof state.courseRules !== 'object') state.courseRules = {};
   const next = Object.assign(courseRule(courseId), patch);
-  // Only keep what differs from the default, so an untouched business carries no
-  // rules at all and the defaults stay free to change.
-  if (next.required && next.dueDays == null && next.refreshMonths == null) delete state.courseRules[courseId];
+  const d = courseRuleDefault(courseId);
+  // Only keep what differs from this course's own defaults, so an untouched
+  // business carries no rules at all and the defaults stay free to change.
+  if (next.required === d.required && next.dueDays === d.dueDays && next.refreshMonths === d.refreshMonths) delete state.courseRules[courseId];
   else state.courseRules[courseId] = next;
   persistState();
 }
@@ -6153,36 +6577,105 @@ function staffStartMs(staffRec) {
   return isNaN(t) ? null : t;
 }
 
+// ===== The practical half =====
+// One course asks for more than a quiz. Manual handling is the obvious case and
+// the reason this exists: a person can answer ten out of ten on lifting and
+// still hurt themselves the first time they pull a loaded cage out of the van,
+// which is why every regulator in the country treats instruction on its own as
+// something short of controlling the risk.
+//
+// What a supervisor is signing that they watched. All six, or it is not a pass.
+const SIGNOFF_CHECKS = [
+  'Assesses and plans before lifting — asks for help, or gets the equipment, when the load needs it',
+  'Lifts and lowers with a stable base, the load in against them, and no twisting',
+  'Pushes rather than carries wherever a trolley or a cage will do the job',
+  'Communicates and leads a team lift properly',
+  'Works at a sensible height, and rotates through tasks rather than staying on one',
+  'Knows how to report discomfort, and when',
+];
+
+function signoffsFor(who, courseId) {
+  if (!who) return [];
+  return (state.signoffs || []).filter(r => r.courseId === courseId &&
+    (who.staffId ? r.staffId === who.staffId : (!r.staffId && r.staffName === who.staffName)));
+}
+
+// The most recent observation is the one that counts, in both directions: a
+// later "not yet" overrides an earlier pass, the same way a later pass overrides
+// an earlier "not yet".
+function signoffLatest(who, courseId) {
+  const rows = signoffsFor(who, courseId);
+  if (!rows.length) return null;
+  return rows.slice().sort((a, b) => (b.at || 0) - (a.at || 0))[0];
+}
+
+function signoffIsSelf(who) {
+  const me = staffByUserId(trainingLoginId());
+  return !!(me && who && who.staffId && me.id === who.staffId);
+}
+
+// Nobody marks their own practical, with one exception. A sole owner has nobody
+// above them, and a product that cannot be completed by a single-operator shop
+// is a dead end — so the owner may, the record carries selfSigned, and the
+// printed certificate says so. An honest record beats a blocked one, and beats a
+// dishonest one by a good deal more.
+function canRecordSignoff(who) {
+  if (!can('training.signoff')) return false;
+  return !signoffIsSelf(who) || effectiveRole() === 'owner';
+}
+
 // Where one person stands on one course. The single source of truth for every
 // chip, cell and count below, so the trainee's list, the owner's register and
 // the printed record cannot disagree with each other.
 //
-//   passed     done, and still in force
-//   expiring   done, but the refresh falls due within the month
-//   expired    was passed, the refresh is now overdue
-//   overdue    required, not passed, and past the deadline
-//   todo       required, never attempted
-//   retry      required, attempted and not passed
-//   optional   not required of anyone, and not passed
+//   passed             done, and still in force
+//   expiring           done, but the refresh falls due within the month
+//   expired            was done, the refresh is now overdue
+//   awaiting-signoff   questions passed, practical not yet observed
+//   overdue            required, not passed, and past the deadline
+//   todo               required, never attempted
+//   retry              required, attempted and not passed
+//   optional           not required of anyone, and not passed
 function courseStanding(who, course, staffRec) {
   const rule = courseRule(course.id);
   const last = trainingLatest(who, course.id);
-  const passedAt = (last && last.passed) ? last.completedAt : null;
+  const practical = !!course.practical;
+  const sign = practical ? signoffLatest(who, course.id) : null;
   const now = Date.now();
-  const base = { last, rule, dueAt: null, expiresAt: null };
+  const base = { last, rule, practical, signoff: sign, dueAt: null, expiresAt: null, doneAt: null };
+
+  const quizAt = (last && last.passed) ? last.completedAt : null;
+  const signAt = (sign && sign.competent) ? sign.at : null;
+  // Each half carries its own expiry and the course falls due when the first of
+  // them does. Counting from the later of the two would let someone re-sit the
+  // questions in month thirteen and read as current on a practical nobody has
+  // watched since the year before.
+  const quizEnds = (quizAt && rule.refreshMonths) ? addMonths(quizAt, rule.refreshMonths) : null;
+  const signEnds = (signAt && rule.refreshMonths) ? addMonths(signAt, rule.refreshMonths) : null;
+  const quizOk = !!quizAt && (!quizEnds || now < quizEnds);
+  const signOk = !practical || (!!signAt && (!signEnds || now < signEnds));
+  const expiresAt = [quizEnds, signEnds].filter(Boolean).sort((a, b) => a - b)[0] || null;
+  Object.assign(base, { expiresAt, doneAt: Math.max(quizAt || 0, signAt || 0) || null });
 
   if (!rule.required) {
-    return Object.assign(base, { state: passedAt ? 'passed' : 'optional', outstanding: false });
+    return Object.assign(base, { state: (quizOk && signOk) ? 'passed' : 'optional', outstanding: false });
   }
 
-  const expiresAt = (passedAt && rule.refreshMonths) ? addMonths(passedAt, rule.refreshMonths) : null;
-  if (passedAt && (!expiresAt || now < expiresAt)) {
+  if (quizOk && signOk) {
     const soon = expiresAt && (expiresAt - now) <= REFRESH_WARN_DAYS * DAY_MS;
-    return Object.assign(base, { state: soon ? 'expiring' : 'passed', outstanding: false, expiresAt });
+    return Object.assign(base, { state: soon ? 'expiring' : 'passed', outstanding: false });
   }
-  // A pass that has aged out is owed again, and the date it aged out is the date
+  // A half that has aged out is owed again, and the date it aged out is the date
   // it was due — there is no second grace period on top of the refresh interval.
-  if (passedAt) return Object.assign(base, { state: 'expired', outstanding: true, overdue: true, dueAt: expiresAt, expiresAt });
+  if ((quizAt && !quizOk) || (signAt && !signOk)) {
+    return Object.assign(base, { state: 'expired', outstanding: true, overdue: true, dueAt: expiresAt });
+  }
+  // Questions passed and in force, practical not observed yet. Outstanding,
+  // because the course genuinely is not finished — but never overdue, because
+  // the person waiting is waiting on us rather than the other way round. The
+  // queue at the top of the register is what puts that in front of whoever can
+  // clear it.
+  if (quizOk) return Object.assign(base, { state: 'awaiting-signoff', outstanding: true, overdue: false });
 
   const startAt = staffStartMs(staffRec);
   const dueAt = (rule.dueDays != null && startAt) ? startAt + rule.dueDays * DAY_MS : null;
@@ -6202,7 +6695,7 @@ function staffRecordFor(who) {
 function trainingSummary(who, courses) {
   const list = courses || activeCourses();
   const staffRec = staffRecordFor(who);
-  const out = { total: list.length, required: 0, passed: 0, requiredPassed: 0, outstanding: 0, overdue: 0, expiring: 0, rows: [] };
+  const out = { total: list.length, required: 0, passed: 0, requiredPassed: 0, outstanding: 0, overdue: 0, expiring: 0, awaiting: 0, rows: [] };
   list.forEach(c => {
     const st = who ? courseStanding(who, c, staffRec) : { state: 'todo', outstanding: true, rule: courseRule(c.id), last: null, dueAt: null, expiresAt: null };
     out.rows.push({ course: c, standing: st });
@@ -6212,6 +6705,7 @@ function trainingSummary(who, courses) {
       if (st.rule.required) out.requiredPassed++;
     }
     if (st.state === 'expiring') out.expiring++;
+    if (st.state === 'awaiting-signoff') out.awaiting++;
     if (st.outstanding) out.outstanding++;
     if (st.overdue) out.overdue++;
   });
@@ -6223,8 +6717,12 @@ function trainingSummary(who, courses) {
 function trainingSummaryLine(sum) {
   if (!sum.required) return sum.total ? 'No courses required' : 'No courses set up yet';
   const bits = [sum.requiredPassed + ' of ' + sum.required + ' required courses passed'];
+  // Anything waiting on a supervisor is counted separately from "still to do",
+  // because it is not something the trainee can go and do.
+  const todo = sum.outstanding - sum.awaiting;
   if (sum.overdue) bits.push(sum.overdue + ' overdue');
-  else if (sum.outstanding) bits.push(sum.outstanding + ' still to do');
+  else if (todo > 0) bits.push(todo + ' still to do');
+  if (sum.awaiting) bits.push(sum.awaiting === 1 ? '1 waiting on a sign-off' : sum.awaiting + ' waiting on sign-offs');
   if (sum.expiring) bits.push(sum.expiring + ' due for a refresh');
   return bits.join(' \u00b7 ');
 }
@@ -6311,6 +6809,12 @@ function renderTraining() {
   } else if (cd) {
     state.courseDraft = null;
   }
+  // Guarded on the capability as well as the state, so dropping into staff view
+  // mid-sign-off lands back on the register rather than leaving an observation
+  // form open to somebody who cannot record one.
+  const sd = state.signoffDraft;
+  if (sd && canRecordSignoff({ staffId: sd.staffId, staffName: sd.staffName })) return renderSignoff(screen);
+  if (sd) state.signoffDraft = null;
   const sess = state.trainingSession;
   if (sess && sess.view === 'read')   return renderTrainingRead(screen);
   if (sess && sess.view === 'quiz')   return renderTrainingQuiz(screen);
@@ -6337,6 +6841,10 @@ function standingChip(st) {
     case 'expiring': return `<span class="tr-chip soon">Refresh due ${escapeHtml(trainingDateStr(st.expiresAt))}</span>`;
     case 'expired':  return '<span class="tr-chip due">Refresh overdue</span>';
     case 'overdue':  return `<span class="tr-chip due">Overdue${st.last ? ' &middot; ' + st.last.percent + '%' : ''}</span>`;
+    case 'awaiting-signoff':
+      return (st.signoff && st.signoff.competent === false)
+        ? '<span class="tr-chip fail">Practical not signed off</span>'
+        : '<span class="tr-chip wait">Waiting on a sign-off</span>';
     case 'retry':    return `<span class="tr-chip fail">Not passed &middot; ${st.last.percent}%</span>`;
     case 'optional': return '<span class="tr-chip">Optional</span>';
     default:         return '<span class="tr-chip">Not started</span>';
@@ -6348,6 +6856,11 @@ function standingDueHtml(st) {
   if (st.state === 'expiring') return `<div class="tr-due">Passed ${d(st.last.completedAt)} &middot; refresh due ${d(st.expiresAt)}</div>`;
   if (st.state === 'expired')  return `<div class="tr-due late">Passed ${d(st.last.completedAt)} &middot; refresh was due ${d(st.dueAt)}</div>`;
   if (st.state === 'overdue')  return `<div class="tr-due late">Was due ${d(st.dueAt)}</div>`;
+  if (st.state === 'awaiting-signoff') {
+    return (st.signoff && st.signoff.competent === false)
+      ? `<div class="tr-due late">Watched ${d(st.signoff.at)} &middot; not signed off yet${st.signoff.note ? ' &mdash; ' + escapeHtml(st.signoff.note) : ''}</div>`
+      : `<div class="tr-due">Questions passed ${d(st.last.completedAt)} &middot; waiting on a supervisor to watch you do it</div>`;
+  }
   if (st.dueAt)                return `<div class="tr-due">Due by ${d(st.dueAt)}</div>`;
   if (!st.rule.required)       return '<div class="tr-due">Optional &mdash; worth knowing, not required</div>';
   if (st.rule.dueDays != null && st.outstanding)
@@ -6360,6 +6873,7 @@ function standingAction(st) {
     case 'passed':
     case 'expiring': return 'Do it again';
     case 'expired':  return 'Refresh it';
+    case 'awaiting-signoff': return 'Do it again';
     case 'retry':
     case 'overdue':  return st.last ? 'Try again' : 'Start';
     default:         return 'Start';
@@ -6520,6 +7034,21 @@ function renderTrainingWho(screen) {
   });
 }
 
+// Figures are raw SVG, so they are only ever drawn for the courses shipped in
+// this file. A business's own courses arrive in the cloud blob and go through
+// renderMarkdown, which escapes before it parses — that escape is what stops a
+// generated course injecting markup, and a figure would punch a hole straight
+// through it.
+function lessonFiguresHtml(course, lesson) {
+  if (!lesson || !Array.isArray(lesson.figures)) return '';
+  if (TRAINING_MODULES.indexOf(course) < 0) return '';
+  return lesson.figures.map(f => {
+    const svg = TRAINING_FIGURES[f.fig];
+    if (!svg) return '';
+    return '<figure class="tr-fig">' + svg + '<figcaption>' + escapeHtml(f.caption || '') + '</figcaption></figure>';
+  }).join('');
+}
+
 function renderTrainingRead(screen) {
   const sess = state.trainingSession;
   const m = trainingModule(sess.moduleId);
@@ -6541,7 +7070,7 @@ function renderTrainingRead(screen) {
       </div>
       <div class="step-progress-track"><div class="step-progress-fill" style="width:${pct}%"></div></div>
     </div>
-    <div class="card tr-read">${renderMarkdown(lesson.body)}</div>
+    <div class="card tr-read">${renderMarkdown(lesson.body)}${lessonFiguresHtml(m, lesson)}</div>
     <div class="step-actions">
       <button class="btn btn-ghost" id="tr-quit">&larr; All courses</button>
       <div style="display:flex;gap:8px">
@@ -6695,6 +7224,10 @@ function renderTrainingResult(screen) {
         ? `Recorded for ${escapeHtml(rec.staffName)} on ${escapeHtml(trainingDateStr(rec.completedAt))}.`
         : `You need ${trainingPassMark(rec.total)} to pass. Have a read of the ones you missed below and take it again — there is no limit and the attempt is on your record either way.`}</div>
     </div>
+    ${(rec.passed && m.practical) ? `<div class="email-note" style="margin-top:14px">
+      <strong>One half to go.</strong> ${escapeHtml(m.practicalBlurb || 'A supervisor still has to watch you do the work and record that you can do it properly.')}
+      Until that is recorded this course reads as waiting on a sign-off rather than done, and your supervisor can see it sitting there.
+    </div>` : ''}
     <h3 style="margin:22px 0 10px">Every question, and why</h3>
     ${review}
     <div class="step-actions">
@@ -6720,6 +7253,225 @@ function renderTrainingResult(screen) {
   });
   const c2 = document.getElementById('tr-cert2');
   if (c2) c2.addEventListener('click', () => printTrainingRecord(trainingKnownWho()));
+}
+
+// A new required course changes what every existing business is asked for. It
+// should say so once, rather than turning a register red overnight and leaving
+// the owner to work out what broke.
+const NOTICE_MANUAL_HANDLING = 'course-07-manual-handling';
+
+function noticeSeen(id) { return (state.seenNotices || []).includes(id); }
+
+function dismissNotice(id) {
+  if (!Array.isArray(state.seenNotices)) state.seenNotices = [];
+  if (!state.seenNotices.includes(id)) state.seenNotices.push(id);
+  persistState();
+}
+
+function trainingNoticeHtml() {
+  if (!can('training.manage') || noticeSeen(NOTICE_MANUAL_HANDLING)) return '';
+  const c = activeCourses().find(x => x.id === 'manual-handling');
+  if (!c) return '';
+  const r = courseRuleDefault('manual-handling');
+  return `<div class="tr-queue" style="border-left-color:var(--green)">
+      <h3>Course ${escapeHtml(c.num)}, ${escapeHtml(c.title)}, is new</h3>
+      <p>It is required of everyone, due within ${r.dueDays} days of a person's start date, and falls due again every ${r.refreshMonths} months. Anyone who started more than ${r.dueDays} days ago reads as overdue until they do it &mdash; that is the course being new, not something being wrong.</p>
+      <p>It also carries a half the others do not. Once somebody passes the questions, a supervisor records that they watched them do the work, and the course is not finished until they have. Whoever is waiting on that shows at the top of this screen, and your managers can record a sign-off as well as you can.</p>
+      <p>What it asks of people and by when is yours to change at the bottom of this screen, switching it off included.</p>
+      <button class="btn btn-secondary" id="tr-notice-ok">Got it</button>
+    </div>`;
+}
+
+// ===== Recording the practical half =====
+// Who is still waiting on somebody to watch them work, oldest first. The queue
+// exists because "waiting on a supervisor" and "waiting on the trainee" look
+// identical on a register, and only one of them is the business's to clear.
+function signoffQueue() {
+  const practical = activeCourses().filter(c => c.practical);
+  if (!practical.length) return [];
+  const people = (state.staff || []).filter(s => (s.name || '').trim())
+    .map(s => ({ staffId: s.id, staffName: s.name }));
+  // Someone who sat the course without being on the roster still has to be
+  // watched, so they belong in the queue like anyone else.
+  (state.training || []).forEach(r => {
+    if (r.staffId && people.some(x => x.staffId === r.staffId)) return;
+    const name = r.staffName || 'Unnamed';
+    if (people.some(x => x.staffId === (r.staffId || null) && x.staffName === name)) return;
+    people.push({ staffId: r.staffId || null, staffName: name, stray: true });
+  });
+
+  const out = [];
+  people.forEach(p => {
+    const staffRec = staffRecordFor(p);
+    practical.forEach(c => {
+      const st = courseStanding(p, c, staffRec);
+      if (st.state !== 'awaiting-signoff') return;
+      out.push({ person: p, course: c, standing: st, since: st.last ? st.last.completedAt : 0 });
+    });
+  });
+  return out.sort((a, b) => (a.since || 0) - (b.since || 0));
+}
+
+function signoffQueueHtml() {
+  if (!can('training.signoff')) return '';
+  const q = signoffQueue();
+  if (!q.length) return '';
+  const rows = q.map(item => {
+    const p = item.person;
+    const knocked = item.standing.signoff && item.standing.signoff.competent === false;
+    const when = knocked
+      ? 'Watched ' + trainingDateStr(item.standing.signoff.at) + ' &middot; not yet'
+      : 'Questions passed ' + trainingDateStr(item.since);
+    const act = canRecordSignoff(p)
+      ? `<button class="btn btn-secondary" data-tr-sign-course="${escapeHtml(item.course.id)}" data-tr-sign-staff="${escapeHtml(p.staffId || '')}" data-tr-sign-name="${escapeHtml(p.staffName)}">${knocked ? 'Watch them again' : 'Record the sign-off'}</button>`
+      : '<span class="tr-queue-when">Somebody else has to record this</span>';
+    return `<div class="tr-queue-row">
+        <div class="tr-queue-who"><strong>${escapeHtml(p.staffName)}</strong> &middot; ${escapeHtml(item.course.num + ' ' + item.course.title)}</div>
+        <div class="tr-queue-when">${when}</div>
+        ${act}
+      </div>`;
+  }).join('');
+
+  return `<div class="tr-queue">
+      <h3>Waiting on a sign-off</h3>
+      <p>These people have passed the questions. The practical half is not done until somebody has watched them do the work, and until then the course is held up at this end rather than theirs.</p>
+      ${rows}
+    </div>`;
+}
+
+function bindSignoffQueue(screen) {
+  screen.querySelectorAll('[data-tr-sign-course]').forEach(b => b.addEventListener('click', () =>
+    openSignoff(b.dataset.trSignStaff || null, b.dataset.trSignName, b.dataset.trSignCourse)));
+}
+
+// The best guess at who is doing the watching. It is only a default — the field
+// is editable, because a sign-off recorded on the counter iPad may well be being
+// typed by somebody other than whoever last signed in on it.
+function signoffByName() {
+  const me = staffByUserId(trainingLoginId());
+  if (me && me.name) return me.name;
+  if (effectiveRole() === 'owner') return state.profile.ownerName || '';
+  return '';
+}
+
+function openSignoff(staffId, staffName, courseId) {
+  const who = { staffId: staffId || null, staffName };
+  if (!canRecordSignoff(who)) return;
+  state.signoffDraft = {
+    staffId: staffId || null, staffName, courseId,
+    checks: SIGNOFF_CHECKS.map(() => false),
+    competent: true, note: '', by: signoffByName()
+  };
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+function closeSignoff() {
+  state.signoffDraft = null;
+  state.trainingSession = { view: 'list', tab: 'team' };
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+function renderSignoff(screen) {
+  const d = state.signoffDraft;
+  const course = courseById(d.courseId);
+  if (!course) return closeSignoff();
+  const who = { staffId: d.staffId, staffName: d.staffName };
+  const self = signoffIsSelf(who);
+  const prior = signoffsFor(who, course.id).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+
+  const checks = SIGNOFF_CHECKS.map((t, i) => `
+      <label class="tr-check ${d.checks[i] ? 'on' : ''}">
+        <input type="checkbox" data-sign-check="${i}" ${d.checks[i] ? 'checked' : ''}>
+        <span>${escapeHtml(t)}</span>
+      </label>`).join('');
+
+  const history = prior.length ? `
+    <div class="card" style="margin-top:14px">
+      <label class="label">What has been recorded before</label>
+      ${prior.map(r => `<div class="tr-due" style="margin-top:8px">${escapeHtml(trainingDateStr(r.at))} &middot;
+        ${r.competent ? 'Signed off' : 'Not yet'} by ${escapeHtml(r.byName || 'someone')}${r.selfSigned ? ' (their own)' : ''}${r.note ? ' &mdash; ' + escapeHtml(r.note) : ''}</div>`).join('')}
+    </div>` : '';
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 08 &middot; Course ${escapeHtml(course.num)}</div>
+      <h2>Practical sign-off &mdash; ${escapeHtml(d.staffName)}</h2>
+      <p>You are recording that you watched this person do the work, not that they answered questions about it. Tick only what you actually saw.</p>
+    </div>
+    ${self ? `<div class="email-note" style="margin-bottom:14px">You are signing off your own practical. There is nobody above you in the app to do it, so this is allowed &mdash; the record will say it was self-signed, and so will the printed certificate.</div>` : ''}
+    <div class="card">
+      <label class="label">What you watched</label>
+      ${checks}
+      <label class="label" style="margin-top:18px">Can they do this work safely?</label>
+      <label class="tr-check ${d.competent ? 'on' : ''}" style="margin-top:8px">
+        <input type="radio" name="sign-verdict" data-sign-verdict="yes" ${d.competent ? 'checked' : ''}>
+        <span>Yes &mdash; I watched them, and they can</span>
+      </label>
+      <label class="tr-check ${d.competent ? '' : 'on'}">
+        <input type="radio" name="sign-verdict" data-sign-verdict="no" ${d.competent ? '' : 'checked'}>
+        <span>Not yet &mdash; there is something to work on first</span>
+      </label>
+      <label class="label" style="margin-top:18px">Notes${d.competent ? ' (optional)' : ''}</label>
+      <textarea class="input" id="sign-note" rows="3" placeholder="${d.competent ? 'Anything worth noting — the tasks you watched, anything you talked through.' : 'What needs work, so they and the next person watching both know.'}">${escapeHtml(d.note)}</textarea>
+      <label class="label" style="margin-top:14px">Recorded by</label>
+      <input class="input" id="sign-by" value="${escapeHtml(d.by)}" placeholder="Your name">
+      <p style="font-size:12px;color:var(--muted);margin-top:6px">This goes on the record and on the printed certificate, so it should be the person who actually did the watching.</p>
+      <div class="step-actions" style="margin-top:18px">
+        <button class="btn btn-ghost" id="sign-cancel">&larr; Back to the register</button>
+        <button class="btn btn-primary" id="sign-save">Record it</button>
+      </div>
+      <p id="sign-warn" class="tr-due late" style="display:none"></p>
+    </div>
+    ${history}`;
+
+  // Ticked state is toggled in place rather than re-rendered, so the page does
+  // not jump back to the top under someone working down the list.
+  screen.querySelectorAll('[data-sign-check]').forEach(el => el.addEventListener('change', () => {
+    d.checks[Number(el.dataset.signCheck)] = el.checked;
+    el.closest('.tr-check').classList.toggle('on', el.checked);
+  }));
+  screen.querySelectorAll('[data-sign-verdict]').forEach(el => el.addEventListener('change', () => {
+    d.competent = el.dataset.signVerdict === 'yes';
+    d.note = (document.getElementById('sign-note') || {}).value || d.note;
+    renderSignoff(screen);
+  }));
+  document.getElementById('sign-note').addEventListener('input', e => { d.note = e.target.value; });
+  document.getElementById('sign-by').addEventListener('input', e => { d.by = e.target.value; });
+  document.getElementById('sign-cancel').addEventListener('click', closeSignoff);
+  document.getElementById('sign-save').addEventListener('click', () => saveSignoff(screen));
+}
+
+function saveSignoff(screen) {
+  const d = state.signoffDraft;
+  if (!d) return;
+  const who = { staffId: d.staffId, staffName: d.staffName };
+  if (!canRecordSignoff(who)) return closeSignoff();
+
+  const warn = document.getElementById('sign-warn');
+  const complain = (msg) => { warn.textContent = msg; warn.style.display = ''; };
+  // A sign-off with half the boxes ticked is not a sign-off, and a "not yet"
+  // with no note tells the person nothing about what to work on.
+  if (d.competent && d.checks.some(v => !v)) return complain('Every line has to be ticked before you can sign someone off. If you did not see one of them, watch that part before recording it — or record it as not yet.');
+  if (!d.competent && !(d.note || '').trim()) return complain('Say what needs work. The note is the only thing that tells them, and the next person watching, what to look at.');
+  if (!(d.by || '').trim()) return complain('Put your name in — the record has to say who did the watching.');
+
+  state.signoffs.unshift({
+    id: newId('S'),
+    staffId: d.staffId || null,
+    staffName: d.staffName || '',
+    courseId: d.courseId,
+    byUserId: trainingLoginId(),
+    byName: d.by.trim(),
+    observed: d.checks.slice(),
+    competent: !!d.competent,
+    note: (d.note || '').trim(),
+    selfSigned: signoffIsSelf(who),
+    at: Date.now()
+  });
+  persistState();
+  closeSignoff();
 }
 
 // ===== The register, for whoever holds training.manage =====
@@ -6759,13 +7511,20 @@ function renderTrainingTeam(screen) {
       }
       const st = courseStanding(p, m, staffRec);
       const when = st.last ? trainingDateStr(st.last.completedAt) + tries : 'Never attempted';
+      const knocked = !!(st.signoff && st.signoff.competent === false);
       const note = {
         passed: '', expiring: 'Refresh due ' + trainingDateStr(st.expiresAt),
         expired: 'Refresh was due ' + trainingDateStr(st.dueAt),
         overdue: 'Was due ' + trainingDateStr(st.dueAt),
+        'awaiting-signoff': knocked ? 'Watched, not signed off yet' : 'Questions passed — waiting on a practical sign-off',
         optional: 'Optional', retry: 'Not passed', todo: '',
       }[st.state] || '';
       const title = escapeHtml([m.title, when, note].filter(Boolean).join(' — '));
+      // Half done is neither a tick nor a cross. Amber when it is waiting on us,
+      // a cross when a supervisor looked and said not yet.
+      if (st.state === 'awaiting-signoff') {
+        return `<td class="tr-cell ${knocked ? 'no' : 'wait'}" title="${title}">${knocked ? '&#10007; Not yet' : 'Sign-off'}</td>`;
+      }
       // A cross means they sat it and did not pass. Someone who has never opened
       // the course has not failed it, so an overdue one says so in words.
       if (!st.last) return `<td class="tr-cell ${st.overdue ? 'due' : 'none'}" title="${title}">${st.overdue ? 'Due' : '&mdash;'}</td>`;
@@ -6775,9 +7534,13 @@ function renderTrainingTeam(screen) {
       const mark = st.state === 'expired' ? '&#8635;' : (st.last.passed ? '&#10003;' : '&#10007;');
       return `<td class="tr-cell ${cls}" title="${title}">${mark} ${st.last.percent}%</td>`;
     }).join('');
-    const owed = sum.overdue
-      ? `<span style="color:var(--warn)">${sum.overdue} overdue</span>`
-      : (sum.outstanding ? sum.outstanding + ' to do' : '&mdash;');
+    // What is waiting on a supervisor is listed apart from what is waiting on
+    // the person, because only one of the two is theirs to go and do.
+    const owedBits = [];
+    if (sum.overdue) owedBits.push(`<span style="color:var(--warn)">${sum.overdue} overdue</span>`);
+    else if (sum.outstanding - sum.awaiting > 0) owedBits.push((sum.outstanding - sum.awaiting) + ' to do');
+    if (sum.awaiting) owedBits.push(`<span style="color:var(--accent)">${sum.awaiting} sign-off</span>`);
+    const owed = owedBits.length ? owedBits.join(' &middot; ') : '&mdash;';
     return `<tr>
         <th class="tr-name">${escapeHtml(p.staffName)}${p.stray ? ' <span class="tr-stray">not on staff list</span>' : ''}</th>
         ${cells}
@@ -6799,7 +7562,9 @@ function renderTrainingTeam(screen) {
       <button data-tr-tab="mine">My training</button>
       <button class="on" data-tr-tab="team">Team progress</button>
     </div></div>
+    ${trainingNoticeHtml()}
     ${banner}
+    ${signoffQueueHtml()}
     ${people.length ? `
     <div class="table-scroll">
       <table class="claims-table tr-table">
@@ -6809,6 +7574,7 @@ function renderTrainingTeam(screen) {
     </div>
     <div class="tr-key" style="margin-bottom:2px">
       <span>&#10003; passed</span><span>&#8635; passed, refresh overdue</span><span>&#10007; sat it, did not pass</span>
+      <span>Sign-off &mdash; questions passed, practical not yet watched</span>
       <span>Due &mdash; required and past its date</span><span>&mdash; not attempted</span>
     </div>
     <div class="tr-key">${key}</div>
@@ -6831,6 +7597,9 @@ function renderTrainingTeam(screen) {
     printTrainingRecord({ staffId: b.dataset.trPrint || null, staffName: b.dataset.trPrintName })));
   const csv = document.getElementById('tr-csv');
   if (csv) csv.addEventListener('click', exportTrainingCsv);
+  const nb = document.getElementById('tr-notice-ok');
+  if (nb) nb.addEventListener('click', () => { dismissNotice(NOTICE_MANUAL_HANDLING); renderTraining(); });
+  bindSignoffQueue(screen);
   bindCourseRulesPanel(screen);
 }
 
@@ -6896,16 +7665,24 @@ function bindCourseRulesPanel(screen) {
   }));
 }
 
+// Attempts and sign-offs go out together rather than as two exports. A register
+// that shows the questions and not the practical is half a record, and the half
+// it leaves out is the one somebody put their name to.
 function exportTrainingCsv() {
-  const head = ['Date', 'Person', 'Course', 'Attempt', 'Score', 'Out of', 'Percent', 'Result'];
+  const head = ['Date', 'Person', 'Course', 'Record', 'Attempt', 'Score', 'Out of', 'Percent', 'Result', 'Observed by', 'Notes'];
   const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const rows = (state.training || []).slice()
-    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
-    .map(r => {
-      const m = trainingModule(r.moduleId);
-      return [trainingDateStr(r.completedAt), r.staffName, m ? m.title : r.moduleId,
-              r.attempt, r.score, r.total, r.percent, r.passed ? 'Passed' : 'Not passed'].map(esc).join(',');
-    });
+  const attempts = (state.training || []).map(r => {
+    const m = trainingModule(r.moduleId);
+    return { at: r.completedAt || 0, cells: [trainingDateStr(r.completedAt), r.staffName, m ? m.title : r.moduleId,
+      'Quiz attempt', r.attempt, r.score, r.total, r.percent, r.passed ? 'Passed' : 'Not passed', '', ''] };
+  });
+  const signs = (state.signoffs || []).map(r => {
+    const c = courseById(r.courseId);
+    return { at: r.at || 0, cells: [trainingDateStr(r.at), r.staffName, c ? c.title : r.courseId,
+      'Practical sign-off', '', '', '', '', r.competent ? 'Signed off' : 'Not yet',
+      (r.byName || '') + (r.selfSigned ? ' (self-signed)' : ''), r.note || ''] };
+  });
+  const rows = attempts.concat(signs).sort((a, b) => b.at - a.at).map(r => r.cells.map(esc).join(','));
   downloadFile([head.map(esc).join(','), ...rows].join('\n'), 'hangr-training-register.csv', 'text/csv');
 }
 
@@ -6929,6 +7706,10 @@ function printTrainingRecord(who) {
       case 'expiring': return 'Passed — refresh due ' + trainingDateStr(st.expiresAt);
       case 'expired':  return 'Refresh overdue — was due ' + trainingDateStr(st.dueAt);
       case 'overdue':  return 'Overdue — was due ' + trainingDateStr(st.dueAt);
+      case 'awaiting-signoff':
+        return (st.signoff && st.signoff.competent === false)
+          ? 'Questions passed — practical not signed off'
+          : 'Questions passed — practical sign-off outstanding';
       case 'retry':    return 'Not passed';
       case 'optional': return l ? 'Not passed (optional)' : 'Not attempted (optional)';
       default:         return st.dueAt ? 'Not attempted — due by ' + trainingDateStr(st.dueAt) : 'Not attempted';
@@ -6950,6 +7731,35 @@ function printTrainingRecord(who) {
 
   const sum = trainingSummary(who, activeCourses());
 
+  // The practical half, where a course has one. It prints as its own table
+  // rather than a column, because it is a different kind of evidence: somebody
+  // watched this person work and put their name to what they saw.
+  const signRows = (state.signoffs || []).filter(r =>
+      who.staffId ? r.staffId === who.staffId : (!r.staffId && r.staffName === who.staffName))
+    .sort((a, b) => (b.at || 0) - (a.at || 0))
+    .map(r => {
+      const c = courseById(r.courseId);
+      return `<tr>
+        <td style="padding:6px 8px">${escapeHtml(trainingDateStr(r.at))}</td>
+        <td style="padding:6px 8px">${escapeHtml(c ? c.num + ' ' + c.title : r.courseId)}</td>
+        <td style="padding:6px 8px">${r.competent ? 'Signed off as competent' : 'Not yet — further practice needed'}</td>
+        <td style="padding:6px 8px">${escapeHtml(r.byName || '')}${r.selfSigned ? ' <em>(self-signed)</em>' : ''}</td>
+        <td style="padding:6px 8px">${escapeHtml(r.note || '')}</td>
+      </tr>`;
+    }).join('');
+
+  const signBlock = signRows ? `
+    <h3 style="font-size:12pt;margin:26px 0 6px">Practical sign-offs</h3>
+    <p style="font-size:10pt;color:#555;margin:0 0 10px">Where a course asks for more than a quiz, a supervisor observes the work and records what they saw. These are those records.</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 10px;font-size:11pt">
+      <thead><tr style="text-align:left;border-bottom:1.5px solid #333">
+        <th style="padding:6px 8px">Date</th><th style="padding:6px 8px">Course</th>
+        <th style="padding:6px 8px">Outcome</th><th style="padding:6px 8px">Observed by</th>
+        <th style="padding:6px 8px">Notes</th>
+      </tr></thead>
+      <tbody>${signRows}</tbody>
+    </table>` : '';
+
   const inner = `
     <p><strong>${escapeHtml(who.staffName || 'Staff member')}</strong> has passed <strong>${sum.requiredPassed} of ${sum.required}</strong> required staff training courses${sum.overdue ? `, with <strong>${sum.overdue}</strong> overdue` : ''}.</p>
     <table style="width:100%;border-collapse:collapse;margin:18px 0;font-size:11pt">
@@ -6961,6 +7771,7 @@ function printTrainingRecord(who) {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    ${signBlock}
     <p style="font-size:10pt;color:#555">Pass mark is ${Math.round(TRAINING_PASS_MARK * 100)}%. Every attempt is recorded, and courses may be retaken without limit. Deadlines are counted from the person's start date.</p>
     <p style="font-size:10pt;color:#555">This record shows that the named person completed internal training on the topics listed. It is a record of training undertaken. It is not a qualification, and it does not by itself discharge the business's obligations under the Australian Consumer Law or work health and safety law.</p>`;
 
@@ -9338,10 +10149,16 @@ const ROLE_BLURBS = {
 //   financials     bills, utility spend, money in and out
 //   settings       edit the business profile and branding
 //   manageAccess   invite people and change their role
+//   training.manage  the register, and what each course asks of a person
+//   training.signoff record that they watched someone do the practical half of a
+//                  course. Managers hold this without holding training.manage:
+//                  they are the people actually on the floor watching the work,
+//                  and routing every sign-off through the owner across four
+//                  sites is how a control turns into a thing nobody does.
 const ROLE_CAPS = {
-  owner:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess', 'training.manage'],
-  admin:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage'],
-  manager: ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents'],
+  owner:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'manageAccess', 'training.manage', 'training.signoff'],
+  admin:   ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'knowledge.edit', 'staffRecords', 'financials', 'settings', 'training.manage', 'training.signoff'],
+  manager: ['chat', 'chats.all', 'problems', 'letters.own', 'letters.all', 'claims', 'priceLists', 'documents', 'training.signoff'],
   // 'documents' here means "may be answered from documents at all" — which ones
   // is decided per document by docVisibleToRole. A manual is no use to the owner
   // sitting in an office while the person at the machine cannot be told what the

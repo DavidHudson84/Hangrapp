@@ -1,9 +1,14 @@
 # Manual handling — scope for module 07
 
-> **Status: scoped, not built.** Raised by Rita during testing — the training engine
-> already does everything a manual handling course needs except prove the person can
-> actually lift. This document is the plan, the options considered, and the four
-> decisions already made. Nothing in `index.html` has changed.
+> **Status: built and pushed. Nothing is deployed.** Raised by Rita during testing —
+> the training engine already did everything a manual handling course needs except
+> prove the person can actually lift.
+>
+> Where the build diverged from this scope, noted inline below: the refresh requires
+> **both** halves again rather than one (Q1, decided); the sign-off queue ships without
+> the ageing flag; an owner may self-sign; and the release carries a one-time notice on
+> the register. Batches A, B and C all landed rather than A and B alone. The figures are
+> generic line diagrams as scoped — photographs of a real plant remain follow-on work.
 
 Scoped against `index.html` at `3f5952d`, with `docs/TRAINING.md` as the reference for
 how module 08 already works.
@@ -144,16 +149,17 @@ Photographs of our own plant and image upload for custom courses are both follow
 noted here so the renderer is built to take them: `figures` entries would carry a `src`
 instead of an `svg`, with the usual size cap.
 
-## Suggested order
+## What was built
 
-| Batch | What | Why grouped |
+| Batch | What | Status |
 |---|---|---|
-| **A** | Course 07 content, quiz, and its rule defaults | No engine change beyond three default values. Shippable on its own and useful the day it lands. |
-| **B** | `figures` support in the lesson renderer, plus the diagrams | Presentation only. Touches one render path and no stored data. |
-| **C** | Sign-off: records, merge, standing, permission, register column, certificate row | The real work. Changes stored data shape and the shared `courseStanding()` every chip and count reads from. |
+| **A** | Course 07 content, quiz, and its rule defaults | Built. Six lessons, ten questions, 80% pass mark, `COURSE_RULE_DEFAULTS` carrying the 30-day deadline and 12-month refresh. |
+| **B** | `figures` support in the lesson renderer, plus the diagrams | Built. Four inline SVG diagrams: the lift, twisting, pushing a cage, working height. Rendered for built-in courses only. |
+| **C** | Sign-off: records, merge, standing, permission, queue, certificate, CSV | Built. `state.signoffs`, the `awaiting-signoff` standing, `training.signoff` for managers, the waiting queue, and both exports. |
 
-A and B can land together. C should be its own commit — it is the one that can break the
-register for the six courses that already exist, so it wants to be revertible on its own.
+Covered by 43 tests driving the real code in `index.html` — the standing machine, the
+refresh arithmetic on both halves, who may sign what, the form's validation, the queue,
+the notice, and both exports — plus a browser pass through the whole flow.
 
 ## Switching it on
 
@@ -172,21 +178,35 @@ release rather than the person's start date, which sounds kinder but puts a date
 record that is not defensible later — *within 30 days of starting* is a rule a tribunal
 can check, *within 30 days of whenever we updated the app* is not.
 
-## Open questions
-
-None of these block batch A.
+## Questions, and how they were answered
 
 1. **Does the 12-month refresh require the quiz again, the sign-off again, or both?**
-   Recommend both — a year is long enough for technique to drift, and the observation is
-   the part that matters. The lighter alternative is sign-off only on refresh, with the
-   quiz sat once. Worth a view before batch C.
-2. **What happens to someone with no supervisor at their site on the day?** Currently
-   they sit in `awaiting-signoff` indefinitely. That is honest but it is also the state
-   most likely to be ignored. Options: leave it, or surface an owner-facing list of who is
-   waiting, which is a small addition to the register.
+   **Both.** Each half carries its own expiry and the course falls due when the first of
+   them does, so re-sitting the questions cannot revive a year-old practical and a fresh
+   observation cannot revive a year-old quiz.
+2. **What happens to someone with no supervisor at their site on the day?** They sit in
+   `awaiting-signoff`, which is outstanding but never overdue — it is the business
+   holding them up, not the other way round. The queue at the top of the register is what
+   keeps that visible. The ageing flag that would turn a long wait red as the *business's*
+   overdue was considered and left out; if these queues start sitting for weeks, that is
+   the change to make.
 3. **Gordon Hotel.** Kegs, cartons and cellar work are the same duty and different tasks.
-   Out of scope here — a hospitality variant is a separate course, not a branch inside
-   this one.
+   Out of scope — a hospitality variant is a separate course, not a branch inside this
+   one.
+
+## Still open
+
+- **Photographs instead of line drawings.** The renderer takes a `figures` array keyed to
+  diagrams shipped in the file; the same shape would take a `src`. Real photos of the
+  Altona plant would teach better and would also make the built-in course look specific to
+  one business, so they belong in a business's own course rather than this one.
+- **Image upload for a business's own courses.** Deliberately not built. Custom courses
+  arrive through the cloud blob and go through `renderMarkdown`, which escapes before it
+  parses — that escape is what stops an AI-drafted course injecting markup, and an image
+  would need a hole in it. Worth doing properly rather than quickly.
+- **A per-site register of hazardous tasks** — the third option in the original depth
+  question. Still the thing that would move this from a good course to the control the
+  regulations actually contemplate, and still a separate feature.
 
 ## Files this touches
 
