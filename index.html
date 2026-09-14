@@ -846,7 +846,10 @@
 .problem-more[open] > summary { color: var(--accent); }
 
   .ui-modal-backdrop { position: fixed; inset: 0; background: rgba(20,20,25,.44); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
-  .ui-modal { background: var(--paper); border: 1px solid var(--rule-strong); border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .ui-modal { background: var(--paper); border: 1px solid var(--rule-strong); border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.25); max-height: calc(100vh - 40px); overflow-y: auto; }
+  /* A price list or any other long body needs room to read and room to scroll. */
+  .ui-modal.ui-modal-wide { max-width: 760px; }
+  .ui-modal.ui-modal-wide p { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; color: var(--ink); }
   .ui-modal h3 { margin: 0 0 8px; font-size: 16px; }
   .ui-modal p { margin: 0 0 14px; font-size: 14px; color: var(--muted); white-space: pre-line; }
   .ui-modal-input { width: 100%; margin-bottom: 16px; }
@@ -1427,7 +1430,7 @@ function uiModal(opts) {
     const wrap = document.createElement('div');
     wrap.className = 'ui-modal-backdrop';
     wrap.innerHTML =
-      '<div class="ui-modal">' +
+      '<div class="ui-modal' + (opts.wide ? ' ui-modal-wide' : '') + '">' +
         (opts.title ? '<h3>' + escapeHtml(opts.title) + '</h3>' : '') +
         (opts.message ? '<p>' + escapeHtml(opts.message) + '</p>' : '') +
         // opts.html is markup this app built, never anything a user typed.
@@ -8376,19 +8379,36 @@ function assemblePriceSummary(overview, groups, checks) {
   return out.trim();
 }
 
-// What the owner is told after a decode. A short list that read cleanly says so
-// in one line; anything that had to be left out is named, because the whole
-// point of this screen is that the stores can trust what they quote from.
-function priceDecodeNote(d, items, cats, passes, cut) {
+// The closest thing to a ground truth the app has for "how many items should
+// have come out" is the number of source rows carrying a price. It is not exact
+// — a two-column layout puts two items on one line, and a heading can carry a
+// dollar sign — so it is reported as a cross-check for the owner to judge, and
+// never used to change what was decoded.
+function countPricedRows(text) {
+  return String(text || '').split(/\r?\n/).filter(l =>
+    /\$\s*\d|\d+\.\d{2}\b/.test(l) && l.replace(/[^a-z]/gi, '').length > 2
+  ).length;
+}
+
+// What the owner is told after a decode. The per-category counts are there so a
+// total can actually be reconciled against the source list, and the row
+// cross-check is there so a short decode is caught on this screen rather than at
+// a counter three weeks later.
+function priceDecodeNote(d, groups, passes, cut, rows) {
+  const items = groups.reduce((n, g) => n + g.lines.length, 0);
   let n = 'Decoded ' + items.toLocaleString() + ' item' + (items === 1 ? '' : 's') +
-          ' across ' + cats + ' categor' + (cats === 1 ? 'y' : 'ies');
-  n += passes > 1 ? ', read in ' + passes + ' passes.' : '.';
+          ' across ' + groups.length + ' categor' + (groups.length === 1 ? 'y' : 'ies');
+  n += passes > 1 ? ', read in ' + passes + ' passes — ' : ' — ';
+  n += groups.map(g => g.cat.toLowerCase() + ' ' + g.lines.length).join(', ') + '.';
   if (d.truncatedFrom) {
     n += ' Only the first ' + PRICE_SOURCE_CAP.toLocaleString() + ' of ' + d.truncatedFrom.toLocaleString() +
          ' characters were read — split the list and upload it in parts so nothing is left off.';
   }
   if (cut) {
     n += ' One part of the list was too dense to decode in full even after splitting — check the end of each category against your source before sharing this.';
+  }
+  if (rows && items < Math.round(rows * 0.85)) {
+    n += ' Your file has about ' + rows.toLocaleString() + ' rows with a price on them, so this has come out short — check it against your source before sharing it.';
   }
   return n;
 }
@@ -8443,7 +8463,7 @@ async function decodePriceList() {
   d.items = total;
   d.truncatedFrom = source.length > readable.length ? source.length : 0;
   d.summary = assemblePriceSummary(overview.overview, groups, overview.checks.length ? overview.checks : checks);
-  d.decodeNote = priceDecodeNote(d, total, groups.length, windows.length, cut);
+  d.decodeNote = priceDecodeNote(d, groups, windows.length, cut, countPricedRows(readable));
   render();
 }
 
@@ -8567,7 +8587,11 @@ function bindPriceListControls() {
 
   document.querySelectorAll('[data-price-view]').forEach(el => el.addEventListener('click', () => {
     const p = state.priceLists.find(x => x.id === el.dataset.priceView);
-    if (p) uiAlert(p.summary || p.text || 'No summary was saved.', (p.tag ? '[' + p.tag + '] ' : '') + (p.title || 'Price list'));
+    if (p) uiModal({
+      title: (p.tag ? '[' + p.tag + '] ' : '') + (p.title || 'Price list') + (p.items ? ' — ' + p.items.toLocaleString() + ' items' : ''),
+      message: p.summary || p.text || 'No summary was saved.',
+      confirmLabel: 'Close', cancelLabel: null, wide: true
+    });
   }));
   document.querySelectorAll('[data-price-remove]').forEach(b => b.addEventListener('click', async () => {
     const p = state.priceLists.find(x => x.id === b.dataset.priceRemove);
