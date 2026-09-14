@@ -1,11 +1,14 @@
 # Email — Resend and the send-letter function
 
-Two functions send mail, and they hold their own copies of the same two secrets
-because each edge function reads its own environment. `send-letter` sends letters
-and advice notes, and is what the rest of this page is about. `manage-access`
-sends one thing only — the login handover for a staff member the owner has just
-created — from a fixed template it builds itself; see [USERS.md](USERS.md).
-Setting `RESEND_API_KEY` and `EMAIL_FROM` on one does not set them on the other.
+Two functions send mail. `send-letter` sends letters and advice notes, and is
+what the rest of this page is about. `manage-access` sends one thing only — the
+login handover for a staff member the owner has just created — from a fixed
+template it builds itself; see [USERS.md](USERS.md).
+
+They share one set of secrets. Edge Function secrets belong to the **project**,
+not to a function, so `RESEND_API_KEY` and `EMAIL_FROM` are set once and read by
+every function in the project. Setting them for `send-letter` set them for
+`manage-access` too.
 
 ## How a letter gets sent
 
@@ -47,9 +50,9 @@ Printed and downloaded copies are unaffected — those never left the browser.
 ## The secrets
 
 Set these under **Project Settings → Edge Functions → Secrets** in the Supabase
-dashboard. The function reads them at request time, so no redeploy is needed
-after a change — but an in-flight instance can hold an old value for a minute or
-so.
+dashboard, where they apply to every function in the project. The function reads
+them at request time, so no redeploy is needed after a change — but an in-flight
+instance can hold an old value for a minute or so.
 
 | Name | Value | Why |
 |------|-------|-----|

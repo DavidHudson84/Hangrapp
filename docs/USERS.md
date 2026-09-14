@@ -61,11 +61,13 @@ There is still no Supabase **invite link** — that would need Supabase's own SM
 pointed at Resend, and a link is worse than a password for someone who will be
 signing in on a shared counter machine anyway.
 
-Option 3 is the only one that needs setting up: `RESEND_API_KEY` and `EMAIL_FROM`
-on the `manage-access` function, the same two values `send-letter` already uses.
-Without them the tickbox is disabled and says so, and options 1 and 2 are
+Option 3 needs `RESEND_API_KEY` and `EMAIL_FROM` readable by `manage-access`.
+On this project they already are: **Edge Function secrets are set per project, not
+per function**, so the two values `send-letter` has been using are the same two
+`manage-access` reads, and there is nothing to add. A different deployment that
+has never set them gets a disabled tickbox that says so, with options 1 and 2
 unaffected. The app asks the function whether it can send rather than keeping its
-own copy of the answer, so adding the secrets takes effect without redeploying
+own copy of the answer, so setting them takes effect without redeploying
 `index.html`.
 
 **Email it** works only while the card is on screen. The password is stored
@@ -145,11 +147,12 @@ supabase functions deploy ai            --project-ref cntwhojxperdrrufpokl
 ```
 
 Secrets are set in the dashboard (Project Settings → Edge Functions → Secrets),
-not in the repo. `manage-access` needs `ALLOWED_ORIGIN`; the three `SUPABASE_*`
-values it uses are provided by the platform. To let it email the handover, add
-`RESEND_API_KEY` and `EMAIL_FROM` as well — the same two values `send-letter`
-already has, copied across rather than shared, because each function reads its
-own environment. See [EMAIL.md](EMAIL.md) for what they hold.
+not in the repo, and they belong to the **project** — every function in it reads
+the same set, so there is no such thing as adding a secret to one function.
+`manage-access` uses `ALLOWED_ORIGIN`, the three platform-provided `SUPABASE_*`
+values, and — for the handover email — `RESEND_API_KEY` and `EMAIL_FROM`, which
+are already set because `send-letter` sends with them. Nothing to add here; see
+[EMAIL.md](EMAIL.md) for what they hold.
 
 `ALLOW_CUSTOMER_SEND` is **not** consulted here. That switch is about letters to
 customers; telling your own new staff member their password is not the same act

@@ -9886,7 +9886,7 @@ function renderUsers() {
           <input id="user-new-sendto" placeholder="Send to a different address — their personal one, if they have no work inbox" autocomplete="off" style="display:none;margin-top:8px">
           <p style="font-size:12px;color:var(--muted);margin:8px 0 0">${canEmailInvite
             ? 'It goes out from the Hangr address with your own business email as the reply-to. Leave the address blank and it goes to the login email itself. Either way the message below the new login is still there to paste.'
-            : 'Emailing needs RESEND_API_KEY and EMAIL_FROM adding to the manage-access function in Supabase — see docs/USERS.md. Until then, the message that appears once the login is created is there to paste into WhatsApp or your own email.'}</p>
+            : 'Emailing needs RESEND_API_KEY and EMAIL_FROM in this project\u2019s Edge Function secrets in Supabase — see docs/USERS.md. Until then, the message that appears once the login is created is there to paste into WhatsApp or your own email.'}</p>
         </div>
       </div>
       <div class="staff-actions">

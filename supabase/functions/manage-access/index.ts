@@ -12,10 +12,12 @@
 // the browser copy of a rule is a suggestion, and this one hands out access.
 //
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (all
-// provided by the platform), ALLOWED_ORIGIN, and — only if the handover is to be
-// emailed rather than read out — RESEND_API_KEY and EMAIL_FROM, the same two
-// send-letter uses. Without those the roster works exactly as before and the app
-// offers the copy-and-paste message instead. See docs/USERS.md.
+// provided by the platform), ALLOWED_ORIGIN, and — for the handover email —
+// RESEND_API_KEY and EMAIL_FROM. Those last two are not separate copies: edge
+// function secrets belong to the project, so these are the same values
+// send-letter sends with and are already set wherever it works. Where they are
+// absent the roster behaves exactly as before and the app offers the
+// copy-and-paste message instead. See docs/USERS.md.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
