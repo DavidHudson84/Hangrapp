@@ -2226,7 +2226,9 @@ function buildSystemPrompt(profile, history, userMessage) {
   const _pl = state.priceLists || [];
   let priceContext = '';
   if (_pl.length) {
-    priceContext = '\nPRICE LISTS THE OWNER HAS LOADED — each is tagged by scope (Standard, Location, Agency or Customer) with a name. When an enquiry names a specific store/location, agency or customer, quote from the price list whose tag/name matches; otherwise use a Standard/general list. If more than one could apply and it is unclear, ask which to use. Never invent a price; if an item is not listed, say so.\n' + _pl.map(p => '===== ' + (p.tag ? '[' + p.tag + '] ' : '') + (p.title || 'Price list') + ' =====\n' + (p.summary || p.text || '').slice(0, 4000)).join('\n\n') + '\n===== end price lists =====\n';
+    priceContext = '\nPRICE LISTS THE OWNER HAS LOADED — each is tagged by scope (Standard, Location, Agency or Customer) with a name. When an enquiry names a specific store/location, agency or customer, quote from the price list whose tag/name matches; otherwise use a Standard/general list. If more than one could apply and it is unclear, ask which to use. Never invent a price; if an item is not listed, say so. Where a list below shows "…", lines have been left out to keep this short — offer to look the item up rather than telling the customer it is not on the list.\n'
+      + 'On file: ' + _pl.map(p => (p.tag ? '[' + p.tag + '] ' : '') + (p.title || 'Price list')).join('; ') + '\n\n'
+      + retrievePriceLists(userMessage) + '\n===== end price lists =====\n';
   }
   const historyText = history.length
     ? history.map(m => `${m.role === 'user' ? 'OWNER' : 'YOU'}: ${m.content}`).join('\n\n')
@@ -7966,6 +7968,63 @@ function retrieveDocuments(q) {
   }).join('\n\n');
 }
 
+// The same idea as retrieveDocuments, for prices. A store list runs well past
+// what can sit in front of every question, so the lines that match the enquiry
+// are pulled out — rather than taking the first few thousand characters of each
+// list and leaving the back half of every one of them unquotable.
+function retrievePriceLists(q) {
+  const lists = state.priceLists || [];
+  if (!lists.length) return '';
+  const toks = [...new Set((q || '').toLowerCase().split(/[^a-z0-9']+/).filter(t => t.length > 2))];
+
+  // Name and tag score heavily, so an enquiry that names a store or a contract
+  // customer quotes from that store's list rather than whichever was loaded first.
+  const scored = lists
+    .map(p => ({ p, sc: _scoreText((p.title || '') + ' ' + (p.tag || '') + ' ' + (p.fileName || ''), toks) * 4 }))
+    .sort((a, b) => b.sc - a.sc);
+  const named = scored.filter(x => x.sc > 0);
+  const picked = (named.length ? named.slice(0, 2) : scored.slice(0, 3)).map(x => x.p);
+
+  const budget = Math.floor(PRICE_CHAT_BUDGET / picked.length);
+  return picked.map(p => {
+    let out = '===== ' + (p.tag ? '[' + p.tag + '] ' : '') + (p.title || 'Price list') + ' =====\n';
+    out += priceListExtract(p, toks, budget);
+    if (p.truncatedFrom) {
+      out += '\n\n[NOTE: only the first ' + (p.text || '').length.toLocaleString() + ' of ' +
+             p.truncatedFrom.toLocaleString() + ' characters of this price list are on file. If an item is not here, say it needs checking against the full list rather than saying it is not offered.]';
+    }
+    return out;
+  }).join('\n\n');
+}
+
+// Keep the overview line and every category heading, then spend what is left of
+// the budget on the item lines that match the question, then fill from the top so
+// a general question still sees prices. Gaps are marked so the model knows lines
+// were left out and does not read a missing item as an item not offered.
+function priceListExtract(p, toks, budget) {
+  const text = (p.summary || p.text || '');
+  if (text.length <= budget) return text;
+  const lines = text.split(/\r?\n/);
+  const isHeading = (l) => l.trim() && l.indexOf('—') === -1 && l.charAt(0) !== '-' && l.length < 60;
+
+  const keep = new Array(lines.length).fill(false);
+  let used = 0;
+  const take = (i) => { if (!keep[i]) { keep[i] = true; used += lines[i].length + 1; } };
+
+  lines.forEach((l, i) => { if (i === 0 || isHeading(l)) take(i); });
+  if (toks.length) lines.forEach((l, i) => { if (!keep[i] && used < budget && _scoreText(l, toks) > 0) take(i); });
+  lines.forEach((l, i) => { if (!keep[i] && used < budget) take(i); });
+
+  const out = [];
+  let gap = false;
+  lines.forEach((l, i) => {
+    if (keep[i]) { if (gap) { out.push('…'); gap = false; } out.push(l); }
+    else if (l.trim()) gap = true;
+  });
+  if (gap) out.push('…');
+  return out.join('\n');
+}
+
 // The document library renders in two places: as a setup step during onboarding
 // and in Settings afterwards. The body and its bindings are split out so both
 // callers share one implementation.
@@ -8005,6 +8064,7 @@ function documentsBodyHtml() {
         <input type="file" id="doc-input" accept=".pdf,.txt,.md,.markdown,.csv,.tsv,.json,.log,.rtf,.htm,.html,.xml,.yaml,.yml" style="display:none">
       </div>
       ${d.readNote ? `<div class="facts-note" style="margin-bottom:12px">${escapeHtml(d.readNote)}</div>` : ''}
+      ${d.decodeNote ? `<div class="facts-note" style="margin-bottom:12px">${escapeHtml(d.decodeNote)}</div>` : ''}
       ${(d.text || '').length > docCapFor(d.type) ? `<div class="doc-warn">This is ${(d.text || '').length.toLocaleString()} characters and ${docCapFor(d.type).toLocaleString()} can be kept, so the last ${((d.text || '').length - docCapFor(d.type)).toLocaleString()} will not be saved. If the part you care about is near the end — the fault codes, the service schedule — cut the text down to those sections before saving.</div>` : ''}
       ${dt && dt.key === 'Equipment manual' ? `<div class="facts-note" style="margin-bottom:12px">Worth keeping above all: the fault and error code table, service intervals, consumables and part numbers, and the safety and lockout steps. A scanned manual has no text layer to read — if nothing came through, photograph or type those sections in.</div>` : ''}
       <div class="staff-field"><label>Title</label><input data-docf="title" value="${escapeHtml(d.title)}" placeholder="${dt ? escapeHtml(dt.button) + ' — 2026' : 'e.g. Business insurance policy 2026'}"></div>
@@ -8108,7 +8168,25 @@ function bindDocumentControls() {
   }));
 }
 // ============ PRICE LIST ============
-function emptyPriceDraft() { return { title: '', tag: '', fileName: '', size: 0, text: '', readNote: '', summary: '' }; }
+// A real store list is decoded in windows rather than in one call. Both ends of
+// a single call were too small for one: the source was cut at 16,000 characters
+// before it was ever sent, and the reply ran into the token ceiling and stopped
+// mid-list — silently, because a cut-off reply reads exactly like a finished one.
+// Windows keep every pass well inside both limits, and what each pass returns is
+// merged here rather than being left to one long answer that has to hold it all.
+const PRICE_SOURCE_CAP = 150000;   // characters of source text read in total
+const PRICE_WINDOW = 12000;        // characters of source decoded per pass
+const PRICE_DECODE_TOKENS = 8000;  // reply ceiling per pass — a window cannot fill this
+const PRICE_TEXT_CAP = 60000;      // characters of source kept on file behind the summary
+const PRICE_CHAT_BUDGET = 8000;    // characters of price detail put in front of a chat question
+
+const PRICE_CATEGORIES = [
+  'Garments', 'Household & manchester', 'Wedding gowns', 'Rugs & carpet',
+  'Leather, suede & fur', 'Alterations & repairs', 'Ironing & pressing',
+  'Curtains & blinds', 'Other'
+];
+
+function emptyPriceDraft() { return { title: '', tag: '', fileName: '', size: 0, text: '', readNote: '', summary: '', decodeNote: '', items: 0, truncatedFrom: 0 }; }
 
 async function readPriceFile(file) {
   const name = (file.name || '').toLowerCase();
@@ -8131,44 +8209,241 @@ async function readPriceFile(file) {
   return await readDocFile(file);
 }
 
-function buildPriceDecodePrompt(d) {
+function priceScope(d) {
   const biz = state.profile.businessName || 'the business';
-  const scope = d.tag ? `\nThis list is tagged "${d.tag}"${d.title ? ' — ' + d.title : ''}, so it is specific to that ${d.tag.toLowerCase()}.` : '';
-  const text = (d.text || '').slice(0, 16000);
-  return `You are decoding a PRICE LIST for ${biz}, an Australian dry cleaning operator, so it can be used to answer customer enquiries and quote quickly.${scope}
+  const scope = d.tag ? ` This list is tagged "${d.tag}"${d.title ? ' — ' + d.title : ''}, so it is specific to that ${d.tag.toLowerCase()}.` : '';
+  return { biz, scope };
+}
+
+// Split on line boundaries, and repeat the header row on every window after the
+// first. A POS export names its columns once at the top; without that row a
+// later window has no way to tell a price from a product code.
+function splitPriceSource(text) {
+  const lines = [];
+  String(text || '').split(/\r?\n/).forEach(l => {
+    if (l.length <= PRICE_WINDOW) { lines.push(l); return; }
+    for (let i = 0; i < l.length; i += PRICE_WINDOW) lines.push(l.slice(i, i + PRICE_WINDOW));
+  });
+  const headerLine = lines.find(l => l.trim()) || '';
+  const windows = [];
+  let cur = [], len = 0;
+  lines.forEach(l => {
+    if (len + l.length + 1 > PRICE_WINDOW && cur.length) { windows.push(cur.join('\n')); cur = []; len = 0; }
+    cur.push(l); len += l.length + 1;
+  });
+  if (cur.length) windows.push(cur.join('\n'));
+  return windows.map((w, i) => (i === 0 || !headerLine || w.indexOf(headerLine) === 0) ? w : headerLine + '\n' + w);
+}
+
+function buildPriceWindowPrompt(d, chunk, part, total) {
+  const { biz, scope } = priceScope(d);
+  const partNote = total > 1
+    ? `\nThis is part ${part} of ${total} of a long price list. Decode ONLY the rows below — the other parts are handled separately. The first line may be the column header repeated from the top of the file.`
+    : '';
+  return `You are decoding a PRICE LIST for ${biz}, an Australian dry cleaning operator, so it can be used to answer customer enquiries and quote quickly.${scope}${partNote}
 
 PRICE LIST SOURCE (from an uploaded CSV, Excel or PDF, or pasted in — may be messy or partial)
-${text || '(no machine-readable text — ask the owner to paste the price list)'}
+${chunk}
 
 DECODE IT
 - Work out the columns: item/service, price, unit, category, notes. Watch for multi-column layouts where each column is a different store or tier.
-- Group items by service category: garments, household/manchester, wedding gowns, rugs & carpet, leather/suede/fur, alterations & repairs, ironing/pressing, curtains & blinds.
 - Read each price with its unit ($ per item, per square metre, per kilo, or a "from" price/range). Keep Australian dollars.
-- GST: assume retail prices are GST-inclusive unless the sheet says otherwise; state the assumption. GST is 10%.
+- GST: assume retail prices are GST-inclusive unless the sheet says otherwise. GST is 10%.
 - Capture modifiers: express/urgent surcharges, minimum charges, bulk/account discounts, pick-up/delivery rules.
 
-OUTPUT (plain text, tight, no markdown headings)
-1. One overview line: number of items, how many categories, price range, GST basis, and any list date/version shown.
-2. A clean summary grouped by category: item — price — unit — notes.
-3. "Things to check": missing/blank prices, duplicates, inconsistent units, prices that look mistyped, or a store column out of step with the others. Most important first.
-Never invent a price. If something isn't in the source, list it under "things to check" rather than guessing.
+OUTPUT — two sections, plain text, no markdown headings.
 
-Decoded price list:`;
+ITEMS
+One line per item, every line in exactly this shape:
+CATEGORY :: item — price — unit — notes
+CATEGORY must be one of: ${PRICE_CATEGORIES.join(' | ')}
+Leave the notes empty if there are none, but keep the dashes. Output EVERY priced row in the source above — do not summarise, do not stop early, do not write "and so on".
+
+CHECKS
+One per line: missing or blank prices, duplicates, inconsistent units, prices that look mistyped, or a store column out of step with the others. Write "none" if nothing is off.
+Never invent a price. If something isn't in the source, put it under CHECKS rather than guessing.`;
+}
+
+function canonPriceCategory(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s) return 'Other';
+  const exact = PRICE_CATEGORIES.find(c => c.toLowerCase() === s);
+  if (exact) return exact;
+  const loose = PRICE_CATEGORIES.find(c => c.toLowerCase().indexOf(s) !== -1 || s.indexOf(c.toLowerCase().split(/[ ,&]/)[0]) !== -1);
+  return loose || 'Other';
+}
+
+// Item lines carry their own category, so a line is usable wherever it appears.
+// Anything that isn't an item line is treated as a check.
+function parsePriceWindow(text) {
+  const items = [], checks = [];
+  let mode = '';
+  String(text || '').split(/\r?\n/).forEach(raw => {
+    const line = raw.trim();
+    if (!line) return;
+    if (/^items\b/i.test(line) && line.length < 12) { mode = 'i'; return; }
+    if (/^checks\b/i.test(line) && line.length < 12) { mode = 'c'; return; }
+    const cut = line.indexOf('::');
+    if (cut > 0) {
+      const body = line.slice(cut + 2).trim();
+      if (body) { items.push({ cat: canonPriceCategory(line.slice(0, cut)), line: body }); return; }
+    }
+    if (mode === 'c' && !/^none[.!]?$/i.test(line)) checks.push(line.replace(/^[-•*]\s*/, ''));
+  });
+  return { items, checks };
+}
+
+// One window, with the reply ceiling raised far above what a window can fill.
+// If a window still comes back cut off it is halved and re-run rather than kept
+// short — a price list that quietly loses its back half is worse than a slow one.
+async function decodePriceWindow(d, chunk, part, total, depth) {
+  const raw = await askClaudeSafe(buildPriceWindowPrompt(d, chunk, part, total), null, PRICE_DECODE_TOKENS);
+  const got = parsePriceWindow(coerceAIResponse(raw));
+  const cut = !!(raw && raw.stop_reason === 'max_tokens');
+  const lines = chunk.split(/\r?\n/);
+  if (!cut || (depth || 0) >= 2 || lines.length < 4) return { items: got.items, checks: got.checks, cut: cut };
+
+  const mid = Math.floor(lines.length / 2);
+  const a = await decodePriceWindow(d, lines.slice(0, mid).join('\n'), part, total, (depth || 0) + 1);
+  const b = await decodePriceWindow(d, lines[0] + '\n' + lines.slice(mid).join('\n'), part, total, (depth || 0) + 1);
+  return { items: a.items.concat(b.items), checks: a.checks.concat(b.checks), cut: a.cut || b.cut };
+}
+
+// The repeated header row and overlapping passes can hand back the same item
+// twice, so identical lines within a category collapse to one.
+function mergePriceItems(items) {
+  const seen = new Set(), byCat = new Map();
+  items.forEach(it => {
+    // Punctuation and spacing drift between passes, so the key is the line
+    // stripped back to its words, prices and decimals.
+    const key = it.cat + '|' + it.line.toLowerCase().replace(/[^a-z0-9$.]+/g, '');
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (!byCat.has(it.cat)) byCat.set(it.cat, []);
+    byCat.get(it.cat).push(it.line);
+  });
+  return PRICE_CATEGORIES.filter(c => byCat.has(c)).map(c => ({ cat: c, lines: byCat.get(c) }));
+}
+
+// The overview and the final checks are asked for separately, off the decoded
+// categories rather than the raw list. That call stays small however long the
+// price list is, because it never has to repeat the items back.
+function buildPriceOverviewPrompt(d, groups, checks) {
+  const { biz, scope } = priceScope(d);
+  const counts = groups.map(g => g.cat + ': ' + g.lines.length + ' items').join('\n');
+  const total = groups.reduce((n, g) => n + g.lines.length, 0);
+  const sample = groups.map(g => g.cat + '\n' + g.lines.slice(0, 12).join('\n')).join('\n\n').slice(0, 12000);
+  const flagged = checks.slice(0, 60).join('\n').slice(0, 4000);
+  return `A price list for ${biz}, an Australian dry cleaning operator, has been decoded into categories.${scope}
+
+WHAT CAME OUT
+${counts}
+Total items: ${total}
+
+A SAMPLE OF THE DECODED LINES
+${sample}
+
+WHAT THE DECODER FLAGGED (it read the list in parts, so this may repeat itself)
+${flagged || '(nothing flagged)'}
+
+WRITE TWO THINGS, plain text, no markdown headings.
+
+OVERVIEW
+One line only: number of items, how many categories, price range, GST basis, and any list date/version shown.
+
+CHECKS
+The flagged problems, de-duplicated and ordered most important first, one per line. Drop anything that is only an artefact of the list being read in parts. Write "none" if there is nothing worth raising.`;
+}
+
+function parsePriceOverview(text) {
+  let overview = '', mode = '';
+  const checks = [];
+  String(text || '').split(/\r?\n/).forEach(raw => {
+    const line = raw.trim();
+    if (!line) return;
+    if (/^overview\b/i.test(line) && line.length < 14) { mode = 'o'; return; }
+    if (/^checks\b/i.test(line) && line.length < 12) { mode = 'c'; return; }
+    if (mode === 'c') { if (!/^none[.!]?$/i.test(line)) checks.push(line.replace(/^[-•*]\s*/, '')); return; }
+    if (!overview) overview = line;
+  });
+  return { overview, checks };
+}
+
+function assemblePriceSummary(overview, groups, checks) {
+  let out = overview ? overview.trim() + '\n' : '';
+  groups.forEach(g => { out += '\n' + g.cat + '\n' + g.lines.join('\n') + '\n'; });
+  if (checks.length) out += '\nThings to check\n' + checks.map(c => '- ' + c).join('\n') + '\n';
+  return out.trim();
+}
+
+// What the owner is told after a decode. A short list that read cleanly says so
+// in one line; anything that had to be left out is named, because the whole
+// point of this screen is that the stores can trust what they quote from.
+function priceDecodeNote(d, items, cats, passes, cut) {
+  let n = 'Decoded ' + items.toLocaleString() + ' item' + (items === 1 ? '' : 's') +
+          ' across ' + cats + ' categor' + (cats === 1 ? 'y' : 'ies');
+  n += passes > 1 ? ', read in ' + passes + ' passes.' : '.';
+  if (d.truncatedFrom) {
+    n += ' Only the first ' + PRICE_SOURCE_CAP.toLocaleString() + ' of ' + d.truncatedFrom.toLocaleString() +
+         ' characters were read — split the list and upload it in parts so nothing is left off.';
+  }
+  if (cut) {
+    n += ' One part of the list was too dense to decode in full even after splitting — check the end of each category against your source before sharing this.';
+  }
+  return n;
 }
 
 async function decodePriceList() {
   const d = state.priceDraft;
   if (!d) return;
-  if (!(d.text || '').trim()) { uiAlert('Upload a price list file or paste the price list text first.'); return; }
-  state.priceBusy = true; render();
-  let summary = '';
+  const source = (d.text || '').trim();
+  if (!source) { uiAlert('Upload a price list file or paste the price list text first.'); return; }
+
+  const readable = source.slice(0, PRICE_SOURCE_CAP);
+  const windows = splitPriceSource(readable);
+  const say = (msg) => { if (state.priceDraft === d) { d.decodeNote = msg; render(); } };
+
+  state.priceBusy = true;
+  say(windows.length > 1 ? 'Reading part 1 of ' + windows.length + '…' : 'Decoding…');
+
+  const items = [];
+  let checks = [], cut = false;
   try {
-    const raw = await askClaudeSafe(buildPriceDecodePrompt(d));
-    summary = coerceAIResponse(raw).trim();
-  } catch (e) { summary = ''; }
+    for (let i = 0; i < windows.length; i++) {
+      if (state.priceDraft !== d) { state.priceBusy = false; return; }
+      say(windows.length > 1 ? 'Reading part ' + (i + 1) + ' of ' + windows.length + '…' : 'Decoding…');
+      const got = await decodePriceWindow(d, windows[i], i + 1, windows.length, 0);
+      got.items.forEach(x => items.push(x));
+      checks = checks.concat(got.checks);
+      cut = cut || got.cut;
+    }
+  } catch (e) {
+    state.priceBusy = false; d.decodeNote = '';
+    uiAlert((e && e.message) || "Couldn't decode that just now — check the text read in below, then try again.");
+    render(); return;
+  }
+
+  const groups = mergePriceItems(items);
+  const total = groups.reduce((n, g) => n + g.lines.length, 0);
+  if (!total) {
+    state.priceBusy = false; d.decodeNote = '';
+    uiAlert("Couldn't read any priced items out of that — check the text below, then try again.");
+    render(); return;
+  }
+
+  say('Checking it over…');
+  let overview = { overview: '', checks: [] };
+  try {
+    overview = parsePriceOverview(coerceAIResponse(
+      await askClaudeSafe(buildPriceOverviewPrompt(d, groups, checks), null, PRICE_DECODE_TOKENS)));
+  } catch (e) { /* the items are the point — a missing overview line is not worth failing the decode over */ }
+
   state.priceBusy = false;
-  if (!summary) { uiAlert("Couldn't decode that just now — check the text read in below, then try again."); render(); return; }
-  if (state.priceDraft) state.priceDraft.summary = summary;
+  if (state.priceDraft !== d) return;
+  d.items = total;
+  d.truncatedFrom = source.length > readable.length ? source.length : 0;
+  d.summary = assemblePriceSummary(overview.overview, groups, overview.checks.length ? overview.checks : checks);
+  d.decodeNote = priceDecodeNote(d, total, groups.length, windows.length, cut);
   render();
 }
 
@@ -8176,9 +8451,14 @@ function savePriceList() {
   const d = state.priceDraft;
   if (!d || !(d.summary || '').trim()) return;
   if (!d.title.trim()) d.title = d.fileName ? d.fileName.replace(/\.[^.]+$/, '') : 'Price list';
+  const src = d.text || '';
   state.priceLists.unshift({
     id: newId('P'), title: d.title.trim(), tag: d.tag || '', fileName: d.fileName || '',
-    summary: d.summary, text: (d.text || '').slice(0, DOC_TEXT_CAP),
+    summary: d.summary, text: src.slice(0, PRICE_TEXT_CAP),
+    // Kept so a quote drawn from a partial list can say it is partial rather
+    // than reporting an item as "not on the list" when it was simply cut.
+    truncatedFrom: src.length > PRICE_TEXT_CAP ? src.length : 0,
+    items: d.items || 0,
     createdAt: Date.now(), uploadedAt: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
   });
   state.priceDraft = null;
@@ -8201,14 +8481,14 @@ function priceListBodyHtml() {
         <div class="lib-item">
           <div class="lib-main" data-price-view="${p.id}">
             <div class="lib-subject">${escapeHtml(p.title)}</div>
-            <div class="lib-meta">${p.tag ? '<span class="lib-tag">' + escapeHtml(p.tag) + '</span> &nbsp; ' : ''}${escapeHtml(p.fileName || 'pasted')} &nbsp; · &nbsp; ${escapeHtml(p.uploadedAt || '')}</div>
+            <div class="lib-meta">${p.tag ? '<span class="lib-tag">' + escapeHtml(p.tag) + '</span> &nbsp; ' : ''}${escapeHtml(p.fileName || 'pasted')}${p.items ? ' &nbsp; · &nbsp; ' + p.items.toLocaleString() + ' items' : ''} &nbsp; · &nbsp; ${escapeHtml(p.uploadedAt || '')}</div>
           </div>
           <button class="btn btn-ghost" data-price-remove="${p.id}" style="color:var(--warn)">Delete</button>
         </div>`).join('')}</div>`;
 
   const summaryCard = d && d.summary
     ? `<div class="card" style="margin-top:14px">
-         <h3 style="font-size:16px;margin-bottom:10px">Decoded summary</h3>
+         <h3 style="font-size:16px;margin-bottom:10px">Decoded summary${d.items ? ' — ' + d.items.toLocaleString() + ' item' + (d.items === 1 ? '' : 's') : ''}</h3>
          <div style="white-space:pre-wrap;font-size:14px;line-height:1.55">${escapeHtml(d.summary)}</div>
        </div>`
     : '';
@@ -8264,6 +8544,12 @@ function bindPriceListControls() {
       if (state.priceDraft) {
         state.priceDraft.text = res.text || '';
         state.priceDraft.readNote = res.note || '';
+        // A new file makes the last decode stale — clear it rather than leave a
+        // summary of the previous upload sitting under the new one.
+        state.priceDraft.summary = '';
+        state.priceDraft.decodeNote = '';
+        state.priceDraft.items = 0;
+        state.priceDraft.truncatedFrom = 0;
         render();
       }
     });

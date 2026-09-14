@@ -53,5 +53,7 @@ Deno.serve(async (req) => {
   const data = await r.json();
   if (!r.ok) return json({ error: data }, r.status);
   const text = (data.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
-  return json({ text, model: data.model, usage: data.usage });
+  // stop_reason is passed through so the caller can tell a finished reply from
+  // one that ran out of room. Without it a truncated answer looks complete.
+  return json({ text, model: data.model, usage: data.usage, stop_reason: data.stop_reason });
 });
