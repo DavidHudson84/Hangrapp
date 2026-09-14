@@ -282,11 +282,20 @@ Deno.serve(async (req) => {
     // must_change_password is read by index.html on sign-in. The owner knows this
     // password — it is a handover, not a secret — so it has to stop being the
     // password before the person does any real work under their own name.
+    //
+    // invited is read by handle_new_user(), the trigger on auth.users. Creating a
+    // login is an insert into that table like any other, so without this the
+    // trigger would hand the new staff member a business of their own a fraction
+    // of a second before the membership below puts them in the real one — leaving
+    // them with two, and landing them in onboarding for the empty one. It goes in
+    // app_metadata rather than user_metadata because only the service role can
+    // write that, so a login cannot set it on itself at signup.
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: { must_change_password: true },
+      app_metadata: { invited: true },
     });
 
     if (createErr || !created?.user) {
