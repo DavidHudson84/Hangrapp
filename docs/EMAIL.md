@@ -1,5 +1,15 @@
 # Email — Resend and the send-letter function
 
+Two functions send mail. `send-letter` sends letters and advice notes, and is
+what the rest of this page is about. `manage-access` sends one thing only — the
+login handover for a staff member the owner has just created — from a fixed
+template it builds itself; see [USERS.md](USERS.md).
+
+They share one set of secrets. Edge Function secrets belong to the **project**,
+not to a function, so `RESEND_API_KEY` and `EMAIL_FROM` are set once and read by
+every function in the project. Setting them for `send-letter` set them for
+`manage-access` too.
+
 ## How a letter gets sent
 
 The browser never talks to Resend. It posts the letter to a Supabase edge
@@ -40,15 +50,15 @@ Printed and downloaded copies are unaffected — those never left the browser.
 ## The secrets
 
 Set these under **Project Settings → Edge Functions → Secrets** in the Supabase
-dashboard. The function reads them at request time, so no redeploy is needed
-after a change — but an in-flight instance can hold an old value for a minute or
-so.
+dashboard, where they apply to every function in the project. The function reads
+them at request time, so no redeploy is needed after a change — but an in-flight
+instance can hold an old value for a minute or so.
 
 | Name | Value | Why |
 |------|-------|-----|
 | `RESEND_API_KEY` | `re_…` from the Resend dashboard | Sends the mail. Never goes near the browser. |
 | `EMAIL_FROM` | `Hangr <noreply@hangr.au>` | The From address. The domain part **must** be the verified Resend domain. The mailbox part need not exist — nothing is delivered to it, which is why it is named `noreply`. See [Replies](#replies). |
-| `ALLOW_CUSTOMER_SEND` | `false` | Off until terms and liability are settled in writing. See below. |
+| `ALLOW_CUSTOMER_SEND` | `false` | Off until terms and liability are settled in writing. See below. Read by `send-letter` only — it does not gate the staff handover email. |
 | `ALLOWED_ORIGIN` | the app's origin, e.g. `https://app.hangr.au` | CORS. Defaults to `*` if unset, which works but lets any site call the function. |
 
 The API key should be a **Sending access** key restricted to the `hangr.au`

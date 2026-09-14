@@ -9613,6 +9613,66 @@ function suggestPassword() {
   return pick() + '-' + pick() + '-' + String(Math.floor(100 + Math.random() * 900));
 }
 
+// The message the owner sends when they are not standing in front of the person
+// — into WhatsApp, Messenger, or their own email to whatever address that person
+// actually reads. Plain text on purpose: anything cleverer arrives as markup.
+//
+// manage-access builds its own copy for the emailed version (`inviteBody`). The
+// two say the same thing in the same order — change them together. The emailed
+// one carries a reply-to line that this does not need, because a message pasted
+// out of here is already coming from the owner's own account.
+function inviteMessage(o) {
+  const business = (state.profile.businessName || '').trim() || 'your workplace';
+  // First name only. "Hi Jane Smith," is how a mail merge opens, not a person.
+  const first = (o.name || '').trim().split(/\s+/)[0];
+  return [
+    first ? 'Hi ' + first + ',' : 'Hi,',
+    '',
+    'You have been set up with a login for Hangr, which is what ' + business + ' uses day to day.',
+    '',
+    'Sign in at: ' + appUrl(),
+    'Your email: ' + o.email,
+    'Temporary password: ' + o.password,
+    '',
+    'It will ask you to choose your own password the first time you sign in, and the temporary one above stops working the moment you do.',
+  ].join('\n');
+}
+
+// What the server needs to address the email. The body is built there from a
+// fixed template; these are the only parts the browser gets to contribute.
+function inviteFacts(name) {
+  return {
+    name: name || '',
+    businessName: (state.profile.businessName || '').trim(),
+    appUrl: appUrl(),
+    replyTo: (state.profile.email || '').trim(),
+  };
+}
+
+// navigator.clipboard does not exist outside a secure context and can be refused
+// inside one, so the message is always on screen to copy by hand as well. The
+// button is the convenience, never the only way out.
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
+
 // null = not fetched yet. The screen fetches once and redraws from this, so
 // changing a role does not blank the list while the server thinks about it.
 let _usersCache = null;
@@ -9620,8 +9680,14 @@ let _usersError = '';
 // The handover details for a login just created. Held here rather than shown
 // in a modal because the password is the one thing the owner has to read
 // accurately, and uiModal escapes its message into a single paragraph.
-// Nothing stores this — once it is dismissed the password cannot be looked up.
+// Nothing stores this — once it is dismissed the password cannot be looked up,
+// which is also why the email can only be sent again while this card is up.
 let _lastCreated = null;
+
+// Whether manage-access is able to email the handover, which depends on two
+// secrets being set on the function. Asked rather than assumed, so adding them
+// in Supabase takes effect without touching this file. null = not asked yet.
+let _accessCaps = null;
 
 async function loadUsers() {
   try {
@@ -9631,6 +9697,17 @@ async function loadUsers() {
   } catch (e) {
     _usersCache = [];
     _usersError = e.message || 'The list of users could not be loaded.';
+  }
+  // Folded into the same load so the screen never draws twice. A function too
+  // old to know this action cannot email either, so the failure and the "no"
+  // are the same answer.
+  if (!_accessCaps) {
+    try {
+      const c = await accessApi({ action: 'capabilities' });
+      _accessCaps = { email: !!(c && c.email) };
+    } catch (e) {
+      _accessCaps = { email: false };
+    }
   }
   if (state.activeTab === 'users') renderUsers();
 }
@@ -9729,13 +9806,47 @@ function renderUsers() {
     ? `<div class="email-note" style="color:var(--warn);margin-bottom:12px">${escapeHtml(_usersError)}</div>`
     : '';
 
-  const created = _lastCreated ? `
+  // The one screen in the app that is the only chance to see something. The
+  // password is not stored, so everything needed to hand it over has to be here
+  // and has to be finished before the card is dismissed: the password itself, a
+  // message ready to paste into whatever the person actually reads, and — if the
+  // function can send mail — a way to email it without leaving the screen.
+  const created = _lastCreated ? (() => {
+    const sentTo = _lastCreated.sentTo || '';
+    const status = sentTo
+      ? `<p style="font-size:13px;color:var(--green);margin:10px 0 0">Emailed to ${escapeHtml(sentTo)}.</p>`
+      : _lastCreated.emailError
+        ? `<p style="font-size:13px;color:var(--warn);margin:10px 0 0">${escapeHtml(_lastCreated.emailError)}</p>`
+        : '';
+    // Still offered after a send has gone out. A mistyped address is precisely
+    // the case that needs a second attempt, and once this card is dismissed
+    // there is no password left to send.
+    const canEmail = !!(_accessCaps && _accessCaps.email);
+    return `
     <div class="staff-card" style="border-color:var(--green);margin-bottom:16px">
       <div class="staff-card-head"><div class="who">${escapeHtml(_lastCreated.email)} can now sign in as ${escapeHtml(ROLE_LABELS[_lastCreated.role] || _lastCreated.role)}</div></div>
-      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">Give them this password directly. They choose their own the first time they sign in, and this one stops working. It is not stored and cannot be shown again.</p>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">They choose their own password the first time they sign in, and this one stops working. It is not stored and cannot be shown again, so get it to them before you leave this screen.</p>
       <div style="font-family:var(--mono);font-size:20px;letter-spacing:.04em;padding:12px 14px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;user-select:all">${escapeHtml(_lastCreated.password)}</div>
-      <div class="staff-actions"><button class="btn btn-secondary" id="user-created-done">I have written it down</button></div>
-    </div>` : '';
+      ${status}
+      <div class="staff-field" style="margin-top:14px">
+        <label>Message to send them <span class="opt" style="text-transform:none;letter-spacing:0">paste into WhatsApp, Messenger or your own email</span></label>
+        <textarea id="user-created-msg" rows="9" readonly style="font-size:13px">${escapeHtml(inviteMessage(_lastCreated))}</textarea>
+      </div>
+      ${canEmail ? `
+      <div class="staff-field" style="margin-top:10px">
+        <label>${sentTo ? 'Send it again' : 'Or send it from ' + escapeHtml(state.profile.businessName || 'Hangr')} <span class="opt" style="text-transform:none;letter-spacing:0">their personal address is fine — it is where they will read it</span></label>
+        <input id="user-created-sendto" value="${escapeHtml(_lastCreated.email)}" autocomplete="off">
+      </div>` : ''}
+      <div class="staff-actions">
+        <button class="btn btn-primary" id="user-created-copy">Copy message</button>
+        ${canEmail ? `<button class="btn btn-secondary" id="user-created-email">${sentTo ? 'Send again' : 'Email it'}</button>` : ''}
+        <button class="btn btn-secondary" id="user-created-done">Done</button>
+        <span class="email-note" id="user-created-note"></span>
+      </div>
+    </div>`;
+  })() : '';
+
+  const canEmailInvite = !!(_accessCaps && _accessCaps.email);
 
   screen.innerHTML = header + err + created + `
     <div class="staff-list">${rows}</div>
@@ -9767,6 +9878,16 @@ function renderUsers() {
           <label>Temporary password <span class="opt" style="text-transform:none;letter-spacing:0">you hand this over — they choose their own on first sign-in</span></label>
           <input id="user-new-password" value="${escapeHtml(suggestPassword())}" autocomplete="off">
         </div>
+        <div class="staff-field" style="grid-column:1/-1">
+          <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)">
+            <input type="checkbox" id="user-new-send" style="width:auto;margin:0" ${canEmailInvite ? '' : 'disabled'}>
+            Email the details to them as well
+          </label>
+          <input id="user-new-sendto" placeholder="Send to a different address — their personal one, if they have no work inbox" autocomplete="off" style="display:none;margin-top:8px">
+          <p style="font-size:12px;color:var(--muted);margin:8px 0 0">${canEmailInvite
+            ? 'It goes out from the Hangr address with your own business email as the reply-to. Leave the address blank and it goes to the login email itself. Either way the message below the new login is still there to paste.'
+            : 'Emailing needs RESEND_API_KEY and EMAIL_FROM in this project\u2019s Edge Function secrets in Supabase — see docs/USERS.md. Until then, the message that appears once the login is created is there to paste into WhatsApp or your own email.'}</p>
+        </div>
       </div>
       <div class="staff-actions">
         <button class="btn btn-primary" id="user-add">Create this login</button>
@@ -9789,6 +9910,45 @@ function renderUsers() {
 function bindUsers() {
   const doneBtn = document.getElementById('user-created-done');
   if (doneBtn) doneBtn.addEventListener('click', () => { _lastCreated = null; renderUsers(); });
+
+  const copyBtn = document.getElementById('user-created-copy');
+  if (copyBtn) copyBtn.addEventListener('click', async () => {
+    const note = document.getElementById('user-created-note');
+    const box = document.getElementById('user-created-msg');
+    const ok = await copyToClipboard((box || {}).value || '');
+    if (box && !ok) box.select();
+    if (note) {
+      note.style.color = ok ? 'var(--green)' : 'var(--warn)';
+      note.textContent = ok
+        ? 'Copied — paste it to them.'
+        : 'Could not copy for you. The message is selected above; copy it by hand.';
+    }
+  });
+
+  // Sending after the fact: the box was not ticked, or it went to an address
+  // they do not read. Only possible while the card is up, because the password
+  // exists nowhere else once it is dismissed.
+  const emailBtn = document.getElementById('user-created-email');
+  if (emailBtn) emailBtn.addEventListener('click', async () => {
+    const note = document.getElementById('user-created-note');
+    const sendTo = ((document.getElementById('user-created-sendto') || {}).value || '').trim();
+    note.style.color = 'var(--muted)';
+    note.textContent = 'Sending…';
+    emailBtn.disabled = true;
+    try {
+      const j = await accessApi(Object.assign(
+        { action: 'send_invite', userId: _lastCreated.userId, password: _lastCreated.password, sendTo },
+        inviteFacts(_lastCreated.name),
+      ));
+      _lastCreated.sentTo = (j && j.sentTo) || sendTo || _lastCreated.email;
+      _lastCreated.emailError = '';
+      renderUsers();
+    } catch (e) {
+      emailBtn.disabled = false;
+      note.style.color = 'var(--warn)';
+      note.textContent = e.message || 'That email could not be sent.';
+    }
+  });
 
   document.querySelectorAll('[data-user-staff]').forEach(sel => {
     sel.addEventListener('change', () => {
@@ -9853,6 +10013,13 @@ function bindUsers() {
   const syncName = () => { if (nameWrap) nameWrap.style.display = (staffSel && staffSel.value === '__new') ? '' : 'none'; };
   if (staffSel) { staffSel.addEventListener('change', syncName); syncName(); }
 
+  // The second address is only a question worth asking once the answer to the
+  // first one is yes.
+  const sendChk = document.getElementById('user-new-send');
+  const sendToInput = document.getElementById('user-new-sendto');
+  const syncSend = () => { if (sendToInput) sendToInput.style.display = (sendChk && sendChk.checked) ? '' : 'none'; };
+  if (sendChk) { sendChk.addEventListener('change', syncSend); syncSend(); }
+
   const addBtn = document.getElementById('user-add');
   if (addBtn) addBtn.addEventListener('click', async () => {
     const note = document.getElementById('user-add-note');
@@ -9861,6 +10028,8 @@ function bindUsers() {
     const password = document.getElementById('user-new-password').value || '';
     const link = staffSel ? staffSel.value : '__new';
     const name = ((document.getElementById('user-new-name') || {}).value || '').trim();
+    const sendInvite = !!(sendChk && sendChk.checked);
+    const sendTo = ((sendToInput || {}).value || '').trim();
 
     // The name is what appears on the register and on the printed record, so it
     // is worth one refusal here rather than a row called "jane.smith" forever.
@@ -9870,11 +10039,19 @@ function bindUsers() {
       return;
     }
 
+    // The message greets them by name whether the record is new or one that was
+    // already on the roster, so the name comes from whichever of the two it is.
+    const linked = link === '__new' ? null : (state.staff || []).find(x => x.id === link);
+    const personName = link === '__new' ? name : ((linked && linked.name) || '').trim();
+
     note.style.color = 'var(--muted)';
-    note.textContent = 'Creating…';
+    note.textContent = sendInvite ? 'Creating and sending…' : 'Creating…';
     addBtn.disabled = true;
     try {
-      const j = await accessApi({ action: 'create', email, role, password });
+      const j = await accessApi(Object.assign(
+        { action: 'create', email, role, password, sendInvite, sendTo },
+        inviteFacts(personName),
+      ));
       // The login exists either way; the roster link is local state and must not
       // be able to fail the whole operation.
       if (j && j.userId) {
@@ -9882,7 +10059,15 @@ function bindUsers() {
         else linkUserToStaff(j.userId, link);
         persistState();
       }
-      _lastCreated = { email, role, password };
+      // Whether the email went out or not, the card goes up: the password is
+      // shown once, and a send that failed is the case where that matters most.
+      _lastCreated = {
+        email, role, password,
+        name: personName,
+        userId: (j && j.userId) || '',
+        sentTo: (j && j.sentTo) || '',
+        emailError: (j && j.emailError) || '',
+      };
       _usersCache = null;
       renderUsers();
     } catch (e) {
