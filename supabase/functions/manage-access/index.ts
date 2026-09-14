@@ -12,9 +12,26 @@
 // the browser copy of a rule is a suggestion, and this one hands out access.
 //
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (all
-// provided by the platform), ALLOWED_ORIGIN. See docs/USERS.md.
+// provided by the platform), ALLOWED_ORIGIN, and — only if the handover is to be
+// emailed rather than read out — RESEND_API_KEY and EMAIL_FROM, the same two
+// send-letter uses. Without those the roster works exactly as before and the app
+// offers the copy-and-paste message instead. See docs/USERS.md.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+// Read the same way send-letter reads them: a value pasted into the dashboard
+// often arrives wrapped in the quotes it was copied inside, or with a trailing
+// newline. Both read as "set" and then fail somewhere far less obvious.
+const secret = (name: string) =>
+  (Deno.env.get(name) ?? '')
+    .trim()
+    .replace(/^(['"])(.*)\1$/s, '$2')
+    .trim();
+
+const RESEND_API_KEY = secret('RESEND_API_KEY');
+const EMAIL_FROM = secret('EMAIL_FROM');
+// Emailing the handover is optional. Everything else here works without it.
+const EMAIL_READY = !!(RESEND_API_KEY && EMAIL_FROM);
 
 const cors = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
@@ -36,11 +53,128 @@ const json = (body: unknown, status = 200) =>
 const ASSIGNABLE = ['admin', 'manager', 'staff'];
 
 const MIN_PASSWORD = 10;
+// Nothing to do with password strength. The temporary password is the one piece
+// of the emailed body the caller writes, so it is the one place free text could
+// be smuggled into a message that is otherwise a fixed template. Anything near
+// this length is not a password anybody is going to read out anyway.
+const MAX_PASSWORD = 200;
 
 const isEmail = (s: unknown) =>
   typeof s === 'string' &&
   s.length < 254 &&
   /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
+
+const asEmail = (s: unknown) => (isEmail(s) ? String(s).trim().toLowerCase() : '');
+
+// A newline in a subject line lets a caller append headers of its own. Strip
+// control characters here rather than trusting the mail API to.
+const clean = (s: unknown, max = 120) =>
+  String(s ?? '')
+    .replace(/[\u0000-\u001f]+/g, ' ')
+    .trim()
+    .slice(0, max);
+
+// Where the person is told to sign in. ALLOWED_ORIGIN is the app's own address
+// and was set by whoever deployed this, so it is the answer worth trusting; the
+// browser's is a fallback for a deployment that left it at `*`, and only over
+// https. A sign-in link chosen by the caller, in an email that hands over a
+// password, is precisely the thing to be fussy about.
+function signInUrl(fromCaller: unknown): string {
+  const allowed = (Deno.env.get('ALLOWED_ORIGIN') ?? '').trim().replace(/^(['"])(.*)\1$/s, '$2');
+  if (/^https:\/\/[^\s*,]+$/.test(allowed)) return allowed.replace(/\/+$/, '');
+  const given = clean(fromCaller, 300);
+  if (/^https:\/\/[^\s*,]+$/.test(given)) return given.replace(/\/+$/, '');
+  return '';
+}
+
+type Invite = {
+  to: string;
+  email: string;
+  password: string;
+  name: string;
+  business: string;
+  url: string;
+  replyTo: string;
+};
+
+// The message. Built here from a fixed template: the caller contributes two
+// names and nothing else. A function that holds a send key and will email a
+// body of the caller's choosing is a relay, and this one hands over a password.
+//
+// index.html builds its own copy of this for the owner to paste into WhatsApp
+// (`inviteMessage()`). The two say the same thing in the same order on purpose —
+// change them together.
+function inviteBody(o: Invite): string {
+  // First name only. "Hi Jane Smith," is how a mail merge opens, not a person.
+  const first = o.name.trim().split(/\s+/)[0];
+  return [
+    first ? `Hi ${first},` : 'Hi,',
+    '',
+    `You have been set up with a login for Hangr, which is what ${o.business} uses day to day.`,
+    '',
+    o.url ? `Sign in at: ${o.url}` : 'Sign in at the address you have been given.',
+    `Your email: ${o.email}`,
+    `Temporary password: ${o.password}`,
+    '',
+    'It will ask you to choose your own password the first time you sign in, and the temporary one above stops working the moment you do.',
+    '',
+    o.replyTo
+      ? `If you have any trouble getting in, reply to ${o.replyTo}.`
+      : 'This was sent from an address that is not monitored — replies to it are not received.',
+  ].join('\n');
+}
+
+// Never throws and never fails the caller. The login is the thing that matters;
+// an email that did not go out is a message on screen, not a reason to leave the
+// owner unsure whether the person was created.
+async function sendInvite(o: Invite): Promise<{ ok: boolean; error?: string; code?: string }> {
+  if (!EMAIL_READY) {
+    return {
+      ok: false,
+      code: 'not_configured',
+      error:
+        'Emailing the handover is not switched on — RESEND_API_KEY and EMAIL_FROM need adding to this function\u2019s secrets in Supabase.',
+    };
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: [o.to],
+        subject: `Your login for ${o.business}`,
+        text: inviteBody(o),
+        ...(o.replyTo ? { reply_to: o.replyTo } : {}),
+      }),
+    });
+    if (!res.ok) {
+      // Resend's own errors can name the sending domain and the state of the
+      // key. Neither is the owner's problem, and neither belongs on their screen.
+      console.error('resend failed', res.status, await res.text().catch(() => ''));
+      return { ok: false, error: 'The email could not be sent — hand the password over directly instead.' };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error('resend unreachable', String(e));
+    return { ok: false, error: 'The email could not be sent — hand the password over directly instead.' };
+  }
+}
+
+// The caller's half of an invite: who it goes to, and the two names that appear
+// in it. `sendTo` covers the common case that the person has no work inbox and
+// reads their personal one — one address, and only ever one.
+function inviteFrom(payload: Record<string, unknown>, email: string, password: string): Invite {
+  return {
+    to: asEmail(payload.sendTo) || email,
+    email,
+    password: clean(password, MAX_PASSWORD),
+    name: clean(payload.name, 80),
+    business: clean(payload.businessName, 80) || 'your workplace',
+    url: signInUrl(payload.appUrl),
+    replyTo: asEmail(payload.replyTo),
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -92,6 +226,14 @@ Deno.serve(async (req) => {
   }
   const action = String(payload.action ?? '');
 
+  // ---- capabilities ---------------------------------------------------------
+  // Whether this function can email, so the screen offers the tickbox only when
+  // it would work. Asked rather than copied into index.html, so adding the two
+  // secrets takes effect without a redeploy of the app.
+  if (action === 'capabilities') {
+    return json({ ok: true, email: EMAIL_READY });
+  }
+
   // ---- list -----------------------------------------------------------------
   if (action === 'list') {
     const { data: rows, error } = await admin
@@ -126,6 +268,9 @@ Deno.serve(async (req) => {
     if (!ASSIGNABLE.includes(role)) return json({ error: 'Pick a role.' }, 400);
     if (password.length < MIN_PASSWORD) {
       return json({ error: `The password needs at least ${MIN_PASSWORD} characters.` }, 400);
+    }
+    if (password.length > MAX_PASSWORD) {
+      return json({ error: `The password cannot be longer than ${MAX_PASSWORD} characters.` }, 400);
     }
 
     // email_confirm: they cannot click a confirmation link in an inbox they may
@@ -172,7 +317,62 @@ Deno.serve(async (req) => {
       return json({ error: 'That login could not be created.' }, 500);
     }
 
-    return json({ ok: true, userId: created.user.id, email, role });
+    // The email is a convenience laid on top of a login that already exists, so
+    // it is not allowed to fail the create: an owner told "that did not work"
+    // about a person who was in fact created adds them a second time and gets an
+    // email_taken refusal for their trouble.
+    let emailed = false;
+    let emailError = '';
+    let sentTo = '';
+    if (payload.sendInvite === true) {
+      const invite = inviteFrom(payload, email, password);
+      const sent = await sendInvite(invite);
+      emailed = sent.ok;
+      if (sent.ok) sentTo = invite.to;
+      else emailError = sent.error ?? '';
+    }
+
+    return json({ ok: true, userId: created.user.id, email, role, emailed, emailError, sentTo });
+  }
+
+  // ---- send_invite ----------------------------------------------------------
+  // Sending the handover for a login that was just created — the owner forgot to
+  // tick the box, or sent it to the wrong address. The password is stored
+  // nowhere, here or in the database, so the browser has to hand back the one it
+  // still holds in memory from the create. Once that card is dismissed there is
+  // nothing left to send, which is the whole point of not storing it.
+  if (action === 'send_invite') {
+    const userId = String(payload.userId ?? '');
+    const password = String(payload.password ?? '');
+    if (password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) {
+      return json({ error: 'There is no password left to send. Remove the person and add them again.' }, 400);
+    }
+
+    const { data: target } = await admin
+      .from('memberships')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('business_id', businessId)
+      .maybeSingle();
+
+    if (!target) return json({ error: 'That person is not on this business.' }, 404);
+
+    // The address on the login, read from auth rather than taken from the body:
+    // it is what the person actually signs in with, and telling them anything
+    // else would be telling them a password that does not open anything.
+    const { data: got } = await admin.auth.admin.getUserById(userId);
+    const loginEmail = asEmail(got?.user?.email);
+    if (!loginEmail) return json({ error: 'That login has no email address.' }, 400);
+
+    const invite = inviteFrom(payload, loginEmail, password);
+    const sent = await sendInvite(invite);
+    if (!sent.ok) {
+      return json(
+        { error: sent.error, code: sent.code },
+        sent.code === 'not_configured' ? 503 : 502,
+      );
+    }
+    return json({ ok: true, sentTo: invite.to });
   }
 
   // ---- set_role -------------------------------------------------------------

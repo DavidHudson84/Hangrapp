@@ -1,5 +1,12 @@
 # Email — Resend and the send-letter function
 
+Two functions send mail, and they hold their own copies of the same two secrets
+because each edge function reads its own environment. `send-letter` sends letters
+and advice notes, and is what the rest of this page is about. `manage-access`
+sends one thing only — the login handover for a staff member the owner has just
+created — from a fixed template it builds itself; see [USERS.md](USERS.md).
+Setting `RESEND_API_KEY` and `EMAIL_FROM` on one does not set them on the other.
+
 ## How a letter gets sent
 
 The browser never talks to Resend. It posts the letter to a Supabase edge
@@ -48,7 +55,7 @@ so.
 |------|-------|-----|
 | `RESEND_API_KEY` | `re_…` from the Resend dashboard | Sends the mail. Never goes near the browser. |
 | `EMAIL_FROM` | `Hangr <noreply@hangr.au>` | The From address. The domain part **must** be the verified Resend domain. The mailbox part need not exist — nothing is delivered to it, which is why it is named `noreply`. See [Replies](#replies). |
-| `ALLOW_CUSTOMER_SEND` | `false` | Off until terms and liability are settled in writing. See below. |
+| `ALLOW_CUSTOMER_SEND` | `false` | Off until terms and liability are settled in writing. See below. Read by `send-letter` only — it does not gate the staff handover email. |
 | `ALLOWED_ORIGIN` | the app's origin, e.g. `https://app.hangr.au` | CORS. Defaults to `*` if unset, which works but lets any site call the function. |
 
 The API key should be a **Sending access** key restricted to the `hangr.au`
