@@ -54,6 +54,34 @@ putting the line back on the register a week later. From the deleted list a line
 can be erased for good — and if it came from a letter, redrafting that letter
 will record it again, which the confirmation says out loud.
 
+## Filling in a register that pre-dates the fields
+
+A claim recorded before the register held the coded fields has them blank, even
+though the letter behind it carries most of them: the settlement panel knew the
+article, the condition and the age, and whether the cleaning charge was waived;
+the facts knew the fabric; the problem report knew the brand, the colour and the
+day the customer actually walked in. None of that is a guess. It is data already
+on file that the record was never given a place to put.
+
+**Fill in from the letters** appears on the Claims screen whenever some line is
+missing something a letter can supply, and says how many. It writes blanks only —
+nothing typed or corrected is touched, it can be run twice with no effect, and it
+leaves no override behind, because none of these fields is one the letter owns in
+the override sense.
+
+`mock/verify.mjs` ages every seeded claim back to the old shape and checks that
+what the backfill puts back is exactly what a claim recorded today would hold.
+
+Three fields it will not touch, and cannot: **where the fault lay**, **the type of
+damage** and **the reference relied on**. None of them is written down anywhere in
+a form a rule can read — the letter argues the position in prose rather than
+recording it. They are a judgement, they are the three that carry the most weight
+in the industry data, and somebody has to make them. A model reading the letter
+and the problem report could propose all three, but a proposal is not a finding:
+anything an AI suggests here has to be shown with its evidence and confirmed one
+claim at a time before it is written, or the register stops being a record of what
+the business decided and becomes a record of what a model guessed.
+
 ## Reporting on it
 
 The register filters on period, outcome, fault, how it was settled, site and free

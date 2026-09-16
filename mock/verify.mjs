@@ -57,7 +57,9 @@ const LIFTED = [
   ['const', 'DOC_STAFF_SAFE'], ['const', 'CLAIM_OUTCOMES'], ['const', 'LIFE_EXPECTANCY'],
   ['const', 'ADJ_BANDS'], ['const', 'ADJ_PCT'], ['const', 'CLAIM_RESULTS'], ['const', 'CLAIM_MONTHS'],
   ['function', 'claimToneFor'], ['function', 'isoFromAny'], ['function', 'claimView'],
-  ['function', 'liveClaims'],
+  ['function', 'liveClaims'], ['const', 'CLAIM_CLOSING_TYPES'], ['const', 'CLAIM_BACKFILL_KEYS'],
+  ['function', 'claimClosedByLetter'], ['function', 'claimLetter'], ['function', 'claimBackfillFields'],
+  ['function', 'findProblem'],
   ['function', 'courseWithNum'], ['function', 'activeCourses'], ['function', 'courseById'],
   ['function', 'claimsTotals'],
   ['function', 'docVisibleToRole'], ['function', 'machineryUnits'],
@@ -116,6 +118,36 @@ ok('an override wins over the letter it came from',
    ctx(`claimView(${JSON.stringify({ ...blob.claims[0], edits: { paid: 1234, outcome: 'Paid' } })}).paid`) === 1234);
 ok('and the outcome it sets carries its own tone',
    ctx(`claimView(${JSON.stringify({ ...blob.claims[0], edits: { outcome: 'Withdrawn' } })}).tone`) === 'defended');
+
+console.log('\nA register written before these fields existed can be filled in');
+// Age each letter-recorded claim back to the shape the app wrote before the fields
+// existed, then check the backfill puts back exactly what a claim recorded today
+// would hold — everything except the three nobody can read off a letter.
+const OLD_SHAPE = ['id', 'date', 'ts', 'customer', 'garment', 'cause', 'site', 'docket',
+  'problemId', 'type', 'outcome', 'tone', 'atStake', 'paid', 'saved'];
+const JUDGEMENT = ['fault', 'damage', 'tab'];
+const agedDiffs = [], agedFilled = new Set();
+for (const native of blob.claims.filter(c => c.source !== 'manual')) {
+  const aged = Object.fromEntries(Object.entries(native).filter(([k]) => OLD_SHAPE.includes(k)));
+  const letter = blob.letters.find(l => l.sourceMsgId === native.id);
+  const filled = ctx(`claimBackfillFields(${JSON.stringify(aged)}, ${JSON.stringify(letter)})`);
+  for (const [k, v] of Object.entries(filled)) {
+    agedFilled.add(k);
+    const want = native[k] == null ? '' : String(native[k]);
+    if (String(v) !== want) agedDiffs.push(`${native.id}.${k}: filled "${v}", recorded "${want}"`);
+  }
+}
+ok('what the backfill puts back matches what would be recorded today',
+   agedDiffs.length === 0, agedDiffs.join('; '));
+ok('it fills the date, the article, the garment attributes and the money',
+   ['dateIso', 'article', 'brand', 'fabric', 'waived', 'settledOn', 'status'].every(k => agedFilled.has(k)),
+   [...agedFilled].join(','));
+ok('it never invents the three that are a judgement', JUDGEMENT.every(k => !agedFilled.has(k)));
+ok('a field already filled in is left alone', Object.keys(
+   ctx(`claimBackfillFields(${JSON.stringify(blob.claims.find(c => c.source !== 'manual'))}, ${JSON.stringify(
+     blob.letters.find(l => l.sourceMsgId === blob.claims.find(c => c.source !== 'manual').id))})`)).length === 0);
+ok('a defence closes a line, an at-risk authorisation does not',
+   ctx("claimClosedByLetter('twimc')") && !ctx("claimClosedByLetter('intake-authorisation')"));
 
 console.log('\nSettlement offers still recompute to the letter figures');
 for (const l of blob.letters.filter(x => x.type === 'settlement')) {

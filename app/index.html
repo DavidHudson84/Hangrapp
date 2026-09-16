@@ -4411,6 +4411,15 @@ function claimToneFor(label) { return (CLAIM_RESULTS.find(r => r.label === label
 
 const CLAIM_STATUSES = [['open', 'Open'], ['closed', 'Closed']];
 
+// Which letters close a line. A defence, a denial, a settlement offer and a
+// goodwill payment are the business's final position, so the claim is dealt with
+// unless the customer comes back; a complaint response is an acknowledgement and an
+// at-risk authorisation is taken before anything has gone wrong, so neither closes
+// anything. The operator can reopen or close any line by hand — this only decides
+// where it starts. Shared with the backfill so the two cannot drift apart.
+const CLAIM_CLOSING_TYPES = ['twimc', 'denial', 'settlement', 'goodwill', 'apology'];
+function claimClosedByLetter(type) { return CLAIM_CLOSING_TYPES.includes(type); }
+
 // Where the fault lies. The three answers the industry actually uses, plus the two
 // honest extras — the retailer sold it, and nobody ever established it.
 const CLAIM_FAULTS = [
@@ -4679,13 +4688,16 @@ function recordClaim(letter) {
     const rec = Object.assign(newClaim('letter'), derived, {
       id: letter.sourceMsgId,
       ts: Date.now(),
-      status: letter.type === 'settlement' ? 'closed' : 'open',
-      settledOn: letter.type === 'settlement' ? (isoFromAny(letter.date) || todayIso()) : '',
+      status: claimClosedByLetter(letter.type) ? 'closed' : 'open',
+      settledOn: claimClosedByLetter(letter.type) ? (isoFromAny(letter.date) || todayIso()) : '',
       channel: 'letter',
       article: c.article || '',
       condition: c.condition || '',
       ageMonths: calc ? String(calc.ageMonths) : '',
       fabric: f.fabric || '',
+      brand: (pr && pr.brand) || '',
+      colour: (pr && pr.colour) || '',
+      waived: c.waiveCharge ? parseMoney(c.charge) : 0,
       createdBy: letter.createdBy || state.currentUserId || null
     });
     state.claims.push(rec);
@@ -4697,6 +4709,102 @@ function recordClaim(letter) {
     if (pr.status === 'open') pr.status = 'claim';
     pr.updatedAt = Date.now();
   }
+}
+
+// ===== Filling in what the letters already knew =====
+// A claim recorded before the register held these fields has them blank for good,
+// even though the letter behind it carries them: the settlement panel knew the
+// article, the condition, the age and whether the cleaning charge was waived, and
+// the facts knew the fabric. None of that is a guess — it is data already on file
+// that the record was simply never given a place to put.
+//
+// So it is filled in, not inferred. Only blanks are written, nothing the operator
+// typed is touched, and none of these fields is letter-derived in the override
+// sense, so filling one leaves no phantom override behind.
+//
+// Where the fault lay and what kind of damage it was are NOT here, and cannot be:
+// neither is written down anywhere in a form a rule can read. They are a judgement
+// someone has to make.
+const CLAIM_BACKFILL_KEYS = ['dateIso', 'article', 'brand', 'colour', 'fabric', 'ageMonths', 'condition', 'waived', 'channel', 'status', 'settledOn'];
+
+function claimLetter(rec) {
+  const ls = state.letters || [];
+  return (rec.letterId && ls.find(l => l.id === rec.letterId)) || ls.find(l => l.sourceMsgId === rec.id) || null;
+}
+
+function claimBackfillFields(rec, letter) {
+  const c = letter.claim || {};
+  const f = letter.facts || {};
+  const pr = letter.problemId ? findProblem(letter.problemId) : null;
+  const calc = calcAdjustment(c);
+  const out = {};
+  const put = (k, v) => {
+    if (v === '' || v == null) return;
+    const cur = rec[k];
+    const blank = (k === 'waived') ? !parseMoney(cur) : (cur === '' || cur == null);
+    if (blank) out[k] = v;
+  };
+  // An old record has no ISO date at all, so it is read off its printed one and
+  // reads as settled the day it was raised. The report knows when the customer
+  // actually walked in, which is what makes days-to-settle a number.
+  if (pr) put('dateIso', isoFromAny(pr.date) || '');
+  put('article', c.article || '');
+  put('condition', c.condition || '');
+  put('ageMonths', calc ? String(calc.ageMonths) : '');
+  put('fabric', f.fabric || '');
+  if (pr) { put('brand', pr.brand || ''); put('colour', pr.colour || ''); }
+  if (c.waiveCharge) put('waived', parseMoney(c.charge));
+  put('channel', 'letter');
+  put('status', claimClosedByLetter(letter.type) ? 'closed' : 'open');
+  if (claimClosedByLetter(letter.type)) put('settledOn', isoFromAny(letter.date) || '');
+  return out;
+}
+
+// What a backfill would do, without doing it. Drives both the button's label and
+// the confirmation, so the operator is told the number before they agree to it.
+function claimBackfillPlan() {
+  const jobs = [];
+  for (const rec of (state.claims || [])) {
+    if (rec.source === 'manual' || rec.deleted) continue;
+    const letter = claimLetter(rec);
+    if (!letter) continue;
+    const fields = claimBackfillFields(rec, letter);
+    if (Object.keys(fields).length) jobs.push({ id: rec.id, letterId: letter.id, fields });
+  }
+  const counts = {};
+  for (const j of jobs) for (const k of Object.keys(j.fields)) counts[k] = (counts[k] || 0) + 1;
+  return { jobs, counts };
+}
+
+async function backfillClaims() {
+  const plan = claimBackfillPlan();
+  if (!plan.jobs.length) { uiAlert('Nothing to fill in — every claim already holds what its letter knows.', 'Nothing to do'); return; }
+  const lines = CLAIM_BACKFILL_KEYS
+    .filter(k => plan.counts[k])
+    .map(k => '· ' + (CLAIM_FIELD(k) || { l: k }).l + ' — ' + plan.counts[k])
+    .join('\n');
+  const ok = await uiConfirm(
+    plan.jobs.length + ' claim' + (plan.jobs.length === 1 ? '' : 's') + ' can be filled in from the letter behind ' + (plan.jobs.length === 1 ? 'it' : 'them') + ':\n\n' + lines
+    + '\n\nOnly blank fields are filled. Nothing you have typed or corrected is touched, and where the fault lay is left alone — no rule can read that off a letter.',
+    { title: 'Fill in from the letters?', confirmLabel: 'Fill them in' });
+  if (!ok) return;
+  let n = 0;
+  for (const job of plan.jobs) {
+    const rec = findClaim(job.id);
+    if (!rec) continue;
+    Object.assign(rec, job.fields);
+    // Housekeeping the old shape never carried. Not counted — nothing on screen changes.
+    if (!rec.schema) rec.schema = CLAIM_SCHEMA;
+    if (!rec.source) rec.source = 'letter';
+    if (!rec.letterId) rec.letterId = job.letterId;
+    if (!rec.edits) rec.edits = {};
+    ['waived', 'reclean'].forEach(k => { if (rec[k] == null || rec[k] === '') rec[k] = 0; });
+    rec.updatedAt = Date.now();
+    n++;
+  }
+  persistState();
+  render();
+  uiAlert(n + ' claim' + (n === 1 ? '' : 's') + ' filled in. Where the fault lay and the type of damage are still blank on any claim you have not set them on — those are yours to say.', 'Done');
 }
 
 // ===== Periods =====
@@ -4877,6 +4985,7 @@ function renderClaims() {
   const list = filteredClaims();
   const t = claimsTotals(list);
   const deletedCount = (state.claims || []).filter(c => c.deleted).length;
+  const backfillCount = f.showDeleted ? 0 : claimBackfillPlan().jobs.length;
 
   screen.innerHTML = `
     <div class="screen-header">
@@ -4934,6 +5043,7 @@ function renderClaims() {
       <button class="btn btn-secondary" id="claims-csv">Export what is showing (CSV)</button>
       <button class="btn btn-secondary" id="claims-report">Period report</button>
       <button class="btn btn-ghost" id="claims-industry">De-identified industry export</button>
+      ${backfillCount ? `<button class="btn btn-ghost" id="claims-backfill">Fill in ${backfillCount} from the letters</button>` : ''}
       ${(deletedCount || f.showDeleted) ? `<button class="btn btn-ghost" id="claims-deleted" style="margin-left:auto">${f.showDeleted ? 'Back to the register' : 'Deleted lines (' + deletedCount + ')'}</button>` : ''}
     </div>
   `;
@@ -4973,6 +5083,7 @@ function renderClaims() {
   on('claims-csv', 'click', () => exportClaimsCsv(list, p));
   on('claims-report', 'click', () => exportClaimsReport(list, t, p));
   on('claims-industry', 'click', () => exportClaimsIndustry(list, p));
+  on('claims-backfill', 'click', backfillClaims);
   on('claims-deleted', 'click', () => { state.claimFilters.showDeleted = !state.claimFilters.showDeleted; render(); });
   screen.querySelectorAll('[data-claim-row]').forEach(tr =>
     tr.addEventListener('click', () => { state.currentClaim = tr.dataset.claimRow; render(); }));
