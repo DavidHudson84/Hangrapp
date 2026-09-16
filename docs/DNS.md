@@ -79,8 +79,28 @@ one DMARC record it must treat the domain as having **no DMARC policy at all**
 (RFC 7489 §6.6.3), so neither record is doing anything and mail loses the
 alignment signal that keeps it out of spam.
 
-**Delete one of them.** Keep whichever you want to own — but only one may exist.
+**Delete the second one** — the `p=quarantine` record reporting to
+`onsecureserver.net`. Keep the first.
+
+Two reasons, and neither is about which policy is stricter:
+
+1. **The reports need to reach someone who reads them.** The whole point of
+   `rua=` is the weekly XML telling you who is sending as your domain and whether
+   it is passing. Sent to GoDaddy's address, nobody here ever sees it.
+2. **`p=none` is the right starting posture**, not a weaker one. Sending from
+   `hangr.au` is new. `p=quarantine` tells receivers to bin anything that fails
+   alignment, and switching that on before a few weeks of clean reports risks
+   binning real mail — a letter to a customer, a staff handover with a password —
+   with no bounce to tell you it happened.
+
+Deleting the stricter record loses nothing today, because with two records in
+place **neither is in force** and the domain has no policy at all. Going from
+none to `p=none` is a step up, not down. Tighten to `p=quarantine` on the record
+you keep once the reports look clean.
+
 Check with `dig TXT _dmarc.hangr.au +short`; a single line back means it is fixed.
+Worth re-checking a week later too — registrars have been known to put their
+default back.
 
 SPF and DKIM are both correct and are not affected by this.
 
