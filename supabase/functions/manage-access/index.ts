@@ -73,7 +73,7 @@ const asEmail = (s: unknown) => (isEmail(s) ? String(s).trim().toLowerCase() : '
 // control characters here rather than trusting the mail API to.
 const clean = (s: unknown, max = 120) =>
   String(s ?? '')
-    .replace(/[\u0000-\u001f]+/g, ' ')
+    .replace(/[\x00-\x1f]+/g, ' ')
     .trim()
     .slice(0, max);
 
