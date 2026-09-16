@@ -11040,6 +11040,12 @@ function bindUsers() {
       };
       _usersCache = null;
       renderUsers();
+      // The Add someone form is at the foot of a long screen, and the card with
+      // the password and the message to send lands at the top of it. Redrawing
+      // leaves the page where it was, so without this the owner is left staring
+      // at the empty form with no sign anything happened, and has to scroll up
+      // to find the one thing that is only shown once.
+      try { window.scrollTo(0, 0); } catch (e) {}
     } catch (e) {
       addBtn.disabled = false;
       note.style.color = 'var(--warn)';
