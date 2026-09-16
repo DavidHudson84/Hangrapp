@@ -59,7 +59,8 @@ const LIFTED = [
   ['function', 'claimToneFor'], ['function', 'isoFromAny'], ['function', 'claimView'],
   ['function', 'liveClaims'], ['const', 'CLAIM_CLOSING_TYPES'], ['const', 'CLAIM_BACKFILL_KEYS'],
   ['function', 'claimClosedByLetter'], ['function', 'claimLetter'], ['function', 'claimBackfillFields'],
-  ['function', 'findProblem'],
+  ['function', 'findProblem'], ['const', 'CLAIM_FAULTS'], ['const', 'CLAIM_DAMAGE'],
+  ['function', 'claimNorm'], ['function', 'validateClaimSuggestion'],
   ['function', 'courseWithNum'], ['function', 'activeCourses'], ['function', 'courseById'],
   ['function', 'claimsTotals'],
   ['function', 'docVisibleToRole'], ['function', 'machineryUnits'],
@@ -148,6 +149,32 @@ ok('a field already filled in is left alone', Object.keys(
      blob.letters.find(l => l.sourceMsgId === blob.claims.find(c => c.source !== 'manual').id))})`)).length === 0);
 ok('a defence closes a line, an at-risk authorisation does not',
    ctx("claimClosedByLetter('twimc')") && !ctx("claimClosedByLetter('intake-authorisation')"));
+
+console.log('\nWhat the consultant proposes is checked before anybody sees it');
+// The two judgement fields can be suggested by the model. Nothing it says is
+// trusted: a code off the list is dropped, and a quote that is not in the file is
+// flagged, because a fabricated quote is the one thing that would make suggesting
+// worse than leaving the fields blank.
+const SRC = { text: 'The collar shows dye loss where hair product concentrates. Our own SOP calls for a pre-treatment that was not applied.' };
+const val = (o) => ctx(`validateClaimSuggestion(${JSON.stringify(o)}, ${JSON.stringify(SRC)})`);
+
+const good = val({ fault: 'cleaner', damage: 'colour-loss', confidence: 'high',
+  reason: 'Our own SOP was not followed.', quote: 'Our own SOP calls for a pre-treatment that was not applied.' });
+ok('a good answer passes through', good.fault === 'cleaner' && good.damage === 'colour-loss');
+ok('and its quote is found in the file', good.quoteFound === true);
+
+const offList = val({ fault: 'probably us', damage: 'melted', confidence: 'high', reason: 'x', quote: 'x' });
+ok('a fault that is not on the list is dropped', offList.fault === '');
+ok('a type of damage that is not on the list is dropped', offList.damage === '');
+
+const madeUp = val({ fault: 'cleaner', damage: '', confidence: 'high', reason: 'x',
+  quote: 'The garment was left in the machine overnight.' });
+ok('a quote that is not in the file is flagged', madeUp.quoteFound === false);
+ok('punctuation and case do not defeat the check',
+   val({ fault: 'cleaner', damage: '', confidence: 'low', reason: '', quote: 'OUR OWN SOP CALLS FOR A PRE-TREATMENT!' }).quoteFound === true);
+ok('a confidence it did not offer reads as low', val({ fault: 'cleaner', confidence: 'certain' }).confidence === 'low');
+ok('every damage code the model is offered is one the register holds',
+   ctx('CLAIM_DAMAGE').every(([k]) => k === '' || typeof k === 'string'));
 
 console.log('\nSettlement offers still recompute to the letter figures');
 for (const l of blob.letters.filter(x => x.type === 'settlement')) {

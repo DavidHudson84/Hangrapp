@@ -75,12 +75,38 @@ what the backfill puts back is exactly what a claim recorded today would hold.
 Three fields it will not touch, and cannot: **where the fault lay**, **the type of
 damage** and **the reference relied on**. None of them is written down anywhere in
 a form a rule can read — the letter argues the position in prose rather than
-recording it. They are a judgement, they are the three that carry the most weight
-in the industry data, and somebody has to make them. A model reading the letter
-and the problem report could propose all three, but a proposal is not a finding:
-anything an AI suggests here has to be shown with its evidence and confirmed one
-claim at a time before it is written, or the register stops being a record of what
-the business decided and becomes a record of what a model guessed.
+recording it. They are a judgement, and they are the three that carry the most
+weight in the industry data. The first two can be *suggested*; see below. The
+reference relied on is still typed by hand.
+
+## Suggesting the fault and the type of damage
+
+**Suggest fault & damage** reads the letter, the problem report and the facts on
+file behind each claim showing, and proposes both against the fixed vocabularies —
+one question to the consultant per claim, so it takes a moment on a year's backlog.
+
+A proposal is not a finding, and the whole design follows from that.
+
+Nothing is written. Every suggestion appears in a review list with the classification,
+a one-line reason and the passage it was drawn from, and the operator accepts or
+skips each one. A row is ticked to begin with only where the model said it was
+confident **and** the passage it quoted was actually found in the file — a
+fabricated quote is the one thing that would make suggesting worse than leaving
+the fields blank, so the quote is checked against the source, case and punctuation
+ignored, before anyone sees it. A code that is not in the vocabulary is dropped
+rather than shown, and that case is reported differently from the model saying it
+cannot tell, because they are different answers. A field the operator has already
+filled in is never overwritten.
+
+What is accepted is marked on the claim as having come from a suggestion, and the
+editor says so beside the field. Typing over it by hand clears the mark: it is the
+operator's answer again. The register can therefore always say which verdicts a
+person reached and which a machine proposed — which matters most on the day this
+data is pooled with other businesses'.
+
+`mock/verify.mjs` checks the guard rather than the model: that an off-list code is
+dropped, that a quote which is not in the file is flagged, and that neither
+punctuation nor case defeats the check.
 
 ## Reporting on it
 

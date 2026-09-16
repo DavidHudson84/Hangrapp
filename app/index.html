@@ -1085,6 +1085,9 @@ const state = {
   // transient: a filter you set this morning is not a filter you meant to keep.
   currentClaim: null,
   claimFilters: defaultClaimFilters(),
+  // A run of AI suggestions waiting to be accepted or thrown away. Transient by
+  // design — an unreviewed suggestion is not a record of anything.
+  claimSuggest: null,
   problems: [],
   letters: [],
   staff: [],
@@ -4628,6 +4631,8 @@ function setClaimField(id, key, value) {
     c[key] = value;
     if (key === 'outcome') c.tone = claimToneFor(value);
   }
+  // Typed over by hand, so it is no longer the machine's answer.
+  if (c.coded && c.coded[key]) delete c.coded[key];
   saveClaim(c);
   return c;
 }
@@ -4807,6 +4812,289 @@ async function backfillClaims() {
   uiAlert(n + ' claim' + (n === 1 ? '' : 's') + ' filled in. Where the fault lay and the type of damage are still blank on any claim you have not set them on — those are yours to say.', 'Done');
 }
 
+// ===== Suggesting the two fields nobody can read off a letter =====
+// Where the fault lay and what kind of damage it was are a judgement, and the
+// letter argues them in prose rather than recording them. A model reading the
+// letter and the counter's report can propose both, and on a year of backlog that
+// is the difference between a register that can be aggregated and one that cannot.
+//
+// A proposal is not a finding. Nothing here writes to a claim: every suggestion is
+// shown with the sentence it was drawn from, the quote is checked against the
+// source before it is shown, and a row is only ticked by default when the model
+// said it was confident AND its quote was found in the material. The operator
+// accepts or skips each one, and what they accept is marked as having come from a
+// suggestion, because a register that feeds an industry dataset should be able to
+// say which verdicts a person reached and which a machine proposed.
+const CLAIM_FAULT_GUIDE = [
+  ['cleaner', 'the cleaning process caused it — our method, our handling, our error'],
+  ['manufacturer', 'the garment, its trim, its dye or its care label was at fault'],
+  ['consumer', 'the customer caused it — wear, a home treatment, a spill, a previous repair'],
+  ['retailer', 'the retailer sold or advised wrongly'],
+  ['inherent', 'normal, expected ageing or a known unavoidable outcome for the fabric'],
+  ['undetermined', 'the material genuinely does not settle it']
+];
+
+function claimSuggestSource(rec) {
+  const letter = claimLetter(rec);
+  const pr = rec.problemId ? findProblem(rec.problemId) : null;
+  const f = (letter && letter.facts) || {};
+  const parts = [];
+  const add = (label, v) => { if (v && String(v).trim()) parts.push(label + ': ' + String(v).trim()); };
+
+  parts.push('THE CLAIM AS RECORDED');
+  add('Garment', rec.garment);
+  add('Fair Claims Guide category', rec.article);
+  add('Fabric', rec.fabric);
+  add('Outcome recorded', rec.outcome);
+
+  if (pr) {
+    parts.push('\nTHE PROBLEM REPORT — what the counter wrote down at the time');
+    add('What happened', pr.whatHappened);
+    add('What we did', pr.actionTaken);
+    add('What the customer is asking for', pr.customerWants);
+    add('What was recommended internally', pr.recommended);
+    add('Identifying features noted at intake', pr.identifying);
+  }
+
+  const factKeys = ['damage', 'customerClaim', 'careLabel', 'labelCondition', 'method',
+    'precautions', 'gentler', 'tags', 'faultNoticedBy', 'priorCleans', 'preExisting', 'atRiskFeatures'];
+  const facts = factKeys.filter(k => f[k]);
+  if (facts.length) {
+    parts.push('\nTHE FACTS ON FILE');
+    const set = FACT_SETS[letter && letter.family === 'intake' ? 'intake' : 'garment'] || [];
+    facts.forEach(k => add((set.find(x => x.k === k) || { l: k }).l, f[k]));
+  }
+
+  if (letter && letter.body) parts.push('\nTHE LETTER THAT WENT OUT\n' + letter.body);
+  return { text: parts.join('\n'), hasMaterial: !!(pr || (letter && letter.body)) };
+}
+
+function buildClaimCodePrompt(src) {
+  const faults = CLAIM_FAULT_GUIDE.map(([k, d]) => `  "${k}" — ${d}`).join('\n');
+  const damages = CLAIM_DAMAGE.filter(x => x[0]).map(([k, l]) => `  "${k}" — ${l}`).join('\n');
+  return `You are reading the file on a single garment claim at an Australian dry cleaning business, to classify it two ways for that business's own claims register. Classify only what this material actually supports.
+
+${src.text}
+
+Return ONLY a JSON object, no commentary and no code fences, with exactly these keys:
+{
+  "fault": "",
+  "damage": "",
+  "confidence": "",
+  "reason": "",
+  "quote": ""
+}
+
+"fault" — where the fault lay. Exactly one of:
+${faults}
+
+"damage" — what physically went wrong. Exactly one of:
+${damages}
+
+"confidence" — "high", "medium" or "low". High means the material states it plainly. Low means you are reading between the lines.
+"reason" — one short sentence, in Australian English, saying what decided it.
+"quote" — up to 25 words copied EXACTLY, word for word, from the material above, being the passage that most supports your answer. Do not paraphrase it and do not write a quote that is not in the material.
+
+RULES
+- If the material does not support one of the two classifications, return an empty string for it and say so in "reason". An empty answer is a correct and useful answer — the operator will fill it in themselves.
+- Do not guess, and do not reason from what is usually true of this kind of garment. Only this file.
+- The outcome recorded is not the fault: a claim can be paid out on a garment that was the manufacturer's fault, and defended on one that was nobody's.`;
+}
+
+// Everything the model says is checked before it is shown. A code that is not in
+// the vocabulary is dropped rather than shown as a choice nobody can make, and a
+// quote that is not in the source is flagged — a fabricated quote is the one thing
+// that would make this feature worse than useless.
+function claimNorm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+function validateClaimSuggestion(parsed, src) {
+  const faultKeys = CLAIM_FAULTS.filter(x => x[0]).map(x => x[0]);
+  const damageKeys = CLAIM_DAMAGE.filter(x => x[0]).map(x => x[0]);
+  const pick = (v, keys) => (typeof v === 'string' && keys.includes(v.trim())) ? v.trim() : '';
+  const conf = String((parsed && parsed.confidence) || '').toLowerCase();
+  const quote = String((parsed && parsed.quote) || '').trim().slice(0, 300);
+  const nQuote = claimNorm(quote);
+  return {
+    fault: pick(parsed && parsed.fault, faultKeys),
+    damage: pick(parsed && parsed.damage, damageKeys),
+    confidence: ['high', 'medium', 'low'].includes(conf) ? conf : 'low',
+    reason: String((parsed && parsed.reason) || '').trim().slice(0, 300),
+    quote: quote,
+    quoteFound: !!nQuote && claimNorm(src.text).includes(nQuote)
+  };
+}
+
+async function suggestClaimCodes(rec) {
+  const src = claimSuggestSource(rec);
+  if (!src.hasMaterial) return { id: rec.id, skipped: 'Nothing on file to read — no letter body and no problem report.' };
+  try {
+    const raw = await askClaudeSafe(buildClaimCodePrompt(src), null, 700);
+    const parsed = parseAiJson(raw, 'object');
+    if (!parsed) return { id: rec.id, error: 'The answer came back in a shape this could not read.' };
+    const v = validateClaimSuggestion(parsed, src);
+    if (!v.fault && !v.damage) {
+      // Telling these two apart matters: one is the model saying it cannot tell,
+      // which is a useful answer, and the other is it answering off the list,
+      // which is a discarded answer and should not be reported as a considered one.
+      const offered = String((parsed.fault || '') + (parsed.damage || '')).trim();
+      return { id: rec.id, skipped: offered
+        ? 'The consultant answered with something that is not on the list, so it was ignored.'
+        : (v.reason || 'The file does not settle either question.') };
+    }
+    return Object.assign({ id: rec.id }, v, {
+      // Ticked by default only when the model was sure and its quote is really in
+      // the file. Everything else is the operator's to look at first.
+      accept: v.confidence === 'high' && v.quoteFound
+    });
+  } catch (e) {
+    return { id: rec.id, error: (e && e.message) ? e.message : 'The consultant could not be reached.' };
+  }
+}
+
+function claimsNeedingCodes(list) {
+  return list.filter(c => {
+    if (c.deleted) return false;
+    if (c.fault && c.damage) return false;
+    const rec = findClaim(c.id);
+    return !!rec && (!!claimLetter(rec) || !!rec.problemId);
+  });
+}
+
+async function runClaimSuggestions(list) {
+  const targets = claimsNeedingCodes(list);
+  if (!targets.length) { uiAlert('Every claim showing already has both a fault and a type of damage.', 'Nothing to suggest'); return; }
+  const ok = await uiConfirm(
+    targets.length + ' claim' + (targets.length === 1 ? '' : 's') + ' showing ' + (targets.length === 1 ? 'is' : 'are') + ' missing a fault or a type of damage.\n\n'
+    + 'The consultant will read the letter and the problem report behind each one and propose both, with the sentence it drew on. That is '
+    + targets.length + ' question' + (targets.length === 1 ? '' : 's') + ' put to the AI, so it takes a moment.\n\n'
+    + 'Nothing is written to the register. You see every suggestion and decide which to keep.',
+    { title: 'Ask the consultant?', confirmLabel: 'Go ahead' });
+  if (!ok) return;
+
+  state.claimSuggest = { running: true, done: 0, total: targets.length, rows: [], cancel: false };
+  render();
+  for (const c of targets) {
+    if (state.claimSuggest.cancel) break;
+    const rec = findClaim(c.id);
+    if (!rec) { state.claimSuggest.done++; continue; }
+    const row = await suggestClaimCodes(rec);
+    state.claimSuggest.rows.push(row);
+    state.claimSuggest.done++;
+    const el = document.getElementById('claim-suggest-progress');
+    if (el) el.textContent = 'Read ' + state.claimSuggest.done + ' of ' + state.claimSuggest.total + '…';
+  }
+  state.claimSuggest.running = false;
+  render();
+}
+
+function applyClaimSuggestions() {
+  const rows = (state.claimSuggest && state.claimSuggest.rows) || [];
+  let n = 0, fields = 0;
+  for (const row of rows) {
+    if (!row.accept || row.error || row.skipped) continue;
+    const rec = findClaim(row.id);
+    if (!rec) continue;
+    if (!rec.coded) rec.coded = {};
+    // Only ever fills a blank. A fault the operator has already set is theirs.
+    if (row.fault && !rec.fault) { rec.fault = row.fault; rec.coded.fault = 'suggested'; fields++; }
+    if (row.damage && !rec.damage) { rec.damage = row.damage; rec.coded.damage = 'suggested'; fields++; }
+    rec.updatedAt = Date.now();
+    n++;
+  }
+  state.claimSuggest = null;
+  persistState();
+  render();
+  uiAlert(fields
+    ? fields + ' field' + (fields === 1 ? '' : 's') + ' set across ' + n + ' claim' + (n === 1 ? '' : 's') + '. Each one is marked in the claim as having come from a suggestion, and you can change any of them by hand.'
+    : 'Nothing was kept, so nothing changed.', 'Done');
+}
+
+function renderClaimSuggest(screen) {
+  const st = state.claimSuggest;
+  const rows = st.rows || [];
+  const usable = rows.filter(r => !r.error && !r.skipped);
+  const setAside = rows.filter(r => r.error || r.skipped);
+  const label = (id) => {
+    const rec = findClaim(id);
+    const v = rec ? claimView(rec) : null;
+    return v ? ((v.garment || v.customer || 'Claim') + ' · ' + (fmtDateAu(v.dateIso) || '')) : id;
+  };
+
+  if (st.running) {
+    screen.innerHTML = `
+      <div class="screen-header">
+        <div class="ix">Module 06</div>
+        <h2>Reading the file on each claim</h2>
+        <p>The consultant is reading the letter and the problem report behind each claim and proposing where the fault lay and what kind of damage it was. Nothing is written to the register until you say so.</p>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="facts-count" id="claim-suggest-progress">Read ${st.done} of ${st.total}…</div>
+        <div style="margin-top:14px"><button class="btn btn-ghost" id="claim-suggest-stop">Stop</button></div>
+      </div>`;
+    const stop = document.getElementById('claim-suggest-stop');
+    if (stop) stop.addEventListener('click', () => { state.claimSuggest.cancel = true; });
+    return;
+  }
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 06</div>
+      <h2>${usable.length} suggestion${usable.length === 1 ? '' : 's'}</h2>
+      <p>Each one shows what the consultant proposed and the passage it drew on. A suggestion is ticked to start with only where it said it was certain and the passage it quoted was found in the file — read the rest before you keep them. Nothing has been written yet.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+      <button class="btn btn-ghost" id="cs-back">&larr; Back to the register</button>
+      ${usable.length ? '<button class="btn btn-ghost" id="cs-all">Tick all</button><button class="btn btn-ghost" id="cs-none">Untick all</button>' : ''}
+    </div>
+    ${usable.length ? `
+    <div class="card" style="margin-top:16px">
+      ${usable.map((r, i) => `
+        <div style="padding:14px 0;border-bottom:1px solid var(--rule)">
+          <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+            <input type="checkbox" data-cs="${i}" ${r.accept ? 'checked' : ''} style="margin-top:3px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:500">${escapeHtml(label(r.id))}</div>
+              <div style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap">
+                ${r.fault ? `<span class="claim-pill other">Fault: ${escapeHtml(vocabLabel(CLAIM_FAULTS, r.fault))}</span>` : ''}
+                ${r.damage ? `<span class="claim-pill other">Damage: ${escapeHtml(vocabLabel(CLAIM_DAMAGE, r.damage))}</span>` : ''}
+                <span class="claim-tag">${escapeHtml(r.confidence)} confidence</span>
+              </div>
+              ${r.reason ? `<div style="font-size:13px;color:var(--muted)">${escapeHtml(r.reason)}</div>` : ''}
+              ${r.quote ? `<div style="font-size:12.5px;margin-top:6px;padding-left:10px;border-left:2px solid var(--rule-strong);color:var(--muted)">&ldquo;${escapeHtml(r.quote)}&rdquo;${
+                r.quoteFound ? '' : '<div style="color:var(--warn);margin-top:4px">This passage was not found in the file — treat the suggestion with care.</div>'}</div>` : ''}
+            </div>
+          </label>
+        </div>`).join('')}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center">
+        <button class="btn btn-primary" id="cs-apply">Keep the ticked ones</button>
+        <button class="btn btn-ghost" id="cs-discard">Discard all</button>
+      </div>
+      <div class="facts-note" style="margin:14px 0 0">A field you have already filled in is never overwritten. What you keep is marked in the claim as having come from a suggestion.</div>
+    </div>` : `
+    <div class="card" style="margin-top:16px"><div class="facts-note" style="margin:0">Nothing could be proposed from what is on file.</div></div>`}
+    ${setAside.length ? `
+    <div class="card" style="margin-top:16px">
+      <div class="facts-head"><h3>Left alone</h3><span class="facts-count">${setAside.length}</span></div>
+      ${setAside.map(r => `<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--rule)">
+        <strong>${escapeHtml(label(r.id))}</strong><div style="color:var(--muted)">${escapeHtml(r.error || r.skipped)}</div></div>`).join('')}
+    </div>` : ''}
+  `;
+
+  const back = document.getElementById('cs-back');
+  if (back) back.addEventListener('click', () => { state.claimSuggest = null; render(); });
+  const all = document.getElementById('cs-all');
+  if (all) all.addEventListener('click', () => { usable.forEach(r => { r.accept = true; }); render(); });
+  const none = document.getElementById('cs-none');
+  if (none) none.addEventListener('click', () => { usable.forEach(r => { r.accept = false; }); render(); });
+  screen.querySelectorAll('[data-cs]').forEach(cb => cb.addEventListener('change', (e) => {
+    usable[+cb.dataset.cs].accept = e.target.checked;
+  }));
+  const apply = document.getElementById('cs-apply');
+  if (apply) apply.addEventListener('click', applyClaimSuggestions);
+  const disc = document.getElementById('cs-discard');
+  if (disc) disc.addEventListener('click', () => { state.claimSuggest = null; render(); });
+}
+
 // ===== Periods =====
 // The financial year is the one that matters, so it is a preset rather than two
 // dates the owner has to remember to type. Australian FY: 1 July to 30 June.
@@ -4953,6 +5241,7 @@ function importBackup(file) {
 function renderClaims() {
   const screen = $('#screen-claims');
   if (!screen) return;
+  if (state.claimSuggest) { renderClaimSuggest(screen); return; }
   if (state.currentClaim) { renderClaimDetail(screen); return; }
 
   const anyClaims = (state.claims || []).length > 0;
@@ -4986,6 +5275,7 @@ function renderClaims() {
   const t = claimsTotals(list);
   const deletedCount = (state.claims || []).filter(c => c.deleted).length;
   const backfillCount = f.showDeleted ? 0 : claimBackfillPlan().jobs.length;
+  const codeCount = f.showDeleted ? 0 : claimsNeedingCodes(list).length;
 
   screen.innerHTML = `
     <div class="screen-header">
@@ -5044,6 +5334,7 @@ function renderClaims() {
       <button class="btn btn-secondary" id="claims-report">Period report</button>
       <button class="btn btn-ghost" id="claims-industry">De-identified industry export</button>
       ${backfillCount ? `<button class="btn btn-ghost" id="claims-backfill">Fill in ${backfillCount} from the letters</button>` : ''}
+      ${codeCount ? `<button class="btn btn-ghost" id="claims-suggest">Suggest fault &amp; damage for ${codeCount}</button>` : ''}
       ${(deletedCount || f.showDeleted) ? `<button class="btn btn-ghost" id="claims-deleted" style="margin-left:auto">${f.showDeleted ? 'Back to the register' : 'Deleted lines (' + deletedCount + ')'}</button>` : ''}
     </div>
   `;
@@ -5084,6 +5375,7 @@ function renderClaims() {
   on('claims-report', 'click', () => exportClaimsReport(list, t, p));
   on('claims-industry', 'click', () => exportClaimsIndustry(list, p));
   on('claims-backfill', 'click', backfillClaims);
+  on('claims-suggest', 'click', () => runClaimSuggestions(list));
   on('claims-deleted', 'click', () => { state.claimFilters.showDeleted = !state.claimFilters.showDeleted; render(); });
   screen.querySelectorAll('[data-claim-row]').forEach(tr =>
     tr.addEventListener('click', () => { state.currentClaim = tr.dataset.claimRow; render(); }));
@@ -5211,8 +5503,10 @@ const claimTypeLabel = (t) => CLAIM_TYPE_LABELS[t] || 'letter';
 function claimFieldHtml(rec, c, f) {
   const overridden = claimEdited(rec, f.k);
   const val = c[f.k] == null ? '' : c[f.k];
+  const fromAi = !!(rec.coded && rec.coded[f.k] === 'suggested' && val);
   const label = `<label class="label">${escapeHtml(f.l)}${overridden
-    ? ` <span class="claim-tag">overridden</span> <button class="btn-link" data-crevert="${escapeHtml(f.k)}">revert</button>` : ''}</label>`;
+    ? ` <span class="claim-tag">overridden</span> <button class="btn-link" data-crevert="${escapeHtml(f.k)}">revert</button>` : ''}${
+    fromAi ? ' <span class="claim-tag">from a suggestion</span>' : ''}</label>`;
   let input;
   if (f.t === 'textarea') {
     input = `<textarea class="textarea" data-cfield="${f.k}" rows="3" placeholder="What was agreed, who agreed it, anything you would want in front of you in a year.">${escapeHtml(String(val))}</textarea>`;
