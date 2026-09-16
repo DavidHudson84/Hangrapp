@@ -40,6 +40,37 @@ counter iPad working for casuals who have no login at all, and picking one from 
 login that already holds a record does **not** move the link — a borrowed device
 records a result, it does not change who owns what.
 
+## The running order
+
+Courses sort by `num`, everywhere — the trainee's list, the register columns, the
+certificate. The number is the order; nothing else carries it.
+
+**How to use Hangr is 01.** It was 06, behind five courses about garments and the
+law, which is the wrong way round for the one course that teaches somebody to
+operate the thing the other six live in. A person who cannot work the app cannot
+sit the rest of it, so it goes first and everything it displaced moves down one:
+
+| Course | Was | Now |
+|---|---|---|
+| How to use Hangr | 06 | **01** |
+| The law at the counter | 01 | 02 |
+| Taking garments in | 02 | 03 |
+| Tagging garments | 03 | 04 |
+| Reading the garment | 04 | 05 |
+| Whose fault is it? | 05 | 06 |
+| Lifting and moving things safely | 07 | 07 |
+
+Nothing is keyed on the number. Attempts, sign-offs and `state.courseRules` are
+all keyed on the course **id**, so renumbering moves the running order and touches
+no record: every existing pass, deadline and refresh survives it untouched.
+
+A business's own course that `replaces` a built-in is the one thing that could
+have drifted, because `nextCourseNum()` stamped the built-in's number onto it when
+it was created. `courseWithNum()` re-reads that number from the built-in each time
+the course is used instead of trusting the stored one, so a replacement follows
+its built-in whenever the order changes — no migration, and nothing for an owner
+to re-do.
+
 ## What a course asks of a person
 
 `state.courseRules[courseId]`, edited on Team progress → *What each course asks of
@@ -169,7 +200,8 @@ attempt at `submitTrainingQuiz()` time.
 
 | Where | What |
 |---|---|
-| `index.html` → `TRAINING_MODULES` | the seven built-in courses |
+| `index.html` → `TRAINING_MODULES` | the seven built-in courses, in running order |
+| `index.html` → `courseWithNum` | a replacement course wearing its built-in's number |
 | `index.html` → `MH_FIG_*` / `lessonFiguresHtml` | lesson diagrams, built-ins only |
 | `index.html` → `COURSE_RULE_DEFAULTS` | what a course asks before anyone changes it |
 | `index.html` → `courseRule` / `setCourseRule` | what each course asks |

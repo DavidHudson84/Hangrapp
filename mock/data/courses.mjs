@@ -2,7 +2,7 @@
 //
 // It is published and it `replaces` the built-in 'tagging' course, which is the
 // interesting part: activeCourses() then drops the built-in and shows this one in
-// its place at 03, while the register keeps the old 'tagging' passes as history.
+// its place at 04, while the register keeps the old 'tagging' passes as history.
 // That is the whole argument of the feature — "where your procedure differs from
 // the generic course, yours should win" — and it only shows if the seed has
 // records on both sides of the switch.
@@ -14,7 +14,7 @@ const T = (iso) => new Date(iso + 'T09:00:00+10:00').getTime();
 // sourceDocId is stitched in by build.mjs once the intake SOP has an id.
 export const CUSTOM_COURSE = {
   id: 'Cmsdtagging',
-  num: '03',
+  num: '04',
   title: 'Tagging garments the Main Street way',
   blurb: 'How we tag, record and authorise a garment at this counter — the docket, the inspection order, what goes on an at-risk tag, and the conversation you have before the customer walks away.',
   minutes: 12,

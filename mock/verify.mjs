@@ -56,7 +56,8 @@ const LIFTED = [
   ['const', 'TRAINING_MODULES'], ['const', 'ROLE_CAPS'], ['const', 'SECTION_CAP'],
   ['const', 'DOC_STAFF_SAFE'], ['const', 'CLAIM_OUTCOMES'], ['const', 'LIFE_EXPECTANCY'],
   ['const', 'ADJ_BANDS'], ['const', 'ADJ_PCT'],
-  ['function', 'activeCourses'], ['function', 'courseById'], ['function', 'claimsTotals'],
+  ['function', 'courseWithNum'], ['function', 'activeCourses'], ['function', 'courseById'],
+  ['function', 'claimsTotals'],
   ['function', 'docVisibleToRole'], ['function', 'machineryUnits'],
   ['function', 'trainingPassMark'], ['function', 'lifeExpectancyFor'], ['function', 'calcAdjustment'],
   ['function', 'docChunks'], ['function', '_scoreText'],
@@ -114,10 +115,10 @@ for (const l of blob.letters.filter(x => x.type === 'settlement')) {
 console.log('\nThe business’s own course displaces the built-in one');
 const active = ctx('activeCourses()');
 const ids = active.map(c => c.id);
-ok('six courses are active', active.length === 6, `got ${active.length}`);
+ok('seven courses are active', active.length === 7, `got ${active.length}`);
 ok('the custom course is one of them', ids.includes('Cmsdtagging'));
 ok('the built-in tagging course is gone', !ids.includes('tagging'));
-ok('it sits at 03, where tagging was', (active.find(c => c.id === 'Cmsdtagging') || {}).num === '03');
+ok('it sits at 04, where tagging was', (active.find(c => c.id === 'Cmsdtagging') || {}).num === '04');
 ok('older tagging passes are still on file',
    blob.training.some(r => r.moduleId === 'tagging' && r.passed));
 
