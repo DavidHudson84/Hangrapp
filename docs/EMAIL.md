@@ -1,9 +1,11 @@
 # Email — Resend and the send-letter function
 
-Two functions send mail. `send-letter` sends letters and advice notes, and is
+Three functions send mail. `send-letter` sends letters and advice notes, and is
 what the rest of this page is about. `manage-access` sends one thing only — the
 login handover for a staff member the owner has just created — from a fixed
-template it builds itself; see [USERS.md](USERS.md).
+template it builds itself; see [USERS.md](USERS.md). `request-trial` sends one
+thing only too — the enquiry from the trial form on the landing page; see
+[The trial form](#the-trial-form) at the end of this page.
 
 They share one set of secrets. Edge Function secrets belong to the **project**,
 not to a function, so `RESEND_API_KEY` and `EMAIL_FROM` are set once and read by
@@ -59,7 +61,9 @@ instance can hold an old value for a minute or so.
 | `RESEND_API_KEY` | `re_…` from the Resend dashboard | Sends the mail. Never goes near the browser. |
 | `EMAIL_FROM` | `Hangr <noreply@hangr.au>` | The From address. The domain part **must** be the verified Resend domain. The mailbox part need not exist — nothing is delivered to it, which is why it is named `noreply`. See [Replies](#replies). |
 | `ALLOW_CUSTOMER_SEND` | `false` | Off until terms and liability are settled in writing. See below. Read by `send-letter` only — it does not gate the staff handover email. |
-| `ALLOWED_ORIGIN` | the app's origin, e.g. `https://app.hangr.au` | CORS. Defaults to `*` if unset, which works but lets any site call the function. |
+| `ALLOWED_ORIGIN` | the site's origin — `https://hangr.au` | CORS. An **origin only**: no path, no trailing slash, because this is a header value the browser matches exactly. Defaults to `*` if unset, which works but lets any site call the function. |
+| `APP_SIGNIN_URL` | `https://hangr.au/app/` | Where the staff handover email tells the person to sign in. Read by `manage-access` only. |
+| `TRIAL_INBOX` | `david@hudsongroup.com.au` | Optional. Where the landing page's trial enquiries are sent. Read by `request-trial` only; defaults to this address if unset. |
 
 The API key should be a **Sending access** key restricted to the `hangr.au`
 domain, not a full-access key. Resend shows the key once, at creation; if it is
@@ -69,6 +73,24 @@ Paste the values bare. Surrounding quotes and a trailing newline are stripped by
 the function, so a value copied inside its quotes still works — but the *names*
 must match exactly, character for character. A secret saved as `RESEND_KEY` or
 `FROM_EMAIL` is, as far as the function can tell, not there at all.
+
+### Why `ALLOWED_ORIGIN` and `APP_SIGNIN_URL` are two separate things
+
+They used to be one. When the app lived at the root of its own domain, the CORS
+origin and the address you send someone to were the same string, and
+`manage-access` read `ALLOWED_ORIGIN` for both.
+
+Since the landing page took the root and the app moved to `hangr.au/app/`, they
+are different. `ALLOWED_ORIGIN` must stay a bare origin or CORS fails and the app
+stops being able to reach any function at all. But an email that hands a new staff
+member their temporary password has to point at the login, not the marketing page.
+
+So `manage-access` now prefers `APP_SIGNIN_URL` and falls back to
+`ALLOWED_ORIGIN` as before. **Set both.** If you set only `ALLOWED_ORIGIN`, the
+app keeps working and nothing appears broken — new staff are just quietly sent to
+the wrong page. The copy-and-paste handover message the app generates in the
+browser gets it right, so the two will disagree, and that mismatch is the symptom
+to look for.
 
 ## Two destinations, deliberately different
 
@@ -166,3 +188,49 @@ function with `toSelf: false`; it answers 403 with `code: customer_send_disabled
 | "The PDF builder did not load." | jsPDF is loaded from a CDN and did not arrive — usually a network blip or a blocker. Reload the page. Nothing is sent when this happens; the letter is never posted without its attachment. |
 
 The DNS records the sending domain needs are in [DNS.md](DNS.md).
+
+## The trial form
+
+The landing page at `hangr.au` has a **Request a trial** form. It posts to a
+fourth edge function, `request-trial`, which formats the enquiry and emails it to
+`TRIAL_INBOX` (defaulting to `david@hudsongroup.com.au`) with the enquirer's own
+address as the reply-to — so hitting Reply in Outlook answers the dry cleaner.
+
+### It is the only unauthenticated function in the project
+
+Every other function refuses an anonymous caller. This one cannot: the whole
+point is that someone who has never heard of us can fill in a form. So it is
+narrow rather than guarded — it sends to exactly one hard-coded address, it
+cannot be told who to mail, and it assembles the body itself from fields it has
+validated. There is nothing a caller can do with it except send us an enquiry.
+
+Three things keep the noise down:
+
+- A **honeypot** field, positioned off-screen. A person never sees it; something
+  filling the form in programmatically does. It answers `200 ok` rather than an
+  error, because a bot told it failed tries again and one told it succeeded does
+  not.
+- A **time-on-page check**. Nothing submitted inside two seconds was typed.
+- A **per-IP rate limit**, five in ten minutes. It lives in the isolate's memory,
+  so it is a speed bump rather than a guarantee — Supabase runs several isolates
+  and recycles them.
+
+### Deploying it
+
+It must be deployed with JWT verification off, or the anon key requirement turns
+the public form into a sign-in wall:
+
+```
+supabase functions deploy request-trial --no-verify-jwt
+```
+
+It needs no secrets of its own — `RESEND_API_KEY` and `EMAIL_FROM` are already
+set for the project. `TRIAL_INBOX` is optional.
+
+### If it is not deployed yet
+
+The landing page handles that. Any failure — the function missing, a 503, a
+network error — and the form swaps itself for a `mailto:` link with every field
+already filled in, and shows the address in plain text. The page is useful the
+moment it is pushed, whether or not the function is live, and an enquiry is never
+silently swallowed.

@@ -84,26 +84,69 @@ Check with `dig TXT _dmarc.hangr.au +short`; a single line back means it is fixe
 
 SPF and DKIM are both correct and are not affected by this.
 
-## 3. The app's address (only if the app should live at app.hangr.au)
+## 3. The site's address
 
-The app is a single `index.html` served by GitHub Pages from
-`DavidHudson84/hangrapp`. A `CNAME` file containing `app.hangr.au` was committed
-and later deleted (32b06c6), which is how a custom domain is removed from Pages —
-so as things stand the app answers on its github.io address, not on hangr.au.
+Both the landing page and the app are served by GitHub Pages from
+`DavidHudson84/hangrapp`, out of one repository:
 
-To put it back on app.hangr.au:
+```
+hangr.au/        →  index.html      the landing page
+hangr.au/app/    →  app/index.html  the app and its login
+```
 
-| Type  | Name  | Value                    |
-|-------|-------|--------------------------|
-| CNAME | `app` | `davidhudson84.github.io` |
+That is a change from the earlier plan of `app.hangr.au`, which would have needed
+a second repository — one GitHub Pages site can only answer on one domain. A
+`CNAME` file containing `app.hangr.au` was committed and later deleted (32b06c6),
+which is how a custom domain is removed from Pages, so until these records go in
+the site answers on its github.io address.
 
-Then set the custom domain to `app.hangr.au` under the repository's
-Settings → Pages, and tick "Enforce HTTPS" once the certificate is issued
-(it can take up to an hour). Setting it there re-creates the `CNAME` file in the
-repository automatically — do not add that file by hand.
+### The records
 
-If the app moves to app.hangr.au, update `ALLOWED_ORIGIN` on the send-letter
-function to match. See [EMAIL.md](EMAIL.md).
+**The apex cannot use a CNAME.** A CNAME at the root of a domain is invalid under
+the DNS spec, and most registrars will refuse it. GitHub Pages publishes four A
+records for apex domains instead — all four, not one:
+
+| Type  | Name  | Value                     |
+|-------|-------|---------------------------|
+| A     | `@`   | `185.199.108.153`         |
+| A     | `@`   | `185.199.109.153`         |
+| A     | `@`   | `185.199.110.153`         |
+| A     | `@`   | `185.199.111.153`         |
+| CNAME | `www` | `davidhudson84.github.io` |
+
+The `www` record is optional but worth adding — Pages will redirect
+`www.hangr.au` to the apex once the custom domain is set.
+
+If the registrar offers AAAA records and you want IPv6 as well, GitHub's are
+`2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153` and
+`2606:50c0:8003::153`. Not required.
+
+### Then, in the repository
+
+Settings → Pages → Custom domain → `hangr.au` → Save. Wait for the certificate to
+issue (up to an hour) and tick **Enforce HTTPS**. Saving it there re-creates the
+`CNAME` file in the repository automatically — do not add that file by hand.
+
+### Then, the two things that break if you forget them
+
+1. **Supabase Auth → URL Configuration.** Set the Site URL to
+   `https://hangr.au/app/` and add `https://hangr.au/app/**` to the redirect
+   allowlist, or password-reset emails will land somewhere else. Leave the
+   existing github.io entry in place until the domain is confirmed working.
+
+2. **The edge function secrets.** `ALLOWED_ORIGIN` becomes `https://hangr.au` —
+   an origin, with no path, because it is a CORS header value. That is *not* the
+   same as the address staff are told to sign in at, which is why there is now a
+   separate `APP_SIGNIN_URL` set to `https://hangr.au/app/`. See
+   [EMAIL.md](EMAIL.md).
+
+### One-off effects of the move
+
+Going from `davidhudson84.github.io` to `hangr.au` changes the origin, and a
+browser scopes its local storage to the origin. Everyone is signed out once and
+signs back in; anything queued for deletion but not yet synced is dropped. Data
+in the cloud is untouched. Anyone who installed the app to their home screen from
+the github.io address needs to install it again from the new one.
 
 ## Checking the records landed
 

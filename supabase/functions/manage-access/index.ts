@@ -12,7 +12,8 @@
 // the browser copy of a rule is a suggestion, and this one hands out access.
 //
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (all
-// provided by the platform), ALLOWED_ORIGIN, and — for the handover email —
+// provided by the platform), ALLOWED_ORIGIN, APP_SIGNIN_URL, and — for the
+// handover email —
 // RESEND_API_KEY and EMAIL_FROM. Those last two are not separate copies: edge
 // function secrets belong to the project, so these are the same values
 // send-letter sends with and are already set wherever it works. Where they are
@@ -76,14 +77,27 @@ const clean = (s: unknown, max = 120) =>
     .trim()
     .slice(0, max);
 
-// Where the person is told to sign in. ALLOWED_ORIGIN is the app's own address
-// and was set by whoever deployed this, so it is the answer worth trusting; the
-// browser's is a fallback for a deployment that left it at `*`, and only over
-// https. A sign-in link chosen by the caller, in an email that hands over a
-// password, is precisely the thing to be fussy about.
+// Where the person is told to sign in. Set by whoever deployed this, so it is
+// the answer worth trusting; the browser's is a fallback for a deployment that
+// configured neither, and only over https. A sign-in link chosen by the caller,
+// in an email that hands over a password, is precisely the thing to be fussy
+// about.
+//
+// APP_SIGNIN_URL is preferred over ALLOWED_ORIGIN and exists because the two
+// stopped being the same thing when the app moved to hangr.au/app. ALLOWED_ORIGIN
+// is a CORS header value, so it can only ever be an origin — `https://hangr.au`,
+// with no path. Using it here would send new staff to the marketing page instead
+// of the login. Set APP_SIGNIN_URL to `https://hangr.au/app/`. See docs/DNS.md.
 function signInUrl(fromCaller: unknown): string {
-  const allowed = (Deno.env.get('ALLOWED_ORIGIN') ?? '').trim().replace(/^(['"])(.*)\1$/s, '$2');
+  const env = (name: string) =>
+    (Deno.env.get(name) ?? '').trim().replace(/^(['"])(.*)\1$/s, '$2').trim();
+
+  const appUrl = env('APP_SIGNIN_URL');
+  if (/^https:\/\/[^\s*,]+$/.test(appUrl)) return appUrl.replace(/\/+$/, '');
+
+  const allowed = env('ALLOWED_ORIGIN');
   if (/^https:\/\/[^\s*,]+$/.test(allowed)) return allowed.replace(/\/+$/, '');
+
   const given = clean(fromCaller, 300);
   if (/^https:\/\/[^\s*,]+$/.test(given)) return given.replace(/\/+$/, '');
   return '';

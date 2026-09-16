@@ -105,9 +105,13 @@ The browser copy of a rule is a suggestion, and this one hands out access.
   stripped of control characters — and nothing else. It cannot supply a body. A
   function that holds a send key and will email whatever it is handed is a relay,
   and this one hands out passwords.
-- **The sign-in link comes from `ALLOWED_ORIGIN`**, not from the request, unless
-  that secret is unset — in which case the browser's own address is accepted, and
-  only over https.
+- **The sign-in link comes from `APP_SIGNIN_URL`**, not from the request, falling
+  back to `ALLOWED_ORIGIN` and then — only if neither is set, and only over
+  https — to the browser's own address. Set `APP_SIGNIN_URL` to
+  `https://hangr.au/app/`. It exists because `ALLOWED_ORIGIN` is a CORS header
+  value and so can only be a bare origin, which since the landing page took the
+  root of the domain is the marketing page rather than the login. See
+  [EMAIL.md](EMAIL.md).
 - **One recipient per send.** `send_invite` also re-reads the login's address
   from `auth` rather than trusting the body, so nobody is emailed a password for
   an account that is not theirs.
