@@ -90,12 +90,14 @@ The browser copy of a rule is a suggestion, and this one hands out access.
   refused, and `memberships` now carries a unique index on `user_id` so the rule
   holds even when nobody thought to check it. See below — the refusal was never
   the thing that broke.
-- **An invited login is not a new business.** `handle_new_user()` fires on every
-  insert into `auth.users` and creates a business with that user as owner. That
-  is right for a signup and wrong for a staff login, because
-  `auth.admin.createUser` is an insert like any other. manage-access sets
-  `app_metadata.invited`, which only the service role can write, and the trigger
-  skips business creation when it sees it.
+- **An invited login ends up on one business, not two.** `handle_new_user()`
+  fires on every insert into `auth.users` and creates a business with that user
+  as owner. That is right for a signup and wrong for a staff login, because
+  `auth.admin.createUser` is an insert like any other. The trigger cannot be
+  talked out of it — see below — so manage-access calls
+  `attach_invited_user()` instead of inserting a membership: it repoints the one
+  the trigger just made at the real business and deletes the empty one it came
+  from.
 - Removing someone deletes the membership *and* the login, so no orphan account
   is left able to sign in and reach an empty app.
 - **The email body is built on the server**, from a fixed template. The caller
@@ -191,18 +193,37 @@ and returning the empty one put a new staff member into onboarding for a busines
 that should never have existed — which is exactly what it looked like from the
 counter: "I logged in and it asked me to set up a business."
 
-Three things were wrong, and all three are fixed:
+Two things were wrong:
 
-1. The trigger created a business for an invited login. It now skips them.
-2. manage-access did not say the login was invited. It now sets
-   `app_metadata.invited`, which a signing-up user cannot forge.
-3. Nothing stopped a person holding two memberships. A unique index on
+1. The trigger gave an invited login a business of its own.
+2. Nothing stopped a person holding two memberships. A unique index on
    `memberships.user_id` does now, so the next variation of this fails loudly at
    the database instead of turning into a support question.
 
-The order matters if any of it is ever reapplied from scratch: clear duplicates,
-fix the trigger, deploy manage-access, then add the index. The index applied
-before the other two turns every attempt to add a staff member into a failure.
+### The fix that did not work, and why
+
+The first attempt had manage-access set `app_metadata.invited` on the new login
+and taught `handle_new_user()` to skip those. **It does not work.** GoTrue writes
+`app_metadata` after the row exists, so the `AFTER INSERT` trigger sees only
+`{"provider":"email","providers":["email"]}` and creates the business regardless.
+Every user on this project carries exactly that and nothing else, which is how it
+was caught.
+
+With the unique index already in place, the consequence was worse than the
+original bug: the trigger made its membership, manage-access's insert violated
+the index, the function deleted the half-made login, and the owner got **"That
+login could not be created."** Adding staff was impossible until it was fixed.
+
+So the trigger is left alone and absorbed instead. `attach_invited_user()`, a
+`SECURITY DEFINER` function callable only by the service role, repoints the
+membership the trigger just made and deletes the business it came from — but only
+while that business is provably untouched, still the empty `{}` the trigger
+created and with nobody left in it. Where there is nothing to repoint it inserts
+from scratch, so it is correct whether or not the trigger ran.
+
+The lesson worth keeping: a condition that looks like it prevents something, but
+silently never fires, is worse than no condition. The unique index is what turned
+this from a quiet mess into an obvious failure.
 
 The mock tenant never caught this because `mock/sql/00-users.sql` repoints
 memberships with an `update` rather than creating a second one, so its six logins
