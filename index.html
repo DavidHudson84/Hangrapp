@@ -5334,844 +5334,8 @@ const TRAINING_FIGURES = { lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_
 
 const TRAINING_MODULES = [
 {
-  id: 'acl',
-  num: '01',
-  title: 'The law at the counter',
-  blurb: 'What the Australian Consumer Law actually promises a customer, why the sign on the wall does not override it, and what to say when someone brings a garment back unhappy.',
-  minutes: 10,
-  reviewed: 'August 2026',
-  source: 'Australian Consumer Law — Service Guarantees',
-  lessons: [
-    { h: 'What we actually promise',
-      body: `Every job that goes across this counter carries an automatic promise, whether or not anyone says it out loud. It comes from **section 60 of the Australian Consumer Law**, and it is short: the service will be carried out with **due care and skill**.
-
-Read that carefully, because it is narrower than people assume.
-
-- We promise a **competent, careful job** — the right process for the fabric, the care label followed, obvious risks noticed.
-- We do **not** promise a perfect outcome on every garment. Some stains do not come out. Some fabrics fail. That is not automatically our problem.
-
-Two more guarantees sit alongside it:
-
-- **Section 61** — the service is fit for a purpose the customer told us about. If someone says "I need this for Saturday's wedding", that purpose is now part of the deal.
-- **Section 62** — where no time was agreed, the work is done in a reasonable time.
-
-### Why this matters to you
-When something goes wrong, the question a tribunal asks is never "did they have a sign up". It is "did they take due care and skill". If the process was right and the fault was in the garment, we have a real answer. If we used the wrong process, missed something obvious, or lost the item, we owe the customer a remedy and arguing about it only costs us more.` },
-
-    { h: 'The sign on the wall does not do what people think',
-      body: `This is the single most misunderstood thing in the industry, so learn it properly.
-
-Under **section 64 of the ACL**, any term that tries to exclude, restrict or water down a consumer guarantee is **void**. Not weakened — void. It has no legal effect at all.
-
-That includes the classic counter signs:
-
-- "We take no responsibility for damage."
-- "All garments cleaned at owner's risk."
-- "No liability accepted for buttons, trims or fastenings."
-
-None of those remove a customer's rights. Worse, telling a customer that a sign *has* removed their rights is itself misleading conduct under the same Act, which is its own problem.
-
-### So what does work
-Plenty — as long as it is about a **genuine, specific risk in that particular item** rather than a blanket escape hatch:
-
-- an undisclosed pre-existing condition
-- a missing or incorrect care label
-- an inherent weakness in the fabric
-- beading or trims we flagged, and the customer accepted, before we took the item
-
-That is not excluding the guarantee. That is informed consent about something we did not cause.
-
-### The line to hold
-**You can disclaim risk that is inherent to the garment. You cannot disclaim our own poor workmanship.** Get that distinction the wrong way round and no amount of signage will help.` },
-
-    { h: 'Minor or major — and who gets to pick',
-      body: `When we have breached the guarantee, the size of the failure decides **who chooses the remedy**. This is where a lot of money gets given away unnecessarily.
-
-### A minor failure
-Something that can be put right within a reasonable time — a garment that needs re-cleaning, a press that has to be done again.
-
-Here **we** choose. We can offer to fix it, redo it, or refund. The customer does not get to demand cash because they would prefer cash. If we offer to fix it within a reasonable time and they refuse and go elsewhere, that is their choice, not our bill.
-
-### A major failure
-The garment is destroyed, lost, or so badly damaged that no reasonable person would have accepted the service knowing the outcome.
-
-Here **the customer** chooses. They can reject the service, get back what they paid, and claim compensation for the reduced value of the item. That is **sections 267 and 268**.
-
-### Why you need to know the difference
-Almost every complaint that arrives at the counter is a minor failure being presented as a major one. A dress that needs re-cleaning is not a destroyed dress. Knowing which one you are actually looking at is what stops a re-clean turning into a four-figure payout — and equally, it stops us fighting a case we were always going to lose.` },
-
-    { h: 'What a damaged garment is actually worth',
-      body: `When we do owe compensation, the figure is **not** what a new one costs.
-
-The measure is the item's **current depreciated value** — what that garment was worth on the day it was damaged, given its age and condition. This is the same basis the **International Fair Claims Guide** uses, which is what insurers and assessors work from.
-
-### In practice
-Garments have a published life expectancy. A wool suit is reckoned on a few years, a shirt considerably less. Once you know the age, you take a percentage of the replacement cost, not the whole thing.
-
-A four-year-old jacket that cost 400 dollars new is not a 400 dollar cheque. It is a fraction of that, and there is a table that says which fraction.
-
-### Why you need to know this at the counter
-Not so you can quote a figure — **do not quote a figure**. Settlement is not a counter decision.
-
-You need to know it so you do not accidentally promise a replacement. "We'll replace it" is a sentence that costs the business real money and cannot be walked back. The right answer is that we will assess it properly and come back to them, because that is true and it is also the only answer that keeps the number in the right place.` },
-
-    { h: 'The first thirty seconds',
-      body: `The owner is usually not the person taking the complaint. You are. What you say in the first thirty seconds decides how the whole thing goes.
-
-### Say something like this
-"I'm sorry, that's not the result we want either. Let me take the details and have a proper look at it, and we'll come back to you."
-
-Then: take the garment, write down what they say happened, note the docket number, and put it aside for assessment.
-
-That is it. Calm, taking it seriously, no verdict.
-
-### Never say
-- **Never admit fault on the spot.** "Oh, we must have shrunk it" is an admission, and you almost certainly do not yet know whether it is true.
-- **Never promise a refund or a replacement.** You are not the person who decides that, and once it is said it cannot be unsaid.
-- **Never blame the customer.** Even when the garment plainly failed through wear, "you've worn this out" turns a solvable claim into a fight and a bad review.
-
-### Why this works
-Most claims are not lost on the cleaning. They are lost on the first conversation — either because someone promised too much, or because someone was dismissive and the customer dug in. Neither happens if you take the details and say you will come back to them.` }
-  ],
-  quiz: [
-    { q: 'Under section 60 of the Australian Consumer Law, what exactly does a dry cleaner guarantee?',
-      a: ['A perfect result on every garment',
-          'That the service will be carried out with due care and skill',
-          'That every stain will be removed',
-          'Nothing, provided a disclaimer sign is displayed'],
-      correct: 1,
-      why: 'Section 60 guarantees due care and skill — a competent, careful job. It does not guarantee a perfect outcome, and it cannot be switched off by a sign.' },
-
-    { q: 'A customer points at the "All garments cleaned at owner’s risk" sign and asks what it means. What is the accurate answer?',
-      a: ['It removes the customer’s right to claim for any damage',
-          'It applies only to garments over a certain value',
-          'It has no legal effect on their consumer guarantees, which cannot be excluded',
-          'It transfers liability to the manufacturer'],
-      correct: 2,
-      why: 'Section 64 makes any term that tries to exclude or restrict a consumer guarantee void. A blanket sign does not remove the customer’s statutory rights.' },
-
-    { q: 'Which of these can we legitimately ask a customer to accept the risk on?',
-      a: ['Any damage at all, if they sign the docket',
-          'A specific, inherent risk in that item — such as perished silk that may split — explained before we take it',
-          'Damage caused by using the wrong solvent',
-          'Anything, as long as the sign is displayed at the counter'],
-      correct: 1,
-      why: 'At-risk acceptance is informed consent about a genuine risk inherent to that garment. It never covers our own poor workmanship.' },
-
-    { q: 'A jacket needs re-cleaning because it came back with a mark still on it. Who chooses the remedy?',
-      a: ['The customer, who can demand a cash refund',
-          'We do — it is a minor failure that can be put right in a reasonable time',
-          'Nobody; the customer must accept the garment as is',
-          'The insurer'],
-      correct: 1,
-      why: 'For a minor failure — one that can be fixed within a reasonable time — the supplier chooses the remedy. The customer only gets to choose when the failure is major.' },
-
-    { q: 'When does the customer get to choose the remedy?',
-      a: ['Whenever they are unhappy with the result',
-          'Only if they paid by card',
-          'When the failure is major — the item is lost, destroyed, or so damaged no reasonable person would have accepted the service',
-          'Only if they complain within 24 hours'],
-      correct: 2,
-      why: 'Sections 267 and 268: on a major failure the customer can reject the service, recover what they paid, and claim compensation for the reduced value of the item.' },
-
-    { q: 'A four-year-old coat that cost 400 dollars new is damaged beyond repair and it is our fault. What is the correct basis for compensation?',
-      a: ['400 dollars, the full replacement cost',
-          'The cleaning fee only',
-          'The coat’s current depreciated value, based on its age and condition',
-          'Whatever the customer says it is worth'],
-      correct: 2,
-      why: 'Fair compensation is the item’s depreciated value on the day it was damaged — the basis the International Fair Claims Guide and insurers use — not the cost of a new one.' },
-
-    { q: 'A customer returns a shrunken jumper and is visibly upset. Which response is correct?',
-      a: ['"That looks like our fault, we’ll replace it."',
-          '"That’s wear and tear, there’s nothing we can do."',
-          '"I’m sorry — let me take the details and have a proper look, and we’ll come back to you."',
-          '"You should have told us it was delicate."'],
-      correct: 2,
-      why: 'Take the details, take it seriously, give no verdict. Never admit fault, promise a remedy, or blame the customer at the counter — none of those are yours to decide, and each of them makes the claim worse.' },
-
-    { q: 'Why does it matter that you never say "we’ll replace it" at the counter?',
-      a: ['Because replacement is never owed under the ACL',
-          'Because it commits the business to a figure before anyone has assessed the garment, and it cannot be taken back',
-          'Because only the manufacturer can authorise a replacement',
-          'Because the customer must claim on their own insurance first'],
-      correct: 1,
-      why: 'A promise made at the counter sticks. Assessment decides whether anything is owed and how much — and the correct amount is depreciated value, not a new garment.' }
-  ]
-},
-{
-  id: 'intake',
-  num: '02',
-  title: 'Taking garments in',
-  blurb: 'Good intake is a documentation exercise. Most disputes are not lost on the cleaning — they are lost because nobody wrote down what the garment looked like before it went in.',
-  minutes: 10,
-  reviewed: 'August 2026',
-  source: 'Intake Procedures & Customer Service Best Practice',
-  lessons: [
-    { h: 'Check it in front of the customer',
-      body: `Every item gets looked at **at the counter, in front of the customer, before the docket is written**. Not in the back. Not later. Then.
-
-There are two reasons and both matter.
-
-1. Anything you find becomes a conversation instead of a claim. "There's a small tear on this seam — I'll note it" takes four seconds and ends the argument before it starts.
-2. If you find it later, you are the only witness, and the customer's memory of a perfect garment is very hard to beat.
-
-### What you are looking for
-Work the garment quickly but properly:
-
-- existing stains and marks
-- holes, tears, thin patches
-- fraying hems and cuffs
-- missing or loose buttons, broken zips and clasps
-- pilling
-- colour loss, fading, sun damage along folds
-- weak or slipping seams
-- any previous repair or alteration
-
-### And check the pockets
-Every pocket, every time. Pens, lipsticks, tissues and coins do enormous damage in a machine — and not just to that garment. One pen destroys a whole load.` },
-
-    { h: 'Write it down properly',
-      body: `Finding the damage is only half of it. What protects the business is **what you wrote**.
-
-Note three things every time: **type, location, severity**.
-
-- Good: "small oil mark, front right hem"
-- Good: "3cm fray, left cuff edge"
-- Useless: "marked"
-- Useless: "some damage"
-
-"Marked" tells a future assessor nothing. It does not prove the mark that came back is the mark you saw, and it does not prove where it was.
-
-### Where it goes
-On the ticket **and** in the system record. The record has to outlive the paper docket, because the paper docket will not be there in three months when the claim turns up.
-
-### Why this is worth the ten seconds
-Pre-existing damage tagging is the cheapest risk protection in the whole business. If a weak seam was there on the way in and you noted it, you have a defence when it opens on the way out. If you did not note it, you do not.
-
-The International Fair Claims Guide — the standard assessors and insurers actually use — specifically weighs the garment's condition and age at intake when it decides who wears the cost. A better intake note is a better outcome, every time.` },
-
-    { h: 'At-risk acceptance, done properly',
-      body: `Some items should only be taken in on the basis that the customer carries the risk:
-
-- no care label, or the label has been cut out
-- aged or sun-degraded fabric
-- delicate beading, sequins or trims
-- vintage pieces
-- anything where the safe cleaning method is genuinely uncertain
-- anything the customer wants cleaned **against** the label
-
-### How to do it
-**Say the specific risk out loud, in plain English, first.**
-
-"This silk has perished along the fold lines and it may split when it's cleaned. I can clean it, but I can't promise it will survive. Are you happy for me to try?"
-
-Then record that they accepted — a signed at-risk line on the docket, a ticked field in the system, or a text or email confirming it.
-
-### Specific beats blanket, every time
-A blanket "all items at owner's risk" stamped on every ticket is weak, and after the last module you know why. A **named risk on a particular garment that the customer verbally accepted** is strong.
-
-### What it does and does not cover
-At-risk acceptance is informed consent. It is not an indemnity.
-
-It protects us where the risk was genuinely inherent to the item. It does **not** protect us if we then over-process the garment or run it through the wrong solvent — the due care and skill guarantee still applies to how we handle it.
-
-Disclaim the perished silk splitting. Do not assume that disclaimer covers us shrinking it.` },
-
-    { h: 'Photograph the ones that matter',
-      body: `For anything valuable, photograph it at intake. Set a sensible threshold and stick to it — many operators use around 200 to 300 dollars — and always photograph:
-
-- wedding gowns
-- designer pieces
-- leather, suede and fur
-- heavily embellished or gilded garments
-- anything you have already flagged with pre-existing damage
-
-### How
-Whole garment, then close-ups of any damage, trims, fastenings and the care label. Store them against the order — in the system, or a dated folder keyed to the docket number. A photo nobody can find later is not evidence.
-
-### Tell the customer you are doing it
-It is not sneaky and it should not look sneaky. "I'll just take a couple of photos so we've both got a record of how it came in" reassures people. It signals you are taking their item seriously, and it protects them as much as us.
-
-### Why it is worth it
-A timestamped photo ends the "it wasn't like that when I dropped it off" conversation before it starts. On high-value claims, assessors give real weight to dated visual evidence. Thirty seconds of phone time against a potential four-figure claim is not a close call.` },
-
-    { h: 'Special instructions have to reach the plant',
-      body: `Customers regularly want something non-standard:
-
-- **no press** — pleating, delicate finishes, athletic wear
-- **hang only**, no fold
-- **individual cleaning** — high-value or heavily soiled items cleaned alone
-- starch level
-- spot treat only
-- box and preserve, for gowns
-
-### Capture it in both places
-Write it on the docket **and** into the system record, so it travels to the plant. A verbal instruction passed to a colleague at the counter is an instruction that will be lost.
-
-### When the instruction conflicts with the safe method
-If what they are asking for is riskier than the labelled or safe method, note that you advised them and record their decision. At that point it has become an at-risk acceptance, and you already know how to do one of those.
-
-### Why it matters
-Getting "no press" wrong on a 400 dollar pleated skirt is a claim that is very hard to defend, because the customer told us and there is no excuse available. Treat the instructions field as part of the contract, because that is what it is.` }
-  ],
-  quiz: [
-    { q: 'When should a garment be checked for pre-existing damage?',
-      a: ['In the plant, before cleaning',
-          'At the counter, in front of the customer, before the docket is written',
-          'Only if the customer mentions a problem',
-          'At assembly, when it is being bagged'],
-      correct: 1,
-      why: 'Checking in front of the customer turns anything you find into a conversation rather than a claim. Found later, you are the only witness.' },
-
-    { q: 'Which of these is a properly written pre-existing damage note?',
-      a: ['"Marked"',
-          '"Some damage"',
-          '"Small oil mark, front right hem"',
-          '"Customer says it was already dirty"'],
-      correct: 2,
-      why: 'Type, location and severity. "Marked" does not prove the mark that came back is the one you saw, or where it was.' },
-
-    { q: 'Where does a pre-existing damage note need to end up?',
-      a: ['On the paper docket only',
-          'In the staff member’s memory',
-          'On the ticket and in the system record',
-          'On the garment tag only'],
-      correct: 2,
-      why: 'The record has to outlive the paper docket — which will be long gone by the time a claim arrives months later.' },
-
-    { q: 'A customer brings in a vintage silk blouse with no care label. What is the correct approach?',
-      a: ['Refuse it outright',
-          'Clean it normally and say nothing',
-          'Name the specific risk out loud, then record that the customer accepted it',
-          'Stamp "at owner’s risk" on the ticket and move on'],
-      correct: 2,
-      why: 'A named, item-specific risk the customer verbally accepted is strong. A blanket stamp on every ticket is weak and does not reflect informed consent.' },
-
-    { q: 'We took a garment in at owner’s risk because the fabric was perished. It then shrinks badly because it went through the wrong process. Are we covered?',
-      a: ['Yes — the customer accepted the risk',
-          'No — at-risk acceptance covers the inherent risk, not our own poor process',
-          'Yes, provided they signed the docket',
-          'Only if the shrinkage is under 5 per cent'],
-      correct: 1,
-      why: 'At-risk acceptance is informed consent about an inherent risk. The due care and skill guarantee still applies to how we handle the item.' },
-
-    { q: 'Which item should always be photographed at intake?',
-      a: ['Every shirt in a bulk order',
-          'A wedding gown',
-          'Anything the customer seems anxious about',
-          'Nothing — photos slow the counter down'],
-      correct: 1,
-      why: 'Gowns, designer pieces, leather and suede, heavily embellished items and anything already flagged with pre-existing damage all get photographed.' },
-
-    { q: 'A customer asks for "no press" on a pleated skirt. What do you do?',
-      a: ['Remember it and tell the presser later',
-          'Write it on the docket and into the system record so it reaches the plant',
-          'Note it only if the garment is over 200 dollars',
-          'Explain that we press everything'],
-      correct: 1,
-      why: 'A verbal instruction passed along at the counter gets lost between intake and processing. It needs to be recorded in both places.' },
-
-    { q: 'Why check every pocket, every time?',
-      a: ['To find items the customer might claim went missing, and because one pen can ruin an entire load',
-          'Because the ACL requires it',
-          'Only on trousers and jackets',
-          'It is a courtesy, not a requirement'],
-      correct: 0,
-      why: 'Pens, lipsticks and tissues cause damage well beyond the garment they were in — and a customer’s missing keys become our problem the moment we did not look.' }
-  ]
-},
-{
-  id: 'tagging',
-  num: '03',
-  title: 'Tagging garments',
-  blurb: 'Every garment that comes in is about to be separated from its owner, its docket and every other garment in the order. The tag is the only thing that gets it back.',
-  minutes: 8,
-  reviewed: 'August 2026',
-  // The one module with no knowledge base source behind it. Written from general
-  // industry practice, and the owner should read it against their own system —
-  // heat seal, pin tags and POS labels all work differently — before it goes live.
-  source: 'General industry practice — review against our own tagging system',
-  lessons: [
-    { h: 'Why we tag at all',
-      body: `The moment a garment leaves the counter it stops being "Mrs Patel's navy coat" and becomes one of two hundred navy items in the plant. It will be sorted by process, not by owner. It will be cleaned with strangers' clothes, pressed by someone who never met the customer, and assembled hours or days later by a third person.
-
-The tag is the only thread running through all of that.
-
-Get tagging right and the worst thing that happens is a garment is late. Get it wrong and you have a lost item — which is a **major failure** under the ACL, which means the customer picks the remedy, which means you are paying depreciated value on something nobody can even find.
-
-### The two jobs a tag does
-1. **Identity** — which order this piece belongs to.
-2. **Count** — how many pieces that order is supposed to have.
-
-The second one is the one people forget, and it is the one that catches a missing garment before the customer does.` },
-
-    { h: 'One lot, every piece',
-      body: `### One lot number per customer per order
-Everything that came in together carries the same lot. Not one per garment type, not one per rack — one per order. That is what lets you reassemble it.
-
-If a customer drops off twice in a day, that is two orders and two lots. Merging them because it seems tidier is how half an order goes home and half does not.
-
-### Tag every piece
-Not every garment — every **piece**. This is where orders come apart:
-
-- belts and sashes
-- suit trousers **and** the jacket **and** the waistcoat
-- detachable liners and hoods
-- fur collars that unclip
-- scarves, ties and pocket squares
-- spare buttons that came with the item
-
-A three-piece suit is three tagged pieces, not one. A belt that goes through the machine untagged is a belt nobody can match to anything.
-
-### Count it in front of the customer
-Say the number out loud as you write it. "That's five pieces — two shirts, trousers, jacket, and the belt." It takes two seconds, the customer agrees to the number then and there, and the count is now on the docket rather than in dispute.` },
-
-    { h: 'Where the tag goes',
-      body: `The rule underneath all of this: **a tag must never leave a mark the customer can see.**
-
-### The safe places
-Work to an inside seam, a facing, or an existing label:
-
-- **Shirts and blouses** — inside the collar band, or the inside of the tail hem
-- **Trousers** — inside the waistband, at the back
-- **Jackets and coats** — inside the lining at the hem, or the inside back neck
-- **Skirts and dresses** — inside the waistband or the side seam allowance
-- **Knitwear** — the care label itself, never the knit
-- **Ties** — the keeper loop or the back tipping, never the face
-
-### Never
-- through **face fabric** anywhere it will show
-- through **leather or suede** — a pin hole in a hide is permanent, and you cannot press it out
-- through **coated, laminated or PU fabrics** — the coating splits and the split spreads
-- through **silk or fine knits** — a pin pulls a thread and the pull runs
-- through **sequins, beading or embroidery** — you will lose the thread that holds them
-- through a **seam under tension** — the hole opens
-
-On any of those, tag the care label, or use a safety pin through an existing hole such as a button placket, or bag and tag the item separately.
-
-### If in doubt
-Ask. A thirty-second question is cheaper than a permanent hole in a 900 dollar jacket.` },
-
-    { h: 'Pins, staples and heat seals',
-      body: `Whatever system we use, the failure modes are the same.
-
-### Heat seal tags
-Fast and secure, and the usual choice. But heat is heat:
-
-- never heat seal directly onto **face fabric**
-- never onto **synthetics that will melt** — acetate, some linings, sportswear
-- never onto **coated fabrics**
-- go onto the care label or a seam allowance where the heat has somewhere to go
-
-### Pin tags
-Flexible, and forgiving on most woven fabrics. But a pin makes a hole, and on the wrong fabric the hole is permanent. Re-read the never list from the last page before you reach for one.
-
-### Staples
-Fast, and the most damaging option in the building. Staples rust, they tear when the garment is handled, and they leave two holes rather than one. If we use them at all, they go through the care label and nothing else.
-
-### Before you tag anything
-**Empty the pockets first.** Tagging is the last point where anyone will look. Once it is tagged it goes to sorting, and the pen in the inside pocket goes with it.` },
-
-    { h: 'When it goes wrong',
-      body: `Tags come off. Fabric moves, heat seals lift, pins snag. What matters is what happens next.
-
-### If you find an untagged garment
-**Do not guess and do not re-tag it with a plausible lot number.** A wrongly re-tagged garment is worse than an untagged one — it will go home with the wrong customer, and now you have two problems and one of them is a privacy problem.
-
-Set it aside in the designated place and tell someone. Almost every untagged garment is matched within a day by the order that is short a piece, which is exactly why the piece count exists.
-
-### If an order is short at assembly
-Stop and check before it is bagged. Look at the count on the docket against what is on the rack. A missing piece found at assembly is a garment still in the building. A missing piece found by the customer is a claim.
-
-### If a customer says a piece is missing
-Take the details, check the docket count, and check the untagged rack. Do not tell them it is lost and do not tell them it is not. It is an assessment like any other, and the answer comes back to them.
-
-### The one-line version
-The tag is not paperwork. It is the only reason the right garment goes home with the right person.` }
-  ],
-  quiz: [
-    { q: 'How many lot numbers does one customer’s single drop-off get?',
-      a: ['One per garment',
-          'One per order — every piece that came in together carries the same lot',
-          'One per garment type',
-          'One per rack it ends up on'],
-      correct: 1,
-      why: 'One lot per customer per order is what allows the order to be reassembled. Splitting or merging lots is how half an order goes home.' },
-
-    { q: 'A customer brings in a two-piece suit and a belt. How many pieces get tagged?',
-      a: ['One — it is one order',
-          'Two — the jacket and trousers; belts do not need tagging',
-          'Three — jacket, trousers and belt',
-          'Two — the suit counts as one piece plus the belt'],
-      correct: 2,
-      why: 'Every piece gets a tag, including belts, sashes, liners, detachable hoods and waistcoats. An untagged belt is a belt nobody can match to an order.' },
-
-    { q: 'Where should a tag go on a leather jacket?',
-      a: ['Pinned through the lining hem or the care label — never through the hide',
-          'Pinned through the collar',
-          'Stapled to the cuff',
-          'Heat sealed to the front panel'],
-      correct: 0,
-      why: 'A pin hole in leather or suede is permanent and cannot be pressed out. Tag the care label or the lining, or bag and tag the item separately.' },
-
-    { q: 'Which of these is a safe place to tag a shirt?',
-      a: ['Through the front placket, between the buttons',
-          'Inside the collar band or the inside tail hem',
-          'On the cuff, where it is easy to find',
-          'Through the chest pocket'],
-      correct: 1,
-      why: 'Tags go to an inside seam, facing or existing label — somewhere that will never show. The underlying rule is that a tag must not leave a mark the customer can see.' },
-
-    { q: 'Which fabric must never be heat sealed directly?',
-      a: ['Cotton drill',
-          'Wool suiting',
-          'An acetate lining or a coated fabric',
-          'Denim'],
-      correct: 2,
-      why: 'Synthetics such as acetate will melt and coated fabrics will split. Heat seal onto the care label or a seam allowance instead.' },
-
-    { q: 'When is the last practical moment to check a garment’s pockets?',
-      a: ['At assembly',
-          'Before tagging — after that it goes straight to sorting',
-          'In the machine room',
-          'When the customer collects'],
-      correct: 1,
-      why: 'Tagging is the last point where anyone handles the garment individually. Anything still in a pocket goes into the machine with it.' },
-
-    { q: 'You find an untagged jacket on the rack. What do you do?',
-      a: ['Re-tag it with the lot number of the order it most likely belongs to',
-          'Clean it and hold it until someone asks',
-          'Set it aside in the designated place and tell someone',
-          'Bag it with the nearest order'],
-      correct: 2,
-      why: 'Guessing a lot number sends the garment home with the wrong customer, which is worse than it being untagged. It will usually be matched within a day by the order that is short a piece.' },
-
-    { q: 'Why is the piece count on the docket worth saying out loud to the customer?',
-      a: ['It is a legal requirement',
-          'It agrees the number at intake, so a short order is caught at assembly rather than disputed later',
-          'It speeds up the counter',
-          'It determines the price'],
-      correct: 1,
-      why: 'An agreed count means a missing piece is found at assembly, while the garment is still in the building — instead of being found by the customer, which makes it a claim.' }
-  ]
-},
-{
-  id: 'reading',
-  num: '04',
-  title: 'Reading the garment',
-  blurb: 'Most claims and write-offs are decided before the garment goes anywhere near a machine — at the counter, by whoever looked at it. Here is what to look for.',
-  minutes: 12,
-  reviewed: 'August 2026',
-  source: 'Garment Categories and Risk Profiles, and the DLI Textile Analysis Bulletins',
-  lessons: [
-    { h: 'The care label is a starting point, not gospel',
-      body: `Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong — mislabelled imports, labels cut out because they itched, labels that describe the face fabric and ignore the trim.
-
-### How to use a label
-Read it, and treat it as the manufacturer's opinion rather than a guarantee.
-
-- If the label says dry clean only and the fabric is obviously fine to wet clean, the label still sets the expectation. Departing from it is a decision, not a default.
-- **Once we depart from the label, liability shifts to us.** That is the whole point of the rule. If we followed a reasonable label and the garment failed anyway, we have a genuine answer. If we ignored it, we own the outcome.
-- If the label is missing, that is not a free hand. **No label means at-risk, every time.** Say so and record it.
-
-### Check the trim, not just the fabric
-The label describes the main fabric. It very often says nothing about the leather trim on the cuffs, the plastic buttons, or the glued-on appliqué — all of which will react differently to the process the label recommends.` },
-
-    { h: 'Sewn or glued',
-      body: `On anything embellished, this is the single most important question you can ask, and you can usually answer it by looking closely for ten seconds.
-
-### Why it decides everything
-- **Sewn** embellishments — beads and sequins stitched through the fabric — usually survive solvent. Not always, but usually.
-- **Glued** embellishments — anything held on with adhesive, including most flat stones, foil prints, flock and heat-applied motifs — very often do not. Solvent dissolves the adhesive and the decoration comes off in the machine, sometimes taking the print with it.
-
-### How to tell
-Look at the reverse of the fabric behind the decoration. Stitching shows through. Glue does not — you will see a stiff patch or a shiny film instead.
-
-### What to do
-Glued embellishment is an at-risk conversation, every time. Name it: "These stones are glued rather than stitched, and the cleaning solvent can soften that adhesive. I can clean it, but some of them may come off."
-
-The same question applies to **coated and laminated fabrics** — vinyl, PU, anything with a plastic-feeling face or a metallic finish. Those coatings crack, peel and go tacky, and they were never really designed to be cleaned.` },
-
-    { h: 'Fabrics that need a second look',
-      body: `### Wool
-Shrinks and felts with heat and agitation. Check for existing pilling and for shine on the seat, elbows and cuffs — that shine is worn fibre and it will not come back.
-
-### Silk
-Weakens with age, light and perspiration. Look along fold lines and at the underarms. Perished silk splits when it is handled, and it will split for us rather than for the customer.
-
-### Leather and suede
-The highest-claim material family there is. A garment is built from many skin panels from different animals, dyed in different lots — so colour variation, veins, scars and coarse patches are inherent to the material, not faults we caused. Check the panels against each other in daylight and note anything obvious before it goes.
-
-### Fusible interfacing
-The stiffener glued inside collars, cuffs, plackets and jacket fronts. When the adhesive fails you get **bubbling** — a rippled, blistered look through the collar or lapel. It very often only shows up after cleaning, because the process is what reveals a bond that had already gone. Check collars and lapels in raking light on the way in, and note any rippling you can already see.
-
-### Vinyl, PU and metallics
-Assume they will not survive. Coatings crack, peel, discolour and stick to themselves. At-risk, always.` },
-
-    { h: 'Age and wear',
-      body: `A lot of what comes back as a complaint is a garment that was already finished before we saw it. Learn to spot it on the way in.
-
-### Thin and worn areas
-Hold the fabric up to the light. Thin patches at the seat, elbows, knees and inside thighs are worn fabric. The next thing that happens to them is a hole, and the cleaning process is often what finishes the job.
-
-### Wear shine
-A flat, glazed sheen on high-contact areas — the seat, cuffs, elbows. The fibre surface has been abraded flat. It cannot be reversed by cleaning and it is not caused by cleaning.
-
-### Pilling
-Little balls of tangled fibre on the surface, worst where the garment rubs against itself or a bag strap. Normal for blends and soft wools, and worth noting because customers frequently believe we caused it.
-
-### Fraying hems and cuffs
-Especially on unsecured edges. Cleaning will move a fray along. Note the existing extent.
-
-### Seam and yarn slippage
-Yarns pulling apart at a seam, leaving a gappy, laddered look. It is a construction and fit issue — a garment worn too tight — and it will get worse in the machine.
-
-### Insect damage
-Small, irregular holes, often in clusters, usually on wool and often in areas that were stored rather than worn. Not our doing, but very commonly blamed on us, so note it.` },
-
-    { h: 'Colour risk',
-      body: `Dye problems are the fastest way to turn one garment into a whole load of ruined garments.
-
-### What to look for
-- **Deep, saturated colours** — especially reds, blacks and indigo — on anything that has not been cleaned before
-- **Denim**, which streaks and crocks readily
-- **Black and white in one garment**, or a light garment being cleaned alongside a dark one
-- **Colour variation between panels** already visible — a sign the pieces were cut from different dye bolts, which is a manufacturing matter and not ours
-- **Sun fading** along shoulders, one side of a garment, or the exposed edge of a curtain
-
-### The test worth doing
-On anything you are unsure about, damp a white cloth and press it firmly against an inside seam allowance. If colour transfers, that dye is not fast, and it needs to be cleaned alone if at all.
-
-### Soft furnishings
-Curtains deserve their own warning. Sun-rotted curtains **will** split when they are handled. The fabric was already gone and our process merely revealed it — but we will wear the blame unless it was flagged at intake. Check the leading edge and the section that faced the window, and put it in writing.` }
-  ],
-  quiz: [
-    { q: 'A garment has no care label. What does that mean for how we take it in?',
-      a: ['We can clean it however we judge best, with no extra step',
-          'We must refuse it',
-          'It is an at-risk item — name the risk and record the customer’s acceptance',
-          'We follow the label of a similar garment'],
-      correct: 2,
-      why: 'A missing label is a textbook trigger for at-risk acceptance. It is not a free hand, and it is not a reason to refuse.' },
-
-    { q: 'What happens to liability when we depart from the care label?',
-      a: ['Nothing — labels are only advisory',
-          'It shifts to us',
-          'It shifts to the manufacturer',
-          'It is shared equally with the customer'],
-      correct: 1,
-      why: 'Following a reasonable label gives us a genuine answer if the garment fails anyway. Departing from it means we own the outcome.' },
-
-    { q: 'A dress is covered in flat stones. How do you tell whether they are a problem?',
-      a: ['By their colour',
-          'By checking the reverse of the fabric — stitching shows through, glue leaves a stiff or shiny patch',
-          'By how heavy the dress is',
-          'By the price tag'],
-      correct: 1,
-      why: 'Sewn or glued is the single most important question on an embellished garment. Sewn usually survives solvent; glued very often does not.' },
-
-    { q: 'What is fusible interfacing bubbling, and where does it show?',
-      a: ['Dye bleeding from the lining, seen at the hem',
-          'The glued stiffener inside collars, cuffs and lapels failing, giving a rippled or blistered look',
-          'Shrinkage across the shoulders',
-          'A pressing fault caused by too much steam'],
-      correct: 1,
-      why: 'It is an adhesive failure in the garment’s construction, and cleaning usually reveals a bond that had already gone rather than causing it.' },
-
-    { q: 'A pair of trousers has a flat, glazed sheen across the seat. What is it?',
-      a: ['A pressing fault we caused',
-          'Wear shine — abraded fibre from use, which cleaning cannot reverse and did not cause',
-          'Dye migration',
-          'Residue from the solvent'],
-      correct: 1,
-      why: 'Wear shine is the fibre surface abraded flat by contact. It is not reversible and it is not a cleaning fault — but it is very often blamed on the cleaner.' },
-
-    { q: 'Colour variation is already visible between the panels of a new jacket. What does that usually indicate?',
-      a: ['The garment has been cleaned too often',
-          'The panels were cut from different dye bolts — a manufacturing matter',
-          'Sun damage',
-          'The customer has spilled something'],
-      correct: 1,
-      why: 'Different dye bolts across panels is an inherent manufacturing variation. Noting it at intake is what stops it being blamed on the clean.' },
-
-    { q: 'You are unsure whether a deep red garment’s dye is fast. What is the practical check?',
-      a: ['Smell the fabric',
-          'Damp a white cloth and press it firmly against an inside seam allowance to see if colour transfers',
-          'Hold it up to the light',
-          'Check the care label for a colour code'],
-      correct: 1,
-      why: 'A transfer test on a hidden seam allowance tells you whether the dye is loose before it has a chance to ruin a whole load.' },
-
-    { q: 'A customer brings in long curtains that faced a west-facing window for years. What is the risk to flag?',
-      a: ['They will shrink',
-          'The colour will run',
-          'Sun-rotted fabric will split when handled — the damage is already there, the process just reveals it',
-          'They will pill'],
-      correct: 2,
-      why: 'Sun degradation destroys the fibre before we ever see it. Unless it is flagged and recorded at intake, we wear the blame for revealing it.' }
-  ]
-},
-{
-  id: 'fault',
-  num: '05',
-  title: 'Whose fault is it?',
-  blurb: 'Most garment faults are not the cleaner’s. Knowing which is which is what stops us paying for damage we did not cause — and stops us fighting one we did.',
-  minutes: 10,
-  reviewed: 'August 2026',
-  source: 'DLI Textile Analysis Bulletins and the International Fair Claims Guide',
-  lessons: [
-    { h: 'Three possible answers',
-      body: `When a garment comes back with a problem, there are only ever three answers, and the industry has spent decades working out which is which.
-
-### The manufacturer
-The garment was made in a way that was never going to survive normal care. Bad adhesive, unstable dye, incompatible trim, a construction that fails under its own weight. The fault was built in, and cleaning is simply what revealed it.
-
-### The consumer
-The garment was worn out, damaged, stored badly, or exposed to something at home. Wear, abrasion, perspiration, insects, sun, a spill that was never mentioned.
-
-### The cleaner
-We used the wrong process, over-processed, missed something obvious, or lost the item.
-
-### Why you need the framework, not the answers
-You are not going to memorise 149 bulletins. What you need is the habit of asking **which of the three this is** rather than assuming it is the third one — because the industry data says the third one is the least common of the three, and the counter instinct is to assume it is us.
-
-The full analysis lives in the app. Ask Hangr about any specific fault and it will give you the bulletin, the cause and the verdict.` },
-
-    { h: 'The classics that are not our fault',
-      body: `These come up constantly and they are almost always the garment, not the clean.
-
-### Fusible bubbling
-Rippled, blistered collars, cuffs and lapels. The glue holding the interfacing failed. **Manufacturer.** Cleaning revealed a bond that had already gone.
-
-### Colour loss across different panels
-Panels of the same garment ending up visibly different shades. They were cut from different dye bolts. **Manufacturer.**
-
-### Wear shine
-Glazed sheen on the seat, elbows and cuffs. Abraded fibre. **Consumer.** Not reversible and not caused by us.
-
-### Insect holes
-Small irregular holes in clusters, usually wool, usually in stored garments. **Consumer.**
-
-### Perspiration damage
-Weakened, discoloured or split fabric at the underarms and along the waistband. Body salts and oils degrade fibre and dye over time — often invisible until cleaning removes what was masking it. **Consumer.**
-
-### Distressed and pre-washed denim
-Garments deliberately manufactured with weakened, abraded fabric. They continue doing what they were designed to look like. **Manufacturer, by design.**
-
-### Loss of a synthetic suede finish
-Flock coating crumbling off a fake-suede garment. The binder was softened by light, body oils or solvent. **Manufacturer** — the material was never compatible.
-
-### Colour loss from wear
-Fading concentrated where the garment rubs — collar edges, cuff folds, bag-strap lines. **Consumer.**` },
-
-    { h: 'And the ones that are',
-      body: `Being straight about this matters as much as the rest, because a claim we should pay and fight anyway costs more than the garment.
-
-It is likely ours when:
-
-- the **wrong process** was used for the fabric — a wet clean on something that needed solvent, or the reverse
-- the garment was **over-processed** — too hot, too long, too much agitation
-- a **spotting agent** was used wrongly, leaving a ring, a bleached patch or weakened fibre
-- **colour transferred from another garment** in the same load, because a risky item was not cleaned separately
-- an **obvious risk was missed at intake** — the glued embellishment nobody looked at
-- a garment was **damaged in pressing** — scorch, an impression, a broken button
-- the item was **lost**
-
-### The honest test
-Ask: would a careful operator, doing this job properly, have got a different result?
-
-If the answer is yes, it is ours and the sooner that is established the cheaper it is. If the answer is no, we have a genuine position and there is a bulletin that supports it.` },
-
-    { h: 'What you do with any of this at the counter',
-      body: `Almost nothing. That is the point.
-
-You now know enough to recognise a fault that is very unlikely to be ours. That knowledge is for **writing a better note**, not for delivering a verdict across the counter.
-
-### Why not just tell them
-Three reasons.
-
-1. **You might be wrong.** Fusible bubbling and press damage can look similar to an untrained eye, and so can insect holes and abrasion holes. The assessment exists for a reason.
-2. **It sounds like an excuse**, even when it is true. "That's the manufacturer's fault" from the person who has just returned a ruined jacket is heard as a brush-off, and the customer digs in.
-3. **It commits us.** A verdict given at the counter is very hard to move away from later, in either direction.
-
-### So what you actually do
-Take the details. Write down what you can see, in the same type-location-severity language you use at intake. Note anything relevant from the intake record — was it flagged, was it at-risk, was there a photo. Then:
-
-"Let me take this and have it properly assessed, and we'll come back to you."
-
-### Then let the assessment do the work
-Hangr will take the fault, the fabric, the garment's age and the intake record and give a considered position — and if it holds, it will draft the letter that explains it to the customer. That letter is worth a great deal more than a sentence at the counter, and it does not put you in the middle of it.` }
-  ],
-  quiz: [
-    { q: 'When a garment fault appears, what are the three possible answers?',
-      a: ['The customer, the insurer, or the cleaner',
-          'The manufacturer, the consumer, or the cleaner',
-          'The fabric, the machine, or the operator',
-          'Wear, water, or heat'],
-      correct: 1,
-      why: 'Manufacturer, consumer or cleaner. The habit worth building is asking which of the three it is, rather than assuming it is us.' },
-
-    { q: 'A jacket collar comes back rippled and blistered. What is the most likely verdict?',
-      a: ['Cleaner — over-pressing',
-          'Consumer — the jacket was stored badly',
-          'Manufacturer — the fusible interfacing adhesive has failed',
-          'Cleaner — the wrong solvent'],
-      correct: 2,
-      why: 'Fusible bubbling is an adhesive failure built into the garment. Cleaning reveals a bond that had already gone rather than causing it.' },
-
-    { q: 'A wool coat has small irregular holes in clusters, mostly where it was stored. What is the likely cause?',
-      a: ['Insect damage — a consumer matter',
-          'Solvent burn',
-          'A manufacturing defect in the weave',
-          'Abrasion from the machine'],
-      correct: 0,
-      why: 'Clustered irregular holes in stored wool are the classic insect signature — commonly blamed on the cleaner, which is exactly why it gets noted at intake.' },
-
-    { q: 'Which of these is most likely to be our fault?',
-      a: ['Fading along the collar edge and cuff folds',
-          'Colour from a dark garment transferring onto a light one in the same load',
-          'A glazed sheen across the seat of a pair of trousers',
-          'Panels of a jacket in slightly different shades'],
-      correct: 1,
-      why: 'Cross-contamination in a load means a risky item was not identified and cleaned separately. The other three are wear or manufacturing matters.' },
-
-    { q: 'What is the honest test for whether a fault is ours?',
-      a: ['Whether the customer is insistent',
-          'Whether the garment was expensive',
-          'Whether a careful operator, doing the job properly, would have got a different result',
-          'Whether it was flagged at intake'],
-      correct: 2,
-      why: 'That question separates a process failure from an inherent one — and a claim we should pay is cheaper paid than fought.' },
-
-    { q: 'You are fairly confident a returned garment failed because of a manufacturing defect. What do you say to the customer?',
-      a: ['"That’s a manufacturing fault, you’ll need to take it back to the shop."',
-          '"Let me take this and have it properly assessed, and we’ll come back to you."',
-          '"That’s not our fault."',
-          '"We can replace it if you like."'],
-      correct: 1,
-      why: 'Even when you are right, a verdict at the counter sounds like an excuse, commits the business, and may be wrong. Take the details and let the assessment do the work.' },
-
-    { q: 'Why does knowing the common fault patterns still matter, if you are not going to tell the customer?',
-      a: ['It does not — it is background only',
-          'So you can write a better, more specific note for the assessment',
-          'So you can decide whether to accept the claim',
-          'So you can set the settlement figure'],
-      correct: 1,
-      why: 'The knowledge goes into the note, in the same type-location-severity language used at intake. A specific note is what makes a defensible assessment possible.' },
-
-    { q: 'Distressed denim comes back with a tear in a deliberately abraded area. Whose responsibility is that likely to be?',
-      a: ['The cleaner — the process finished it off',
-          'The manufacturer — the garment was made with weakened fabric by design',
-          'The consumer — they wore it too hard',
-          'Nobody; it is unassessable'],
-      correct: 1,
-      why: 'Distressed and pre-washed denim is manufactured with deliberately weakened fabric, and it goes on behaving that way. It is a design consequence, not a cleaning fault.' }
-  ]
-},
-{
   id: 'using-hangr',
-  num: '06',
+  num: '01',
   title: 'How to use Hangr',
   blurb: 'If you have never used something like this before, start here. It is not Google and it is not a search box — it is closer to asking a very well-read colleague.',
   minutes: 8,
@@ -6357,6 +5521,842 @@ Do not put more customer personal information into a chat than the question actu
           'None at all, ever'],
       correct: 1,
       why: 'Give it what the question needs and no more. A first name and the garment is almost always enough, and it is good privacy practice.' }
+  ]
+},
+{
+  id: 'acl',
+  num: '02',
+  title: 'The law at the counter',
+  blurb: 'What the Australian Consumer Law actually promises a customer, why the sign on the wall does not override it, and what to say when someone brings a garment back unhappy.',
+  minutes: 10,
+  reviewed: 'August 2026',
+  source: 'Australian Consumer Law — Service Guarantees',
+  lessons: [
+    { h: 'What we actually promise',
+      body: `Every job that goes across this counter carries an automatic promise, whether or not anyone says it out loud. It comes from **section 60 of the Australian Consumer Law**, and it is short: the service will be carried out with **due care and skill**.
+
+Read that carefully, because it is narrower than people assume.
+
+- We promise a **competent, careful job** — the right process for the fabric, the care label followed, obvious risks noticed.
+- We do **not** promise a perfect outcome on every garment. Some stains do not come out. Some fabrics fail. That is not automatically our problem.
+
+Two more guarantees sit alongside it:
+
+- **Section 61** — the service is fit for a purpose the customer told us about. If someone says "I need this for Saturday's wedding", that purpose is now part of the deal.
+- **Section 62** — where no time was agreed, the work is done in a reasonable time.
+
+### Why this matters to you
+When something goes wrong, the question a tribunal asks is never "did they have a sign up". It is "did they take due care and skill". If the process was right and the fault was in the garment, we have a real answer. If we used the wrong process, missed something obvious, or lost the item, we owe the customer a remedy and arguing about it only costs us more.` },
+
+    { h: 'The sign on the wall does not do what people think',
+      body: `This is the single most misunderstood thing in the industry, so learn it properly.
+
+Under **section 64 of the ACL**, any term that tries to exclude, restrict or water down a consumer guarantee is **void**. Not weakened — void. It has no legal effect at all.
+
+That includes the classic counter signs:
+
+- "We take no responsibility for damage."
+- "All garments cleaned at owner's risk."
+- "No liability accepted for buttons, trims or fastenings."
+
+None of those remove a customer's rights. Worse, telling a customer that a sign *has* removed their rights is itself misleading conduct under the same Act, which is its own problem.
+
+### So what does work
+Plenty — as long as it is about a **genuine, specific risk in that particular item** rather than a blanket escape hatch:
+
+- an undisclosed pre-existing condition
+- a missing or incorrect care label
+- an inherent weakness in the fabric
+- beading or trims we flagged, and the customer accepted, before we took the item
+
+That is not excluding the guarantee. That is informed consent about something we did not cause.
+
+### The line to hold
+**You can disclaim risk that is inherent to the garment. You cannot disclaim our own poor workmanship.** Get that distinction the wrong way round and no amount of signage will help.` },
+
+    { h: 'Minor or major — and who gets to pick',
+      body: `When we have breached the guarantee, the size of the failure decides **who chooses the remedy**. This is where a lot of money gets given away unnecessarily.
+
+### A minor failure
+Something that can be put right within a reasonable time — a garment that needs re-cleaning, a press that has to be done again.
+
+Here **we** choose. We can offer to fix it, redo it, or refund. The customer does not get to demand cash because they would prefer cash. If we offer to fix it within a reasonable time and they refuse and go elsewhere, that is their choice, not our bill.
+
+### A major failure
+The garment is destroyed, lost, or so badly damaged that no reasonable person would have accepted the service knowing the outcome.
+
+Here **the customer** chooses. They can reject the service, get back what they paid, and claim compensation for the reduced value of the item. That is **sections 267 and 268**.
+
+### Why you need to know the difference
+Almost every complaint that arrives at the counter is a minor failure being presented as a major one. A dress that needs re-cleaning is not a destroyed dress. Knowing which one you are actually looking at is what stops a re-clean turning into a four-figure payout — and equally, it stops us fighting a case we were always going to lose.` },
+
+    { h: 'What a damaged garment is actually worth',
+      body: `When we do owe compensation, the figure is **not** what a new one costs.
+
+The measure is the item's **current depreciated value** — what that garment was worth on the day it was damaged, given its age and condition. This is the same basis the **International Fair Claims Guide** uses, which is what insurers and assessors work from.
+
+### In practice
+Garments have a published life expectancy. A wool suit is reckoned on a few years, a shirt considerably less. Once you know the age, you take a percentage of the replacement cost, not the whole thing.
+
+A four-year-old jacket that cost 400 dollars new is not a 400 dollar cheque. It is a fraction of that, and there is a table that says which fraction.
+
+### Why you need to know this at the counter
+Not so you can quote a figure — **do not quote a figure**. Settlement is not a counter decision.
+
+You need to know it so you do not accidentally promise a replacement. "We'll replace it" is a sentence that costs the business real money and cannot be walked back. The right answer is that we will assess it properly and come back to them, because that is true and it is also the only answer that keeps the number in the right place.` },
+
+    { h: 'The first thirty seconds',
+      body: `The owner is usually not the person taking the complaint. You are. What you say in the first thirty seconds decides how the whole thing goes.
+
+### Say something like this
+"I'm sorry, that's not the result we want either. Let me take the details and have a proper look at it, and we'll come back to you."
+
+Then: take the garment, write down what they say happened, note the docket number, and put it aside for assessment.
+
+That is it. Calm, taking it seriously, no verdict.
+
+### Never say
+- **Never admit fault on the spot.** "Oh, we must have shrunk it" is an admission, and you almost certainly do not yet know whether it is true.
+- **Never promise a refund or a replacement.** You are not the person who decides that, and once it is said it cannot be unsaid.
+- **Never blame the customer.** Even when the garment plainly failed through wear, "you've worn this out" turns a solvable claim into a fight and a bad review.
+
+### Why this works
+Most claims are not lost on the cleaning. They are lost on the first conversation — either because someone promised too much, or because someone was dismissive and the customer dug in. Neither happens if you take the details and say you will come back to them.` }
+  ],
+  quiz: [
+    { q: 'Under section 60 of the Australian Consumer Law, what exactly does a dry cleaner guarantee?',
+      a: ['A perfect result on every garment',
+          'That the service will be carried out with due care and skill',
+          'That every stain will be removed',
+          'Nothing, provided a disclaimer sign is displayed'],
+      correct: 1,
+      why: 'Section 60 guarantees due care and skill — a competent, careful job. It does not guarantee a perfect outcome, and it cannot be switched off by a sign.' },
+
+    { q: 'A customer points at the "All garments cleaned at owner’s risk" sign and asks what it means. What is the accurate answer?',
+      a: ['It removes the customer’s right to claim for any damage',
+          'It applies only to garments over a certain value',
+          'It has no legal effect on their consumer guarantees, which cannot be excluded',
+          'It transfers liability to the manufacturer'],
+      correct: 2,
+      why: 'Section 64 makes any term that tries to exclude or restrict a consumer guarantee void. A blanket sign does not remove the customer’s statutory rights.' },
+
+    { q: 'Which of these can we legitimately ask a customer to accept the risk on?',
+      a: ['Any damage at all, if they sign the docket',
+          'A specific, inherent risk in that item — such as perished silk that may split — explained before we take it',
+          'Damage caused by using the wrong solvent',
+          'Anything, as long as the sign is displayed at the counter'],
+      correct: 1,
+      why: 'At-risk acceptance is informed consent about a genuine risk inherent to that garment. It never covers our own poor workmanship.' },
+
+    { q: 'A jacket needs re-cleaning because it came back with a mark still on it. Who chooses the remedy?',
+      a: ['The customer, who can demand a cash refund',
+          'We do — it is a minor failure that can be put right in a reasonable time',
+          'Nobody; the customer must accept the garment as is',
+          'The insurer'],
+      correct: 1,
+      why: 'For a minor failure — one that can be fixed within a reasonable time — the supplier chooses the remedy. The customer only gets to choose when the failure is major.' },
+
+    { q: 'When does the customer get to choose the remedy?',
+      a: ['Whenever they are unhappy with the result',
+          'Only if they paid by card',
+          'When the failure is major — the item is lost, destroyed, or so damaged no reasonable person would have accepted the service',
+          'Only if they complain within 24 hours'],
+      correct: 2,
+      why: 'Sections 267 and 268: on a major failure the customer can reject the service, recover what they paid, and claim compensation for the reduced value of the item.' },
+
+    { q: 'A four-year-old coat that cost 400 dollars new is damaged beyond repair and it is our fault. What is the correct basis for compensation?',
+      a: ['400 dollars, the full replacement cost',
+          'The cleaning fee only',
+          'The coat’s current depreciated value, based on its age and condition',
+          'Whatever the customer says it is worth'],
+      correct: 2,
+      why: 'Fair compensation is the item’s depreciated value on the day it was damaged — the basis the International Fair Claims Guide and insurers use — not the cost of a new one.' },
+
+    { q: 'A customer returns a shrunken jumper and is visibly upset. Which response is correct?',
+      a: ['"That looks like our fault, we’ll replace it."',
+          '"That’s wear and tear, there’s nothing we can do."',
+          '"I’m sorry — let me take the details and have a proper look, and we’ll come back to you."',
+          '"You should have told us it was delicate."'],
+      correct: 2,
+      why: 'Take the details, take it seriously, give no verdict. Never admit fault, promise a remedy, or blame the customer at the counter — none of those are yours to decide, and each of them makes the claim worse.' },
+
+    { q: 'Why does it matter that you never say "we’ll replace it" at the counter?',
+      a: ['Because replacement is never owed under the ACL',
+          'Because it commits the business to a figure before anyone has assessed the garment, and it cannot be taken back',
+          'Because only the manufacturer can authorise a replacement',
+          'Because the customer must claim on their own insurance first'],
+      correct: 1,
+      why: 'A promise made at the counter sticks. Assessment decides whether anything is owed and how much — and the correct amount is depreciated value, not a new garment.' }
+  ]
+},
+{
+  id: 'intake',
+  num: '03',
+  title: 'Taking garments in',
+  blurb: 'Good intake is a documentation exercise. Most disputes are not lost on the cleaning — they are lost because nobody wrote down what the garment looked like before it went in.',
+  minutes: 10,
+  reviewed: 'August 2026',
+  source: 'Intake Procedures & Customer Service Best Practice',
+  lessons: [
+    { h: 'Check it in front of the customer',
+      body: `Every item gets looked at **at the counter, in front of the customer, before the docket is written**. Not in the back. Not later. Then.
+
+There are two reasons and both matter.
+
+1. Anything you find becomes a conversation instead of a claim. "There's a small tear on this seam — I'll note it" takes four seconds and ends the argument before it starts.
+2. If you find it later, you are the only witness, and the customer's memory of a perfect garment is very hard to beat.
+
+### What you are looking for
+Work the garment quickly but properly:
+
+- existing stains and marks
+- holes, tears, thin patches
+- fraying hems and cuffs
+- missing or loose buttons, broken zips and clasps
+- pilling
+- colour loss, fading, sun damage along folds
+- weak or slipping seams
+- any previous repair or alteration
+
+### And check the pockets
+Every pocket, every time. Pens, lipsticks, tissues and coins do enormous damage in a machine — and not just to that garment. One pen destroys a whole load.` },
+
+    { h: 'Write it down properly',
+      body: `Finding the damage is only half of it. What protects the business is **what you wrote**.
+
+Note three things every time: **type, location, severity**.
+
+- Good: "small oil mark, front right hem"
+- Good: "3cm fray, left cuff edge"
+- Useless: "marked"
+- Useless: "some damage"
+
+"Marked" tells a future assessor nothing. It does not prove the mark that came back is the mark you saw, and it does not prove where it was.
+
+### Where it goes
+On the ticket **and** in the system record. The record has to outlive the paper docket, because the paper docket will not be there in three months when the claim turns up.
+
+### Why this is worth the ten seconds
+Pre-existing damage tagging is the cheapest risk protection in the whole business. If a weak seam was there on the way in and you noted it, you have a defence when it opens on the way out. If you did not note it, you do not.
+
+The International Fair Claims Guide — the standard assessors and insurers actually use — specifically weighs the garment's condition and age at intake when it decides who wears the cost. A better intake note is a better outcome, every time.` },
+
+    { h: 'At-risk acceptance, done properly',
+      body: `Some items should only be taken in on the basis that the customer carries the risk:
+
+- no care label, or the label has been cut out
+- aged or sun-degraded fabric
+- delicate beading, sequins or trims
+- vintage pieces
+- anything where the safe cleaning method is genuinely uncertain
+- anything the customer wants cleaned **against** the label
+
+### How to do it
+**Say the specific risk out loud, in plain English, first.**
+
+"This silk has perished along the fold lines and it may split when it's cleaned. I can clean it, but I can't promise it will survive. Are you happy for me to try?"
+
+Then record that they accepted — a signed at-risk line on the docket, a ticked field in the system, or a text or email confirming it.
+
+### Specific beats blanket, every time
+A blanket "all items at owner's risk" stamped on every ticket is weak, and after the last module you know why. A **named risk on a particular garment that the customer verbally accepted** is strong.
+
+### What it does and does not cover
+At-risk acceptance is informed consent. It is not an indemnity.
+
+It protects us where the risk was genuinely inherent to the item. It does **not** protect us if we then over-process the garment or run it through the wrong solvent — the due care and skill guarantee still applies to how we handle it.
+
+Disclaim the perished silk splitting. Do not assume that disclaimer covers us shrinking it.` },
+
+    { h: 'Photograph the ones that matter',
+      body: `For anything valuable, photograph it at intake. Set a sensible threshold and stick to it — many operators use around 200 to 300 dollars — and always photograph:
+
+- wedding gowns
+- designer pieces
+- leather, suede and fur
+- heavily embellished or gilded garments
+- anything you have already flagged with pre-existing damage
+
+### How
+Whole garment, then close-ups of any damage, trims, fastenings and the care label. Store them against the order — in the system, or a dated folder keyed to the docket number. A photo nobody can find later is not evidence.
+
+### Tell the customer you are doing it
+It is not sneaky and it should not look sneaky. "I'll just take a couple of photos so we've both got a record of how it came in" reassures people. It signals you are taking their item seriously, and it protects them as much as us.
+
+### Why it is worth it
+A timestamped photo ends the "it wasn't like that when I dropped it off" conversation before it starts. On high-value claims, assessors give real weight to dated visual evidence. Thirty seconds of phone time against a potential four-figure claim is not a close call.` },
+
+    { h: 'Special instructions have to reach the plant',
+      body: `Customers regularly want something non-standard:
+
+- **no press** — pleating, delicate finishes, athletic wear
+- **hang only**, no fold
+- **individual cleaning** — high-value or heavily soiled items cleaned alone
+- starch level
+- spot treat only
+- box and preserve, for gowns
+
+### Capture it in both places
+Write it on the docket **and** into the system record, so it travels to the plant. A verbal instruction passed to a colleague at the counter is an instruction that will be lost.
+
+### When the instruction conflicts with the safe method
+If what they are asking for is riskier than the labelled or safe method, note that you advised them and record their decision. At that point it has become an at-risk acceptance, and you already know how to do one of those.
+
+### Why it matters
+Getting "no press" wrong on a 400 dollar pleated skirt is a claim that is very hard to defend, because the customer told us and there is no excuse available. Treat the instructions field as part of the contract, because that is what it is.` }
+  ],
+  quiz: [
+    { q: 'When should a garment be checked for pre-existing damage?',
+      a: ['In the plant, before cleaning',
+          'At the counter, in front of the customer, before the docket is written',
+          'Only if the customer mentions a problem',
+          'At assembly, when it is being bagged'],
+      correct: 1,
+      why: 'Checking in front of the customer turns anything you find into a conversation rather than a claim. Found later, you are the only witness.' },
+
+    { q: 'Which of these is a properly written pre-existing damage note?',
+      a: ['"Marked"',
+          '"Some damage"',
+          '"Small oil mark, front right hem"',
+          '"Customer says it was already dirty"'],
+      correct: 2,
+      why: 'Type, location and severity. "Marked" does not prove the mark that came back is the one you saw, or where it was.' },
+
+    { q: 'Where does a pre-existing damage note need to end up?',
+      a: ['On the paper docket only',
+          'In the staff member’s memory',
+          'On the ticket and in the system record',
+          'On the garment tag only'],
+      correct: 2,
+      why: 'The record has to outlive the paper docket — which will be long gone by the time a claim arrives months later.' },
+
+    { q: 'A customer brings in a vintage silk blouse with no care label. What is the correct approach?',
+      a: ['Refuse it outright',
+          'Clean it normally and say nothing',
+          'Name the specific risk out loud, then record that the customer accepted it',
+          'Stamp "at owner’s risk" on the ticket and move on'],
+      correct: 2,
+      why: 'A named, item-specific risk the customer verbally accepted is strong. A blanket stamp on every ticket is weak and does not reflect informed consent.' },
+
+    { q: 'We took a garment in at owner’s risk because the fabric was perished. It then shrinks badly because it went through the wrong process. Are we covered?',
+      a: ['Yes — the customer accepted the risk',
+          'No — at-risk acceptance covers the inherent risk, not our own poor process',
+          'Yes, provided they signed the docket',
+          'Only if the shrinkage is under 5 per cent'],
+      correct: 1,
+      why: 'At-risk acceptance is informed consent about an inherent risk. The due care and skill guarantee still applies to how we handle the item.' },
+
+    { q: 'Which item should always be photographed at intake?',
+      a: ['Every shirt in a bulk order',
+          'A wedding gown',
+          'Anything the customer seems anxious about',
+          'Nothing — photos slow the counter down'],
+      correct: 1,
+      why: 'Gowns, designer pieces, leather and suede, heavily embellished items and anything already flagged with pre-existing damage all get photographed.' },
+
+    { q: 'A customer asks for "no press" on a pleated skirt. What do you do?',
+      a: ['Remember it and tell the presser later',
+          'Write it on the docket and into the system record so it reaches the plant',
+          'Note it only if the garment is over 200 dollars',
+          'Explain that we press everything'],
+      correct: 1,
+      why: 'A verbal instruction passed along at the counter gets lost between intake and processing. It needs to be recorded in both places.' },
+
+    { q: 'Why check every pocket, every time?',
+      a: ['To find items the customer might claim went missing, and because one pen can ruin an entire load',
+          'Because the ACL requires it',
+          'Only on trousers and jackets',
+          'It is a courtesy, not a requirement'],
+      correct: 0,
+      why: 'Pens, lipsticks and tissues cause damage well beyond the garment they were in — and a customer’s missing keys become our problem the moment we did not look.' }
+  ]
+},
+{
+  id: 'tagging',
+  num: '04',
+  title: 'Tagging garments',
+  blurb: 'Every garment that comes in is about to be separated from its owner, its docket and every other garment in the order. The tag is the only thing that gets it back.',
+  minutes: 8,
+  reviewed: 'August 2026',
+  // The one module with no knowledge base source behind it. Written from general
+  // industry practice, and the owner should read it against their own system —
+  // heat seal, pin tags and POS labels all work differently — before it goes live.
+  source: 'General industry practice — review against our own tagging system',
+  lessons: [
+    { h: 'Why we tag at all',
+      body: `The moment a garment leaves the counter it stops being "Mrs Patel's navy coat" and becomes one of two hundred navy items in the plant. It will be sorted by process, not by owner. It will be cleaned with strangers' clothes, pressed by someone who never met the customer, and assembled hours or days later by a third person.
+
+The tag is the only thread running through all of that.
+
+Get tagging right and the worst thing that happens is a garment is late. Get it wrong and you have a lost item — which is a **major failure** under the ACL, which means the customer picks the remedy, which means you are paying depreciated value on something nobody can even find.
+
+### The two jobs a tag does
+1. **Identity** — which order this piece belongs to.
+2. **Count** — how many pieces that order is supposed to have.
+
+The second one is the one people forget, and it is the one that catches a missing garment before the customer does.` },
+
+    { h: 'One lot, every piece',
+      body: `### One lot number per customer per order
+Everything that came in together carries the same lot. Not one per garment type, not one per rack — one per order. That is what lets you reassemble it.
+
+If a customer drops off twice in a day, that is two orders and two lots. Merging them because it seems tidier is how half an order goes home and half does not.
+
+### Tag every piece
+Not every garment — every **piece**. This is where orders come apart:
+
+- belts and sashes
+- suit trousers **and** the jacket **and** the waistcoat
+- detachable liners and hoods
+- fur collars that unclip
+- scarves, ties and pocket squares
+- spare buttons that came with the item
+
+A three-piece suit is three tagged pieces, not one. A belt that goes through the machine untagged is a belt nobody can match to anything.
+
+### Count it in front of the customer
+Say the number out loud as you write it. "That's five pieces — two shirts, trousers, jacket, and the belt." It takes two seconds, the customer agrees to the number then and there, and the count is now on the docket rather than in dispute.` },
+
+    { h: 'Where the tag goes',
+      body: `The rule underneath all of this: **a tag must never leave a mark the customer can see.**
+
+### The safe places
+Work to an inside seam, a facing, or an existing label:
+
+- **Shirts and blouses** — inside the collar band, or the inside of the tail hem
+- **Trousers** — inside the waistband, at the back
+- **Jackets and coats** — inside the lining at the hem, or the inside back neck
+- **Skirts and dresses** — inside the waistband or the side seam allowance
+- **Knitwear** — the care label itself, never the knit
+- **Ties** — the keeper loop or the back tipping, never the face
+
+### Never
+- through **face fabric** anywhere it will show
+- through **leather or suede** — a pin hole in a hide is permanent, and you cannot press it out
+- through **coated, laminated or PU fabrics** — the coating splits and the split spreads
+- through **silk or fine knits** — a pin pulls a thread and the pull runs
+- through **sequins, beading or embroidery** — you will lose the thread that holds them
+- through a **seam under tension** — the hole opens
+
+On any of those, tag the care label, or use a safety pin through an existing hole such as a button placket, or bag and tag the item separately.
+
+### If in doubt
+Ask. A thirty-second question is cheaper than a permanent hole in a 900 dollar jacket.` },
+
+    { h: 'Pins, staples and heat seals',
+      body: `Whatever system we use, the failure modes are the same.
+
+### Heat seal tags
+Fast and secure, and the usual choice. But heat is heat:
+
+- never heat seal directly onto **face fabric**
+- never onto **synthetics that will melt** — acetate, some linings, sportswear
+- never onto **coated fabrics**
+- go onto the care label or a seam allowance where the heat has somewhere to go
+
+### Pin tags
+Flexible, and forgiving on most woven fabrics. But a pin makes a hole, and on the wrong fabric the hole is permanent. Re-read the never list from the last page before you reach for one.
+
+### Staples
+Fast, and the most damaging option in the building. Staples rust, they tear when the garment is handled, and they leave two holes rather than one. If we use them at all, they go through the care label and nothing else.
+
+### Before you tag anything
+**Empty the pockets first.** Tagging is the last point where anyone will look. Once it is tagged it goes to sorting, and the pen in the inside pocket goes with it.` },
+
+    { h: 'When it goes wrong',
+      body: `Tags come off. Fabric moves, heat seals lift, pins snag. What matters is what happens next.
+
+### If you find an untagged garment
+**Do not guess and do not re-tag it with a plausible lot number.** A wrongly re-tagged garment is worse than an untagged one — it will go home with the wrong customer, and now you have two problems and one of them is a privacy problem.
+
+Set it aside in the designated place and tell someone. Almost every untagged garment is matched within a day by the order that is short a piece, which is exactly why the piece count exists.
+
+### If an order is short at assembly
+Stop and check before it is bagged. Look at the count on the docket against what is on the rack. A missing piece found at assembly is a garment still in the building. A missing piece found by the customer is a claim.
+
+### If a customer says a piece is missing
+Take the details, check the docket count, and check the untagged rack. Do not tell them it is lost and do not tell them it is not. It is an assessment like any other, and the answer comes back to them.
+
+### The one-line version
+The tag is not paperwork. It is the only reason the right garment goes home with the right person.` }
+  ],
+  quiz: [
+    { q: 'How many lot numbers does one customer’s single drop-off get?',
+      a: ['One per garment',
+          'One per order — every piece that came in together carries the same lot',
+          'One per garment type',
+          'One per rack it ends up on'],
+      correct: 1,
+      why: 'One lot per customer per order is what allows the order to be reassembled. Splitting or merging lots is how half an order goes home.' },
+
+    { q: 'A customer brings in a two-piece suit and a belt. How many pieces get tagged?',
+      a: ['One — it is one order',
+          'Two — the jacket and trousers; belts do not need tagging',
+          'Three — jacket, trousers and belt',
+          'Two — the suit counts as one piece plus the belt'],
+      correct: 2,
+      why: 'Every piece gets a tag, including belts, sashes, liners, detachable hoods and waistcoats. An untagged belt is a belt nobody can match to an order.' },
+
+    { q: 'Where should a tag go on a leather jacket?',
+      a: ['Pinned through the lining hem or the care label — never through the hide',
+          'Pinned through the collar',
+          'Stapled to the cuff',
+          'Heat sealed to the front panel'],
+      correct: 0,
+      why: 'A pin hole in leather or suede is permanent and cannot be pressed out. Tag the care label or the lining, or bag and tag the item separately.' },
+
+    { q: 'Which of these is a safe place to tag a shirt?',
+      a: ['Through the front placket, between the buttons',
+          'Inside the collar band or the inside tail hem',
+          'On the cuff, where it is easy to find',
+          'Through the chest pocket'],
+      correct: 1,
+      why: 'Tags go to an inside seam, facing or existing label — somewhere that will never show. The underlying rule is that a tag must not leave a mark the customer can see.' },
+
+    { q: 'Which fabric must never be heat sealed directly?',
+      a: ['Cotton drill',
+          'Wool suiting',
+          'An acetate lining or a coated fabric',
+          'Denim'],
+      correct: 2,
+      why: 'Synthetics such as acetate will melt and coated fabrics will split. Heat seal onto the care label or a seam allowance instead.' },
+
+    { q: 'When is the last practical moment to check a garment’s pockets?',
+      a: ['At assembly',
+          'Before tagging — after that it goes straight to sorting',
+          'In the machine room',
+          'When the customer collects'],
+      correct: 1,
+      why: 'Tagging is the last point where anyone handles the garment individually. Anything still in a pocket goes into the machine with it.' },
+
+    { q: 'You find an untagged jacket on the rack. What do you do?',
+      a: ['Re-tag it with the lot number of the order it most likely belongs to',
+          'Clean it and hold it until someone asks',
+          'Set it aside in the designated place and tell someone',
+          'Bag it with the nearest order'],
+      correct: 2,
+      why: 'Guessing a lot number sends the garment home with the wrong customer, which is worse than it being untagged. It will usually be matched within a day by the order that is short a piece.' },
+
+    { q: 'Why is the piece count on the docket worth saying out loud to the customer?',
+      a: ['It is a legal requirement',
+          'It agrees the number at intake, so a short order is caught at assembly rather than disputed later',
+          'It speeds up the counter',
+          'It determines the price'],
+      correct: 1,
+      why: 'An agreed count means a missing piece is found at assembly, while the garment is still in the building — instead of being found by the customer, which makes it a claim.' }
+  ]
+},
+{
+  id: 'reading',
+  num: '05',
+  title: 'Reading the garment',
+  blurb: 'Most claims and write-offs are decided before the garment goes anywhere near a machine — at the counter, by whoever looked at it. Here is what to look for.',
+  minutes: 12,
+  reviewed: 'August 2026',
+  source: 'Garment Categories and Risk Profiles, and the DLI Textile Analysis Bulletins',
+  lessons: [
+    { h: 'The care label is a starting point, not gospel',
+      body: `Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong — mislabelled imports, labels cut out because they itched, labels that describe the face fabric and ignore the trim.
+
+### How to use a label
+Read it, and treat it as the manufacturer's opinion rather than a guarantee.
+
+- If the label says dry clean only and the fabric is obviously fine to wet clean, the label still sets the expectation. Departing from it is a decision, not a default.
+- **Once we depart from the label, liability shifts to us.** That is the whole point of the rule. If we followed a reasonable label and the garment failed anyway, we have a genuine answer. If we ignored it, we own the outcome.
+- If the label is missing, that is not a free hand. **No label means at-risk, every time.** Say so and record it.
+
+### Check the trim, not just the fabric
+The label describes the main fabric. It very often says nothing about the leather trim on the cuffs, the plastic buttons, or the glued-on appliqué — all of which will react differently to the process the label recommends.` },
+
+    { h: 'Sewn or glued',
+      body: `On anything embellished, this is the single most important question you can ask, and you can usually answer it by looking closely for ten seconds.
+
+### Why it decides everything
+- **Sewn** embellishments — beads and sequins stitched through the fabric — usually survive solvent. Not always, but usually.
+- **Glued** embellishments — anything held on with adhesive, including most flat stones, foil prints, flock and heat-applied motifs — very often do not. Solvent dissolves the adhesive and the decoration comes off in the machine, sometimes taking the print with it.
+
+### How to tell
+Look at the reverse of the fabric behind the decoration. Stitching shows through. Glue does not — you will see a stiff patch or a shiny film instead.
+
+### What to do
+Glued embellishment is an at-risk conversation, every time. Name it: "These stones are glued rather than stitched, and the cleaning solvent can soften that adhesive. I can clean it, but some of them may come off."
+
+The same question applies to **coated and laminated fabrics** — vinyl, PU, anything with a plastic-feeling face or a metallic finish. Those coatings crack, peel and go tacky, and they were never really designed to be cleaned.` },
+
+    { h: 'Fabrics that need a second look',
+      body: `### Wool
+Shrinks and felts with heat and agitation. Check for existing pilling and for shine on the seat, elbows and cuffs — that shine is worn fibre and it will not come back.
+
+### Silk
+Weakens with age, light and perspiration. Look along fold lines and at the underarms. Perished silk splits when it is handled, and it will split for us rather than for the customer.
+
+### Leather and suede
+The highest-claim material family there is. A garment is built from many skin panels from different animals, dyed in different lots — so colour variation, veins, scars and coarse patches are inherent to the material, not faults we caused. Check the panels against each other in daylight and note anything obvious before it goes.
+
+### Fusible interfacing
+The stiffener glued inside collars, cuffs, plackets and jacket fronts. When the adhesive fails you get **bubbling** — a rippled, blistered look through the collar or lapel. It very often only shows up after cleaning, because the process is what reveals a bond that had already gone. Check collars and lapels in raking light on the way in, and note any rippling you can already see.
+
+### Vinyl, PU and metallics
+Assume they will not survive. Coatings crack, peel, discolour and stick to themselves. At-risk, always.` },
+
+    { h: 'Age and wear',
+      body: `A lot of what comes back as a complaint is a garment that was already finished before we saw it. Learn to spot it on the way in.
+
+### Thin and worn areas
+Hold the fabric up to the light. Thin patches at the seat, elbows, knees and inside thighs are worn fabric. The next thing that happens to them is a hole, and the cleaning process is often what finishes the job.
+
+### Wear shine
+A flat, glazed sheen on high-contact areas — the seat, cuffs, elbows. The fibre surface has been abraded flat. It cannot be reversed by cleaning and it is not caused by cleaning.
+
+### Pilling
+Little balls of tangled fibre on the surface, worst where the garment rubs against itself or a bag strap. Normal for blends and soft wools, and worth noting because customers frequently believe we caused it.
+
+### Fraying hems and cuffs
+Especially on unsecured edges. Cleaning will move a fray along. Note the existing extent.
+
+### Seam and yarn slippage
+Yarns pulling apart at a seam, leaving a gappy, laddered look. It is a construction and fit issue — a garment worn too tight — and it will get worse in the machine.
+
+### Insect damage
+Small, irregular holes, often in clusters, usually on wool and often in areas that were stored rather than worn. Not our doing, but very commonly blamed on us, so note it.` },
+
+    { h: 'Colour risk',
+      body: `Dye problems are the fastest way to turn one garment into a whole load of ruined garments.
+
+### What to look for
+- **Deep, saturated colours** — especially reds, blacks and indigo — on anything that has not been cleaned before
+- **Denim**, which streaks and crocks readily
+- **Black and white in one garment**, or a light garment being cleaned alongside a dark one
+- **Colour variation between panels** already visible — a sign the pieces were cut from different dye bolts, which is a manufacturing matter and not ours
+- **Sun fading** along shoulders, one side of a garment, or the exposed edge of a curtain
+
+### The test worth doing
+On anything you are unsure about, damp a white cloth and press it firmly against an inside seam allowance. If colour transfers, that dye is not fast, and it needs to be cleaned alone if at all.
+
+### Soft furnishings
+Curtains deserve their own warning. Sun-rotted curtains **will** split when they are handled. The fabric was already gone and our process merely revealed it — but we will wear the blame unless it was flagged at intake. Check the leading edge and the section that faced the window, and put it in writing.` }
+  ],
+  quiz: [
+    { q: 'A garment has no care label. What does that mean for how we take it in?',
+      a: ['We can clean it however we judge best, with no extra step',
+          'We must refuse it',
+          'It is an at-risk item — name the risk and record the customer’s acceptance',
+          'We follow the label of a similar garment'],
+      correct: 2,
+      why: 'A missing label is a textbook trigger for at-risk acceptance. It is not a free hand, and it is not a reason to refuse.' },
+
+    { q: 'What happens to liability when we depart from the care label?',
+      a: ['Nothing — labels are only advisory',
+          'It shifts to us',
+          'It shifts to the manufacturer',
+          'It is shared equally with the customer'],
+      correct: 1,
+      why: 'Following a reasonable label gives us a genuine answer if the garment fails anyway. Departing from it means we own the outcome.' },
+
+    { q: 'A dress is covered in flat stones. How do you tell whether they are a problem?',
+      a: ['By their colour',
+          'By checking the reverse of the fabric — stitching shows through, glue leaves a stiff or shiny patch',
+          'By how heavy the dress is',
+          'By the price tag'],
+      correct: 1,
+      why: 'Sewn or glued is the single most important question on an embellished garment. Sewn usually survives solvent; glued very often does not.' },
+
+    { q: 'What is fusible interfacing bubbling, and where does it show?',
+      a: ['Dye bleeding from the lining, seen at the hem',
+          'The glued stiffener inside collars, cuffs and lapels failing, giving a rippled or blistered look',
+          'Shrinkage across the shoulders',
+          'A pressing fault caused by too much steam'],
+      correct: 1,
+      why: 'It is an adhesive failure in the garment’s construction, and cleaning usually reveals a bond that had already gone rather than causing it.' },
+
+    { q: 'A pair of trousers has a flat, glazed sheen across the seat. What is it?',
+      a: ['A pressing fault we caused',
+          'Wear shine — abraded fibre from use, which cleaning cannot reverse and did not cause',
+          'Dye migration',
+          'Residue from the solvent'],
+      correct: 1,
+      why: 'Wear shine is the fibre surface abraded flat by contact. It is not reversible and it is not a cleaning fault — but it is very often blamed on the cleaner.' },
+
+    { q: 'Colour variation is already visible between the panels of a new jacket. What does that usually indicate?',
+      a: ['The garment has been cleaned too often',
+          'The panels were cut from different dye bolts — a manufacturing matter',
+          'Sun damage',
+          'The customer has spilled something'],
+      correct: 1,
+      why: 'Different dye bolts across panels is an inherent manufacturing variation. Noting it at intake is what stops it being blamed on the clean.' },
+
+    { q: 'You are unsure whether a deep red garment’s dye is fast. What is the practical check?',
+      a: ['Smell the fabric',
+          'Damp a white cloth and press it firmly against an inside seam allowance to see if colour transfers',
+          'Hold it up to the light',
+          'Check the care label for a colour code'],
+      correct: 1,
+      why: 'A transfer test on a hidden seam allowance tells you whether the dye is loose before it has a chance to ruin a whole load.' },
+
+    { q: 'A customer brings in long curtains that faced a west-facing window for years. What is the risk to flag?',
+      a: ['They will shrink',
+          'The colour will run',
+          'Sun-rotted fabric will split when handled — the damage is already there, the process just reveals it',
+          'They will pill'],
+      correct: 2,
+      why: 'Sun degradation destroys the fibre before we ever see it. Unless it is flagged and recorded at intake, we wear the blame for revealing it.' }
+  ]
+},
+{
+  id: 'fault',
+  num: '06',
+  title: 'Whose fault is it?',
+  blurb: 'Most garment faults are not the cleaner’s. Knowing which is which is what stops us paying for damage we did not cause — and stops us fighting one we did.',
+  minutes: 10,
+  reviewed: 'August 2026',
+  source: 'DLI Textile Analysis Bulletins and the International Fair Claims Guide',
+  lessons: [
+    { h: 'Three possible answers',
+      body: `When a garment comes back with a problem, there are only ever three answers, and the industry has spent decades working out which is which.
+
+### The manufacturer
+The garment was made in a way that was never going to survive normal care. Bad adhesive, unstable dye, incompatible trim, a construction that fails under its own weight. The fault was built in, and cleaning is simply what revealed it.
+
+### The consumer
+The garment was worn out, damaged, stored badly, or exposed to something at home. Wear, abrasion, perspiration, insects, sun, a spill that was never mentioned.
+
+### The cleaner
+We used the wrong process, over-processed, missed something obvious, or lost the item.
+
+### Why you need the framework, not the answers
+You are not going to memorise 149 bulletins. What you need is the habit of asking **which of the three this is** rather than assuming it is the third one — because the industry data says the third one is the least common of the three, and the counter instinct is to assume it is us.
+
+The full analysis lives in the app. Ask Hangr about any specific fault and it will give you the bulletin, the cause and the verdict.` },
+
+    { h: 'The classics that are not our fault',
+      body: `These come up constantly and they are almost always the garment, not the clean.
+
+### Fusible bubbling
+Rippled, blistered collars, cuffs and lapels. The glue holding the interfacing failed. **Manufacturer.** Cleaning revealed a bond that had already gone.
+
+### Colour loss across different panels
+Panels of the same garment ending up visibly different shades. They were cut from different dye bolts. **Manufacturer.**
+
+### Wear shine
+Glazed sheen on the seat, elbows and cuffs. Abraded fibre. **Consumer.** Not reversible and not caused by us.
+
+### Insect holes
+Small irregular holes in clusters, usually wool, usually in stored garments. **Consumer.**
+
+### Perspiration damage
+Weakened, discoloured or split fabric at the underarms and along the waistband. Body salts and oils degrade fibre and dye over time — often invisible until cleaning removes what was masking it. **Consumer.**
+
+### Distressed and pre-washed denim
+Garments deliberately manufactured with weakened, abraded fabric. They continue doing what they were designed to look like. **Manufacturer, by design.**
+
+### Loss of a synthetic suede finish
+Flock coating crumbling off a fake-suede garment. The binder was softened by light, body oils or solvent. **Manufacturer** — the material was never compatible.
+
+### Colour loss from wear
+Fading concentrated where the garment rubs — collar edges, cuff folds, bag-strap lines. **Consumer.**` },
+
+    { h: 'And the ones that are',
+      body: `Being straight about this matters as much as the rest, because a claim we should pay and fight anyway costs more than the garment.
+
+It is likely ours when:
+
+- the **wrong process** was used for the fabric — a wet clean on something that needed solvent, or the reverse
+- the garment was **over-processed** — too hot, too long, too much agitation
+- a **spotting agent** was used wrongly, leaving a ring, a bleached patch or weakened fibre
+- **colour transferred from another garment** in the same load, because a risky item was not cleaned separately
+- an **obvious risk was missed at intake** — the glued embellishment nobody looked at
+- a garment was **damaged in pressing** — scorch, an impression, a broken button
+- the item was **lost**
+
+### The honest test
+Ask: would a careful operator, doing this job properly, have got a different result?
+
+If the answer is yes, it is ours and the sooner that is established the cheaper it is. If the answer is no, we have a genuine position and there is a bulletin that supports it.` },
+
+    { h: 'What you do with any of this at the counter',
+      body: `Almost nothing. That is the point.
+
+You now know enough to recognise a fault that is very unlikely to be ours. That knowledge is for **writing a better note**, not for delivering a verdict across the counter.
+
+### Why not just tell them
+Three reasons.
+
+1. **You might be wrong.** Fusible bubbling and press damage can look similar to an untrained eye, and so can insect holes and abrasion holes. The assessment exists for a reason.
+2. **It sounds like an excuse**, even when it is true. "That's the manufacturer's fault" from the person who has just returned a ruined jacket is heard as a brush-off, and the customer digs in.
+3. **It commits us.** A verdict given at the counter is very hard to move away from later, in either direction.
+
+### So what you actually do
+Take the details. Write down what you can see, in the same type-location-severity language you use at intake. Note anything relevant from the intake record — was it flagged, was it at-risk, was there a photo. Then:
+
+"Let me take this and have it properly assessed, and we'll come back to you."
+
+### Then let the assessment do the work
+Hangr will take the fault, the fabric, the garment's age and the intake record and give a considered position — and if it holds, it will draft the letter that explains it to the customer. That letter is worth a great deal more than a sentence at the counter, and it does not put you in the middle of it.` }
+  ],
+  quiz: [
+    { q: 'When a garment fault appears, what are the three possible answers?',
+      a: ['The customer, the insurer, or the cleaner',
+          'The manufacturer, the consumer, or the cleaner',
+          'The fabric, the machine, or the operator',
+          'Wear, water, or heat'],
+      correct: 1,
+      why: 'Manufacturer, consumer or cleaner. The habit worth building is asking which of the three it is, rather than assuming it is us.' },
+
+    { q: 'A jacket collar comes back rippled and blistered. What is the most likely verdict?',
+      a: ['Cleaner — over-pressing',
+          'Consumer — the jacket was stored badly',
+          'Manufacturer — the fusible interfacing adhesive has failed',
+          'Cleaner — the wrong solvent'],
+      correct: 2,
+      why: 'Fusible bubbling is an adhesive failure built into the garment. Cleaning reveals a bond that had already gone rather than causing it.' },
+
+    { q: 'A wool coat has small irregular holes in clusters, mostly where it was stored. What is the likely cause?',
+      a: ['Insect damage — a consumer matter',
+          'Solvent burn',
+          'A manufacturing defect in the weave',
+          'Abrasion from the machine'],
+      correct: 0,
+      why: 'Clustered irregular holes in stored wool are the classic insect signature — commonly blamed on the cleaner, which is exactly why it gets noted at intake.' },
+
+    { q: 'Which of these is most likely to be our fault?',
+      a: ['Fading along the collar edge and cuff folds',
+          'Colour from a dark garment transferring onto a light one in the same load',
+          'A glazed sheen across the seat of a pair of trousers',
+          'Panels of a jacket in slightly different shades'],
+      correct: 1,
+      why: 'Cross-contamination in a load means a risky item was not identified and cleaned separately. The other three are wear or manufacturing matters.' },
+
+    { q: 'What is the honest test for whether a fault is ours?',
+      a: ['Whether the customer is insistent',
+          'Whether the garment was expensive',
+          'Whether a careful operator, doing the job properly, would have got a different result',
+          'Whether it was flagged at intake'],
+      correct: 2,
+      why: 'That question separates a process failure from an inherent one — and a claim we should pay is cheaper paid than fought.' },
+
+    { q: 'You are fairly confident a returned garment failed because of a manufacturing defect. What do you say to the customer?',
+      a: ['"That’s a manufacturing fault, you’ll need to take it back to the shop."',
+          '"Let me take this and have it properly assessed, and we’ll come back to you."',
+          '"That’s not our fault."',
+          '"We can replace it if you like."'],
+      correct: 1,
+      why: 'Even when you are right, a verdict at the counter sounds like an excuse, commits the business, and may be wrong. Take the details and let the assessment do the work.' },
+
+    { q: 'Why does knowing the common fault patterns still matter, if you are not going to tell the customer?',
+      a: ['It does not — it is background only',
+          'So you can write a better, more specific note for the assessment',
+          'So you can decide whether to accept the claim',
+          'So you can set the settlement figure'],
+      correct: 1,
+      why: 'The knowledge goes into the note, in the same type-location-severity language used at intake. A specific note is what makes a defensible assessment possible.' },
+
+    { q: 'Distressed denim comes back with a tear in a deliberately abraded area. Whose responsibility is that likely to be?',
+      a: ['The cleaner — the process finished it off',
+          'The manufacturer — the garment was made with weakened fabric by design',
+          'The consumer — they wore it too hard',
+          'Nobody; it is unassessable'],
+      correct: 1,
+      why: 'Distressed and pre-washed denim is manufactured with deliberately weakened fabric, and it goes on behaving that way. It is a design consequence, not a cleaning fault.' }
   ]
 },
 {
@@ -6612,25 +6612,38 @@ So once you have passed, a supervisor will watch you do the real work — a lift
 
 // Two different questions, and conflating them corrupts the record.
 //
-// activeCourses() is "what may a learner start today" — the built-in six minus
+// activeCourses() is "what may a learner start today" — the built-in seven minus
 // anything this business has switched off or superseded, plus its own published
 // courses. courseById() is "what was this record about", and must find a course
 // whether or not it is still in use. Someone who passed Tagging last month
 // genuinely passed it, and switching that course off afterwards must not turn
 // their record into a blank row.
+// A course of the business's own that supersedes a built-in wears the built-in's
+// number, read fresh every time rather than trusted from the record. The number
+// is the running order, so re-ordering the built-ins has to carry the business's
+// own courses with them: a stored '03' on a course replacing a module now
+// numbered 04 would sort itself to the wrong place on every register that had
+// one, and no owner would know why. Left alone when it already agrees, so the
+// common case still hands back the stored object.
+function courseWithNum(c) {
+  if (!c || !c.replaces) return c;
+  const b = TRAINING_MODULES.find(m => m.id === c.replaces);
+  return (b && b.num && b.num !== c.num) ? Object.assign({}, c, { num: b.num }) : c;
+}
+
 function activeCourses() {
   const custom = (state.customCourses || []).filter(c => c && c.status === 'published');
   const replaced = new Set(custom.map(c => c.replaces).filter(Boolean));
   const hidden = new Set(state.hiddenCourses || []);
   return TRAINING_MODULES
     .filter(m => !replaced.has(m.id) && !hidden.has(m.id))
-    .concat(custom)
+    .concat(custom.map(courseWithNum))
     .sort((a, b) => String(a.num || '').localeCompare(String(b.num || '')));
 }
 
 function courseById(id) {
   return TRAINING_MODULES.find(m => m.id === id) ||
-         (state.customCourses || []).find(c => c && c.id === id) || null;
+         courseWithNum((state.customCourses || []).find(c => c && c.id === id)) || null;
 }
 
 // Courses that still carry records, so a switched-off course keeps its place on
@@ -7988,7 +8001,7 @@ function sopTextFor(draft) {
 }
 
 // A course that supersedes a built-in takes its number, so the list still reads
-// 01 to 06 rather than growing a gap and a stray 07.
+// 01 to 07 rather than growing a gap and a stray 08.
 function nextCourseNum(replaces) {
   if (replaces) {
     const b = TRAINING_MODULES.find(m => m.id === replaces);
