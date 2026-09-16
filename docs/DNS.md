@@ -100,11 +100,53 @@ a second repository — one GitHub Pages site can only answer on one domain. A
 which is how a custom domain is removed from Pages, so until these records go in
 the site answers on its github.io address.
 
-### The records
+**Do the steps below in order.** GitHub is explicit about why:
 
-**The apex cannot use a CNAME.** A CNAME at the root of a domain is invalid under
-the DNS spec, and most registrars will refuse it. GitHub Pages publishes four A
-records for apex domains instead — all four, not one:
+> Make sure you add your custom domain to your GitHub Pages site before
+> configuring your custom domain with your DNS provider. Configuring your custom
+> domain with your DNS provider without adding your custom domain to GitHub could
+> result in someone else being able to host a site on one of your subdomains.
+
+### Step 1 — Verify the domain (recommended)
+
+Not required, and the site works without it. It stops anyone else ever attaching
+`hangr.au` to *their* GitHub Pages site, which is worth five minutes.
+
+GitHub → your avatar → **Settings** → **Pages** → **Add a domain** → `hangr.au`.
+GitHub gives you a TXT record to add at the registrar:
+
+| Type | Name                                       | Value            |
+|------|--------------------------------------------|------------------|
+| TXT  | `_github-pages-challenge-davidhudson84`     | (GitHub shows it) |
+
+Add it, wait a few minutes, then press **Verify**.
+
+### Step 2 — Add the custom domain to the repository
+
+Repository → **Settings** → **Pages** → **Custom domain** → type `hangr.au` →
+**Save**.
+
+This commits a `CNAME` file to the repository automatically. Do not add that file
+by hand, and do not delete it.
+
+GitHub will immediately show a DNS check failure — *"Domain does not resolve to
+the GitHub Pages server"* or similar. **That is expected.** The records do not
+exist yet; step 3 fixes it.
+
+### Step 3 — The records, at the registrar
+
+`hangr.au` is at GoDaddy. Sign in → **My Products** → find `hangr.au` → **DNS**
+(or **Manage DNS**).
+
+Two records GoDaddy created when the domain was registered are in the way. These
+are **changed or deleted**, not added alongside:
+
+1. **Delete** the parked `A` record on `@`. GoDaddy points it at its own parking
+   page. Four new `A` records replace it.
+2. **Edit** the stock `CNAME` on `www`, which points at `@`. It needs to point at
+   `davidhudson84.github.io` instead.
+
+Then the site's records are:
 
 | Type  | Name  | Value                     |
 |-------|-------|---------------------------|
@@ -114,20 +156,57 @@ records for apex domains instead — all four, not one:
 | A     | `@`   | `185.199.111.153`         |
 | CNAME | `www` | `davidhudson84.github.io` |
 
-The `www` record is optional but worth adding — Pages will redirect
-`www.hangr.au` to the apex once the custom domain is set.
+All four `A` records, not one — they are GitHub's four Pages servers and the
+redundancy is the point. TTL can stay on whatever GoDaddy defaults to.
 
-If the registrar offers AAAA records and you want IPv6 as well, GitHub's are
+**The apex cannot be a CNAME.** A CNAME at the root of a domain is invalid under
+the DNS spec and GoDaddy will refuse it. Some registrars offer `ALIAS` or `ANAME`
+records, which GitHub also accepts and which do work at the apex; GoDaddy does
+not, so `A` records it is.
+
+**The `www` row catches everyone, so read it twice.** Only the *Value* is the
+github.io address. The *Name* is `www` and nothing else:
+
+```
+Type:  CNAME
+Name:  www                        ← not the github.io address
+Value: davidhudson84.github.io    ← no repository name, no https://, no slash
+TTL:   1 Hour (the default is fine)
+```
+
+GoDaddy appends the domain to whatever goes in *Name*, exactly as described in
+[A note on how registrars name records](#a-note-on-how-registrars-name-records)
+at the top of this file. Putting the github.io address in *Name* creates
+`davidhudson84.github.io.hangr.au`, which is a real record pointing at a real
+place and is of no use to anybody. If that one gets saved by mistake, delete it
+and enter the row above.
+
+The value is the account's default domain, **with no repository name on the end**.
+`davidhudson84.github.io/Hangrapp` is not a valid CNAME value — a CNAME points at
+a host, and a path is not part of a host.
+
+`www` is optional, but GitHub recommends it for an HTTPS site, and once both it
+and the apex records exist Pages redirects `www.hangr.au` to `hangr.au` on its
+own. The redirect needs the record to be there — it is not automatic without it.
+
+While you are in the DNS panel: leave the three Resend records in §1 alone, and
+delete the duplicate `_dmarc` record per §2.
+
+IPv6 is optional. If you want it, add `AAAA` records on `@` for
 `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153` and
-`2606:50c0:8003::153`. Not required.
+`2606:50c0:8003::153` — *as well as* the `A` records, not instead of them.
 
-### Then, in the repository
+### Step 4 — Enforce HTTPS
 
-Settings → Pages → Custom domain → `hangr.au` → Save. Wait for the certificate to
-issue (up to an hour) and tick **Enforce HTTPS**. Saving it there re-creates the
-`CNAME` file in the repository automatically — do not add that file by hand.
+DNS changes can take up to 24 hours to propagate, though GoDaddy is usually
+minutes. Once the repository's Pages settings stop showing the DNS error, GitHub
+issues a certificate — up to an hour — and then **Enforce HTTPS** becomes
+tickable. Tick it.
 
-### Then, the two things that break if you forget them
+Do not send anyone the new address until that box is ticked, or they may meet a
+certificate warning.
+
+### Step 5 — The two things that break if you forget them
 
 1. **Supabase Auth → URL Configuration.** Set the Site URL to
    `https://hangr.au/app/` and add `https://hangr.au/app/**` to the redirect
@@ -140,13 +219,30 @@ issue (up to an hour) and tick **Enforce HTTPS**. Saving it there re-creates the
    separate `APP_SIGNIN_URL` set to `https://hangr.au/app/`. See
    [EMAIL.md](EMAIL.md).
 
-### One-off effects of the move
+### What happens to the old github.io address
 
-Going from `davidhudson84.github.io` to `hangr.au` changes the origin, and a
-browser scopes its local storage to the origin. Everyone is signed out once and
-signs back in; anything queued for deletion but not yet synced is dropped. Data
-in the cloud is untouched. Anyone who installed the app to their home screen from
-the github.io address needs to install it again from the new one.
+Nothing breaks, but it stops pointing where people expect.
+
+GitHub **does not document** any redirect from the default `*.github.io` domain to
+a custom one. The only automatic redirects in the documentation are between the
+apex and `www` forms of the custom domain itself. In practice GitHub does appear
+to send a 301, but as it is undocumented it is not something to rely on.
+
+It does not matter either way. Both addresses serve the same repository, so
+somebody on the old link is either redirected to `hangr.au` or carries on being
+served the same files from `github.io`. Both land them on the **landing page**,
+because the repository root is the landing page now and the redirect drops the
+`/Hangrapp` path segment. There is no forward to set up and nothing to configure.
+
+Three things do change for the people already using the old address, and they are
+worth a short message:
+
+- They land on the landing page and need one click on **Log in**.
+- They are signed out once. The browser scopes a stored session to the origin, so
+  moving from `davidhudson84.github.io` to `hangr.au` clears it. Cloud data is
+  untouched; anything queued for deletion but not yet synced is dropped.
+- Anyone who added the app to their home screen needs to add it again from
+  `hangr.au/app`, since the old icon points at the old origin.
 
 ## Checking the records landed
 
