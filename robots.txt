@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /legal.html
+Allow: /assets/
+
+# The app is behind a login. There is nothing for a crawler in a 1.3 MB single-page
+# app that renders an auth overlay, and we would rather the marketing page be the
+# thing that ranks for "hangr".
+Disallow: /app/
+
+Sitemap: https://hangr.au/sitemap.xml
