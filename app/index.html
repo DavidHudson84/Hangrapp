@@ -10200,10 +10200,67 @@ function renderSetPassword(msg) {
 }
 
 async function onSignedIn() {
-  try { await loadCloud(); } catch (e) { /* new/empty business — onboarding will show */ }
+  // Two different things used to land in the same catch, and only one of them is
+  // harmless. A login genuinely attached to nothing comes back as `false` and
+  // should meet onboarding. A load that *failed* — the server unreachable, the
+  // origin not on the function's CORS allowlist, the session gone — used to be
+  // swallowed here and then shown as a brand new empty business, onboarding
+  // wizard and all. That is indistinguishable from having lost the lot, and the
+  // person who sees it starts re-typing a price list that is sitting safely in
+  // the database the whole time. Say which it is.
+  let failure = null;
+  try { await loadCloud(); } catch (e) { failure = e; }
   applyTheme();
   const a = document.getElementById('auth-overlay'); if (a) a.remove();
   render();
+  if (failure) renderLoadFailure(failure);
+}
+
+// The screen that must never be mistaken for data loss.
+//
+// It covers the app rather than sitting over it as a dismissable dialog, because
+// everything behind it is empty and none of it can be written back: a failed load
+// never sets currentBusinessId, and scheduleCloudSave refuses while that is null.
+// So the stored blob is in no danger — but an onboarding form the person can type
+// into and never save is worse than a locked door, because it costs them an hour
+// before they find out. The door is the honest thing to show.
+function renderLoadFailure(err) {
+  const ex = document.getElementById('auth-overlay'); if (ex) ex.remove();
+  const why = (err && err.status === 401)
+    ? 'This device was signed out while loading.'
+    : 'This device could not reach the server.';
+  const wrap = document.createElement('div');
+  wrap.id = 'auth-overlay';
+  wrap.className = 'auth-overlay';
+  wrap.innerHTML = `
+    <div class="auth-card">
+      <div class="auth-lock"><img class="auth-logo" src="${HANGR_ICON}" alt="Hangr"><div><div class="auth-brand">Hangr<span>.</span></div><div class="auth-sub">Consultant</div></div></div>
+      <h3 class="auth-title">Your business could not be loaded</h3>
+      <div class="auth-foot" style="text-align:left;font-size:13px;line-height:1.5">
+        <p>${escapeHtml(why)} <strong>Nothing has been lost.</strong> Your chats, price lists, staff records and settings are stored on the server, not on this device.</p>
+        <p style="margin-top:10px">Do not re-enter anything. Until this loads the app cannot save, so anything typed now would be thrown away.</p>
+      </div>
+      <div class="auth-msg" id="auth-msg"></div>
+      <button class="auth-submit" id="load-retry">Try again</button>
+      <div class="auth-alt"><button class="auth-link" id="load-signout">Sign out</button></div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const btn = wrap.querySelector('#load-retry');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+      // Returns false for a login attached to no business, which is onboarding's
+      // cue and not an error — either way the door comes down.
+      await loadCloud();
+      wrap.remove();
+      applyTheme();
+      render();
+    } catch (e) {
+      renderLoadFailure(e);
+    }
+  });
+  wrap.querySelector('#load-signout').addEventListener('click', signOut);
 }
 
 // ===== Two-factor authentication (TOTP) =====

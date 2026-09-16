@@ -239,6 +239,19 @@ certificate warning.
    separate `APP_SIGNIN_URL` set to `https://hangr.au/app/`. See
    [EMAIL.md](EMAIL.md).
 
+**What forgetting the second one looks like.** Not an error — an empty app. The
+browser sends its preflight, the function answers `200` with an
+`Access-Control-Allow-Origin` naming the *old* origin, the browser quietly refuses
+to send the real request, and the load fails with nothing in the console a
+non-developer would recognise. The app now stops on "Your business could not be
+loaded" rather than dropping into onboarding, so it reads as a connection problem
+instead of as data loss, but the fix is still this secret.
+
+The tell in the Supabase function logs is an `OPTIONS` returning `200` with no
+`POST` after it. A preflight nobody follows up on is a preflight the browser
+rejected. The landing page's own trial form shows the same signature against
+`request-trial`, which is the quickest way to confirm it without signing in.
+
 ### What happens to the old github.io address
 
 Nothing breaks, but it stops pointing where people expect.
