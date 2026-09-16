@@ -130,6 +130,7 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .side-chat.on > .side-chat-open { color: var(--ink); font-weight: 500; }
+  .side-chat-who { display: block; font-size: 11px; font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
   .side-chat-act {
     flex: none; background: transparent; border: 0; color: var(--muted); font-size: 11px;
     padding: 4px 5px; border-radius: 6px; opacity: 0; transition: opacity .12s;
@@ -1387,6 +1388,28 @@ let sb = null;
 let currentBusinessId = null;
 let cloudSaveTimer = null;
 
+// Deletions have to be said out loud. The state function no longer treats a chat,
+// report or letter missing from a save as a deletion — it cannot, because a tab
+// that has been open all morning is missing everything anyone else started since
+// it loaded, and taking that as intent is what was quietly removing staff chats.
+// So the browser names what it deleted, and holds the list in localStorage until a
+// save carries it, so closing the tab first does not resurrect the item.
+const DELETES_KEY = STORAGE_KEY + ':deletes';
+function loadDeletes() {
+  try { const v = JSON.parse(localStorage.getItem(DELETES_KEY) || 'null'); if (v && typeof v === 'object') return v; } catch (e) {}
+  return { chats: [], problems: [], letters: [] };
+}
+let pendingDeletes = loadDeletes();
+function saveDeletes() {
+  try { localStorage.setItem(DELETES_KEY, JSON.stringify(pendingDeletes)); } catch (e) {}
+}
+function noteDeleted(section, id) {
+  if (!id) return;
+  if (!Array.isArray(pendingDeletes[section])) pendingDeletes[section] = [];
+  if (!pendingDeletes[section].includes(id)) pendingDeletes[section].push(id);
+  saveDeletes();
+}
+
 // The browser no longer reads or writes public.businesses, and as of the blob
 // migration it cannot: the policies that let any member do both are gone, and the
 // service role key that replaced them lives in the state function. Every read is
@@ -1419,14 +1442,95 @@ function scheduleCloudSave(blob) {
   if (!sb || !currentBusinessId) return;
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
+    // A copy, not the live list: something deleted while the request is in flight
+    // has to survive into the next save rather than be cleared with this one.
+    const sent = {
+      chats: (pendingDeletes.chats || []).slice(),
+      problems: (pendingDeletes.problems || []).slice(),
+      letters: (pendingDeletes.letters || []).slice(),
+    };
     try {
-      const j = await stateApi({ action: 'save', blob });
+      const j = await stateApi({ action: 'save', blob, deletes: sent });
+      // Carried, so stop carrying them — unless something was deleted while the
+      // request was in flight, in which case that id has to wait for the next one.
+      pendingDeletes = {
+        chats: (pendingDeletes.chats || []).filter(id => !sent.chats.includes(id)),
+        problems: (pendingDeletes.problems || []).filter(id => !sent.problems.includes(id)),
+        letters: (pendingDeletes.letters || []).filter(id => !sent.letters.includes(id)),
+      };
+      saveDeletes();
       // Completions other people recorded while this device was away. The union
       // itself now happens inside the function, which closes the read-then-write
       // race the old client-side merge could only narrow.
       if (Array.isArray(j.training)) state.training = j.training;
+      adoptShared(j);
     } catch (e) { /* offline — localStorage still holds the latest */ }
   }, 1000);
+}
+
+// What other people have written, folded into what is on screen. Add-only and
+// newer-only: a thread this device has not got is taken, a thread it has is left
+// alone unless the stored copy is more recent than ours. Nothing is ever removed
+// here — a save that crossed with somebody else's would otherwise take an unsent
+// message off the screen in front of the person typing it.
+function adoptShared(j) {
+  const when = x => Number((x && (x.updatedAt || x.createdAt)) || 0);
+  const changed = { chats: new Set(), problems: new Set(), letters: new Set() };
+  ['chats', 'problems', 'letters'].forEach(key => {
+    if (!Array.isArray(j[key])) return;
+    const local = state[key] || [];
+    const byId = new Map(local.map(x => [x.id, x]));
+    j[key].forEach(remote => {
+      if (!remote || !remote.id) return;
+      const ours = byId.get(remote.id);
+      if (!ours) { local.push(remote); changed[key].add(remote.id); return; }
+      // The thread being typed in is ours and newer by definition, so a tie is
+      // safely left with the copy already on screen.
+      if (when(remote) > when(ours)) { Object.assign(ours, remote); changed[key].add(remote.id); }
+    });
+    state[key] = local;
+  });
+
+  const anything = changed.chats.size || changed.problems.size || changed.letters.size;
+  if (!anything) return;
+  // Redrawing the whole page scrolls the open thread back to the top and clears a
+  // half-typed message with it. Almost every adoption is somebody else's chat
+  // appearing in the list, which the sidebar alone can show — so the screen is
+  // only rebuilt when what is actually open has changed underneath the reader.
+  const openChanged =
+    changed.chats.has(state.activeChatId) ||
+    (state.activeTab === 'problems' && changed.problems.size) ||
+    (state.activeTab === 'letters' && changed.letters.size);
+  if (openChanged) renderKeepingDraft(); else renderSidebar();
+}
+
+// A render that does not throw away what is in the composer. The chat screen is
+// rebuilt from scratch on every render, so anything typed and not yet sent goes
+// with it unless it is carried across by hand.
+function renderKeepingDraft() {
+  const before = document.getElementById('chat-input');
+  const draft = before ? before.value : '';
+  const hadFocus = before && document.activeElement === before;
+  render();
+  if (!draft) return;
+  const after = document.getElementById('chat-input');
+  if (!after) return;
+  after.value = draft;
+  if (hadFocus) { after.focus(); try { after.setSelectionRange(draft.length, draft.length); } catch (e) {} }
+}
+
+// A staff member starting a chat is not something this tab is told about, so it
+// asks — when the person comes back to the window, and no more than once a minute.
+// Same add-only merge as a save, so coming back to a half-typed message is safe.
+let _lastRefresh = 0;
+async function refreshShared() {
+  if (!sb || !currentBusinessId || state.chatBusy) return;
+  if (Date.now() - _lastRefresh < 60000) return;
+  _lastRefresh = Date.now();
+  try {
+    const j = await stateApi({ action: 'load' });
+    adoptShared(j.blob || {});
+  } catch (e) { /* offline — nothing to fold in */ }
 }
 
 // Training used to be merged here, by reading the row back and unioning before
@@ -1454,6 +1558,7 @@ async function loadCloud() {
   state.currentUserId = j.userId || null;
   applyStateBlob(j.blob || {});
   adoptOwnerlessChats();
+  _lastRefresh = Date.now();
   return true;
 }
 
@@ -1476,6 +1581,8 @@ function adoptOwnerlessChats() {
 async function signOut() {
   try { await sb.auth.signOut(); } catch (e) {}
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  // Deletions this login never got to send are not the next person's to carry.
+  try { localStorage.removeItem(DELETES_KEY); } catch (e) {}
   location.reload();
 }
 // ===== Inline dialogs =====
@@ -1571,6 +1678,7 @@ async function deleteLetter(id) {
   if (!rec) return;
   if (!(await uiConfirm('Delete "' + (rec.subject || 'this letter') + '"? This cannot be undone.'))) return;
   state.letters = state.letters.filter(x => x.id !== id);
+  noteDeleted('letters', id);
   if (state.currentLetter && state.currentLetter.id === id) state.currentLetter = null;
   render();
 }
@@ -1646,6 +1754,7 @@ async function deleteProblem(id) {
   const who = p.customerName || p.docket || 'this report';
   if (!(await uiConfirm('Delete the problem report for ' + who + '? The chat it started is kept.'))) return;
   state.problems = state.problems.filter(x => x.id !== id);
+  noteDeleted('problems', id);
   if (state.currentProblem && state.currentProblem.id === id) state.currentProblem = null;
   render();
 }
@@ -1695,6 +1804,7 @@ function problemBrief(p) {
 function buildStateBlob() {
   const chats = state.chats.map(c => ({
     id: c.id, title: c.title, createdAt: c.createdAt,
+    updatedAt: c.updatedAt || c.createdAt || 0,
     createdBy: c.createdBy || null,
     kind: c.kind || null, problemId: c.problemId || null,
     messages: c.messages.filter(m => !m.pending && !m.error)
@@ -1784,8 +1894,13 @@ function deriveChatTitle(messages) {
   if (!firstUser) return 'New chat';
   return firstUser.content.trim().replace(/\s+/g, ' ').slice(0, 42) + (firstUser.content.length > 42 ? '…' : '');
 }
+// Every change to a thread is stamped, because the server keeps the more recent
+// of two copies of the same chat. Without this, an admin tab holding a staff
+// thread as it was an hour ago would send that copy back and roll the thread back
+// with it.
+function touchChat(c) { if (c) c.updatedAt = Date.now(); return c; }
 function newChat(activate) {
-  const c = { id: 'c' + Date.now(), title: 'New chat', createdAt: Date.now(), createdBy: state.currentUserId || null, messages: [] };
+  const c = { id: 'c' + Date.now(), title: 'New chat', createdAt: Date.now(), updatedAt: Date.now(), createdBy: state.currentUserId || null, messages: [] };
   state.chats.unshift(c);
   if (activate !== false) state.activeChatId = c.id;
   return c;
@@ -1799,6 +1914,15 @@ function activeChat() {
   if (!c) c = mine[0] || newChat();
   state.activeChatId = c.id;
   return c;
+}
+// Who started a thread, for the sidebar. The staff roster is the only place a
+// login id maps to a person's name; a login nobody has linked to a staff record
+// yet is named by its role rather than left looking like the reader's own.
+function chatAuthorName(c) {
+  if (!c || !c.createdBy) return '';
+  if (c.createdBy === state.currentUserId) return 'You';
+  const rec = staffByUserId(c.createdBy);
+  return (rec && (rec.name || '').trim()) || 'Another login';
 }
 // True when this role may open that particular chat. Guards the rename and delete
 // handlers, which look up by id and would otherwise reach a hidden thread.
@@ -1816,12 +1940,13 @@ async function askInThread(thread, text, image) {
   const pendingId = 'm' + Date.now() + '-p';
   thread.messages.push({ id: userMsgId, role: 'user', content: text, image: image || undefined });
   thread.messages.push({ id: pendingId, role: 'ai', content: '', pending: true });
+  touchChat(thread);
   state.chatBusy = true;
   render();
 
   try {
     const history = thread.messages.filter(m => m.id !== userMsgId && m.id !== pendingId && !m.pending && !m.error);
-    let prompt = buildSystemPrompt(state.profile, history, text || '(no text — see the attached photo)');
+    let prompt = buildSystemPrompt(state.profile, history, text || '(no text — see the attached photo)', { problemLinked: !!thread.problemId });
     if (image) prompt = PHOTO_PREAMBLE + prompt;
     const response = image
       ? await askClaudeSafe(prompt, [image])
@@ -1829,7 +1954,7 @@ async function askInThread(thread, text, image) {
     const parsed = parseAIResponse(response);
     const idx = thread.messages.findIndex(m => m.id === pendingId);
     if (idx !== -1) {
-      thread.messages[idx] = { id: pendingId, role: 'ai', content: parsed.body, letterOffer: parsed.letterOffer };
+      thread.messages[idx] = { id: pendingId, role: 'ai', content: parsed.body, letterOffer: parsed.letterOffer, problemOffer: parsed.problemOffer };
     }
   } catch (err) {
     const idx = thread.messages.findIndex(m => m.id === pendingId);
@@ -1841,6 +1966,7 @@ async function askInThread(thread, text, image) {
       };
     }
   } finally {
+    touchChat(thread);
     state.chatBusy = false;
     render();
   }
@@ -1865,6 +1991,7 @@ async function startProblemChat(pr) {
 async function resetAll() {
   if (!(await uiConfirm('Clear all saved business details, chats, letters, staff and bills? This cannot be undone.', { title: 'Reset everything?', confirmLabel: 'Reset' }))) return;
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  try { localStorage.removeItem(DELETES_KEY); } catch (e) {}
   location.reload();
 }
 function editProfile() {
@@ -2239,11 +2366,16 @@ async function askClaudeSafe(prompt, data, maxTokens) {
   return j;
 }
 
-function buildSystemPrompt(profile, history, userMessage) {
+function buildSystemPrompt(profile, history, userMessage, opts) {
   // Data-level enforcement. A restricted role's prompt is built without the
   // material it is not allowed to discuss, so there is nothing in context for
   // the model to be argued into disclosing.
   const roleRules = rolePromptRules();
+  // A thread that already hangs off a report does not need to be told to raise
+  // one. Everything else does: a named customer's garment is a counter incident,
+  // and advice given over a chat nobody wrote the docket down for is advice that
+  // cannot be defended six weeks later.
+  const problemLinked = !!(opts && opts.problemLinked);
   const mayStaff = can('staffRecords');
   const mayMoney = can('financials');
   const mayClaims = can('claims');
@@ -2346,6 +2478,16 @@ The owner is usually not the one taking the complaint. A counter assistant is, a
 - What to collect before the customer leaves: the garment, the docket, the receipt or proof of purchase, photos of the damage, and the care label.
 Keep it tight — it should fit on a card next to the till. Put it BEFORE the letter marker if you are offering a letter.
 
+${problemLinked ? '' : `THE PROBLEM REPORT COMES FIRST
+The Problem Solver report is where a customer's problem is recorded — docket, customer, garment, what happened, what they are asking for. It is the record the whole claim later rests on: the chat, the letters and any settlement all hang off it, and without it there is a conversation and no file.
+So whenever the question is about a PARTICULAR customer's item — a complaint, damage, a mark that will not come out, something changed, something lost, a garment you are being asked to take in at risk — answer the question properly AND tell them to put it on a problem report while the customer is in front of them. Then end your response with this exact marker on its own line, after any letter marker:
+
+[OFFER_PROBLEM: short label — the customer or the garment]
+
+Example: [OFFER_PROBLEM: Mrs Tran — cream wool coat, shrunk]
+
+Do NOT use the marker for a general question — how to treat a class of stain, what a fabric does, what something costs, how a machine works. No customer, no report.
+`}
 WHEN TO OFFER A LETTER
 If your advice naturally leads to a written letter or notice that should be sent — customer complaint response, denial of liability, goodwill offer, ${mayStaff ? 'staff warning, casual conversion offer, show-cause letter, ' : ''}RFP to suppliers, restoration scope, customer apology, service request — END YOUR RESPONSE with this exact marker on its own line:
 
@@ -2936,17 +3078,23 @@ function coerceAIResponse(r) {
   return String(r);
 }
 
+// Two markers can land at the end of one answer — a letter to send and a report to
+// raise — and either may be last, so they are stripped in a loop rather than one
+// anchored match.
 function parseAIResponse(raw) {
-  const text = coerceAIResponse(raw);
-  const markerRegex = /\n?\[OFFER_LETTER:\s*([^|\]]+?)\s*\|\s*([^\]]+?)\s*\]\s*$/;
-  const match = text.match(markerRegex);
-  if (match) {
-    return {
-      body: text.replace(markerRegex, '').trim(),
-      letterOffer: { subject: match[1].trim(), type: match[2].trim() }
-    };
+  let body = coerceAIResponse(raw).trim();
+  const letterRegex = /\n?\[OFFER_LETTER:\s*([^|\]]+?)\s*\|\s*([^\]]+?)\s*\]\s*$/;
+  const problemRegex = /\n?\[OFFER_PROBLEM:\s*([^\]]+?)\s*\]\s*$/;
+  let letterOffer = null;
+  let problemOffer = null;
+  for (let i = 0; i < 4; i++) {
+    const l = body.match(letterRegex);
+    if (l) { letterOffer = { subject: l[1].trim(), type: l[2].trim() }; body = body.replace(letterRegex, '').trim(); continue; }
+    const pm = body.match(problemRegex);
+    if (pm) { problemOffer = { label: pm[1].trim() }; body = body.replace(problemRegex, '').trim(); continue; }
+    break;
   }
-  return { body: text.trim(), letterOffer: null };
+  return { body, letterOffer, problemOffer };
 }
 
 function renderMarkdown(text) {
@@ -3724,10 +3872,38 @@ function stepNavHtml(editMode) {
   }).join('') + `</div></div>`;
 }
 // ============ CHAT ============
+// What the chat invites you to ask. A staff login is told plainly it cannot be
+// helped with HR, financials or claims (see ROLE_FORBIDDEN), so the invitation
+// must not dangle those in front of them — it asks for the garment and counter
+// work they are actually there to do. Manager sits in between: no HR or
+// financials, but claims are theirs.
+const CHAT_INVITES = {
+  owner: {
+    lede: 'Owner-to-owner advice that knows your sites, staff and equipment. Ask about complaints, HR, claims, suppliers, anything.',
+    blurb: "Ask me anything about running your business — a customer complaint, an HR or staffing question, a claim, a supplier, pricing, whatever's come up.",
+    placeholder: 'Ask me anything — a complaint, an HR question, a claim, a supplier, pricing…',
+  },
+  manager: {
+    lede: 'Advice that knows your sites, equipment and price lists. Ask about garments, stains, complaints, claims and pricing.',
+    blurb: "Ask me anything about the work — a stain or fabric you're not sure about, a customer complaint, a claim, what to charge, whatever's come up.",
+    placeholder: 'Ask about a garment, a stain, a complaint, a claim, pricing…',
+  },
+  staff: {
+    lede: 'Advice that knows your equipment and price lists. Ask about garments, stains, spotting, intake and customer complaints.',
+    blurb: "Ask me anything about the garments and the counter — a stain you're not sure how to treat, a fabric or care label, whether to take something in at risk, a customer complaint.",
+    placeholder: 'Ask about a garment, a stain, a care label, intake, a complaint…',
+  },
+};
+function chatInvite() {
+  const role = effectiveRole();
+  if (role === 'owner' || role === 'admin') return CHAT_INVITES.owner;
+  return CHAT_INVITES[role] || CHAT_INVITES.staff;
+}
 // Tracks chat scroll intent across renders: land at top on entry, pin to bottom on new/incoming messages.
 let _chatScroll = { inChat: false, chatId: null, msgCount: 0, wasBusy: false };
 function renderChat() {
   const screen = $('#screen-chat');
+  const invite = chatInvite();
   const p = state.profile;
   const namedSites = p.sites.filter(s => s.name).length;
   const contextLine = `${escapeHtml(p.businessName || 'Your business')} &middot; ${namedSites || 0} site${namedSites === 1 ? '' : 's'} &middot; ${p.staffCount || '?'} staff &middot; ${escapeHtml(p.state)}`;
@@ -3762,7 +3938,7 @@ function renderChat() {
     ? `<div class="empty" style="margin:24px 0">
          <div class="icon">${icons.chat}</div>
          <h3>${escapeHtml(greetingLine())} — what can I help you with today?</h3>
-         <p>Ask me anything about running your business — a customer complaint, an HR or staffing question, a claim, a supplier, pricing, whatever's come up.</p>
+         <p>${escapeHtml(invite.blurb)}</p>
        </div>`
     : messages.map(m => {
         let content;
@@ -3777,10 +3953,15 @@ function renderChat() {
         const letterBtn = (m.letterOffer && !m.pending)
           ? `<button class="btn btn-secondary" data-draft-letter="${m.id}">${icons.letter} ${m.letterOffer.type === 'twimc' ? 'Draft the defence letter (To Whom It May Concern)' : m.letterOffer.type === 'settlement' ? 'Work out the offer & draft the settlement letter' : m.letterOffer.type === 'intake-authorisation' ? 'Print the at-risk authorisation for them to sign' : 'Draft the letter'} &mdash; ${escapeHtml(m.letterOffer.subject)}</button>`
           : '';
+        // The report is the record the claim rests on, so it is offered as plainly
+        // as the letter is. Hidden once this thread already has one.
+        const problemBtn = (m.problemOffer && !m.pending && !chat.problemId)
+          ? `<button class="btn btn-secondary" data-start-problem="${m.id}">${icons.alert} Log this on a problem report &mdash; ${escapeHtml(m.problemOffer.label)}</button>`
+          : '';
         const noteBtn = (m.role === 'ai' && !m.pending && !m.error)
           ? `<button class="btn btn-secondary" data-note-msg="${m.id}" title="Turn this answer into a printable one-page note">${icons.doc} Save this advice as a PDF</button>`
           : '';
-        const actions = (letterBtn || noteBtn) ? `<div class="letter-cta">${letterBtn}${noteBtn}</div>` : '';
+        const actions = (letterBtn || problemBtn || noteBtn) ? `<div class="letter-cta">${letterBtn}${problemBtn}${noteBtn}</div>` : '';
         return `<div class="msg ${m.role}${m.error ? ' err' : ''}">
             <div class="role-label">${m.role === 'user' ? 'You' : escapeHtml(assistantName())}</div>
             <div>${content}</div>
@@ -3792,7 +3973,7 @@ function renderChat() {
     <div class="screen-header">
       <div class="ix">Module 02</div>
       <h2>Chat</h2>
-      <p>Owner-to-owner advice that knows your sites, staff and equipment. Ask about complaints, HR, claims, suppliers, anything.</p>
+      <p>${escapeHtml(invite.lede)}</p>
     </div>
     <div class="chat-main">
         <div class="chat-topline">
@@ -3815,7 +3996,7 @@ function renderChat() {
           </div>` : ''}
           <div class="chat-input">
             <input type="file" id="photo-file" accept="image/*" style="display:none">
-            <textarea class="input chat-textarea" id="chat-input" placeholder="Ask me anything — a complaint, an HR question, a claim, a supplier, pricing…" ${state.chatBusy ? 'disabled' : ''}></textarea>
+            <textarea class="input chat-textarea" id="chat-input" placeholder="${escapeHtml(invite.placeholder)}" ${state.chatBusy ? 'disabled' : ''}></textarea>
             <div class="chat-actions">
               <button class="btn btn-secondary" id="photo-btn" ${state.chatBusy ? 'disabled' : ''} title="Attach a photo of the damage">${icons.camera} Photo</button>
               <button class="btn btn-primary" id="chat-send" ${state.chatBusy ? 'disabled' : ''}>${icons.send} Send</button>
@@ -3896,6 +4077,9 @@ function renderChat() {
   document.querySelectorAll('[data-note-msg]').forEach(b => {
     b.addEventListener('click', () => draftNote('message', b.dataset.noteMsg));
   });
+  document.querySelectorAll('[data-start-problem]').forEach(b => {
+    b.addEventListener('click', () => startProblemFromMessage(b.dataset.startProblem));
+  });
   const openProb = document.getElementById('chat-open-problem');
   if (openProb) openProb.addEventListener('click', () => openProblem(chat.problemId));
   const addKnow = document.getElementById('chat-add-knowledge');
@@ -3907,6 +4091,25 @@ function renderChat() {
   const chatExport = document.getElementById('chat-export');
   if (chatExport) chatExport.addEventListener('click', openExportMenu);
 
+}
+
+// Chat to report. A blank report rather than one guessed from the transcript —
+// the docket, the phone number and what the customer actually said are read off
+// the garment and the person standing there, not inferred from a question typed
+// at the counter. The label the consultant proposed goes in as the heading of
+// what happened so the thread is not lost on the way across.
+function startProblemFromMessage(msgId) {
+  const thread = activeChat();
+  const msg = thread.messages.find(m => m.id === msgId);
+  if (!msg || !msg.problemOffer) return;
+  const np = newProblem();
+  np.whatHappened = msg.problemOffer.label;
+  const mine = staffByUserId(state.currentUserId);
+  if (mine && (mine.name || '').trim()) np.takenBy = mine.name.trim();
+  saveProblem(np);
+  // openProblem, not goToTab: switching to the problems tab deliberately drops
+  // whatever report was open, which would land them back on the empty list.
+  openProblem(np.id);
 }
 
 async function draftLetterFromMessage(msgId, overrideType, factsOverride, claimOverride) {
@@ -10188,12 +10391,19 @@ function renderSidebar() {
   const chats = showChats ? visibleChats() : [];
   const current = showChats ? activeChat() : null;
   const chatList = chats.length
-    ? chats.map(c => `
+    ? chats.map(c => {
+        // Whose thread this is. Only shown to a login that sees everybody's, and
+        // only on the ones that are not their own — otherwise a staff member's
+        // question sits in the list looking like something the admin wrote.
+        const who = (can('chats.all') && c.createdBy && c.createdBy !== state.currentUserId)
+          ? chatAuthorName(c) : '';
+        return `
         <div class="side-chat ${current && c.id === current.id ? 'on' : ''}">
-          <button class="side-chat-open" data-side-chat="${c.id}" title="${escapeHtml(c.title || 'Untitled chat')}">${escapeHtml(c.title || 'Untitled chat')}</button>
+          <button class="side-chat-open" data-side-chat="${c.id}" title="${escapeHtml((c.title || 'Untitled chat') + (who ? ' — started by ' + who : ''))}">${escapeHtml(c.title || 'Untitled chat')}${who ? `<span class="side-chat-who">${escapeHtml(who)}</span>` : ''}</button>
           <button class="side-chat-act" data-chat-rename="${c.id}" title="Rename this chat" aria-label="Rename">${icons.pencil}</button>
           ${chats.length > 1 ? `<button class="side-chat-act danger" data-chat-delete="${c.id}" title="Delete this chat" aria-label="Delete">&times;</button>` : ''}
-        </div>`).join('')
+        </div>`;
+      }).join('')
     : '<div class="side-empty">No saved chats yet</div>';
 
   // Settings is the onboarding screen in edit mode. Once setup is done it stops
@@ -10293,6 +10503,8 @@ function goToTab(id) {
     if (!state.currentLetter.pending) { state.currentLetter = null; state.letterPanels = {}; }
   }
   if (id === 'problems' && state.currentProblem) state.currentProblem = null;
+  // Opening the chat or problem list is a good moment to pick up anyone else's.
+  if (id === 'chat' || id === 'problems') refreshShared();
   state.activeTab = id;
   if (isDrawer()) closeSidebar();
   render();
@@ -10316,7 +10528,7 @@ function bindSidebar() {
       const c = state.chats.find(x => x.id === b.dataset.chatRename);
       if (!maySeeChat(c)) return;
       const name = await uiPrompt('Rename this chat', c.title || '');
-      if (name && name.trim()) { c.title = name.trim().slice(0, 60); render(); }
+      if (name && name.trim()) { c.title = name.trim().slice(0, 60); touchChat(c); render(); }
     });
   });
   document.querySelectorAll('[data-chat-delete]').forEach(b => {
@@ -10327,6 +10539,7 @@ function bindSidebar() {
       if (!maySeeChat(c)) return;
       if (!(await uiConfirm('Delete "' + (c.title || 'this chat') + '"? This cannot be undone.'))) return;
       state.chats = state.chats.filter(x => x.id !== c.id);
+      noteDeleted('chats', c.id);
       if (state.activeChatId === c.id) { const rest = visibleChats(); state.activeChatId = rest[0] ? rest[0].id : null; }
       render();
     });
@@ -11652,7 +11865,7 @@ async function draftRecommendation(id) {
       + 'Three to five short lines, plain sentences, no headings and no preamble. '
       + 'Write it for our own staff to act on, not for the customer to read. '
       + 'If the position depends on something we have not established yet, say what to check first.';
-    const raw = await askClaudeSafe(buildSystemPrompt(state.profile, history, ask));
+    const raw = await askClaudeSafe(buildSystemPrompt(state.profile, history, ask, { problemLinked: true }));
     const body = parseAIResponse(coerceAIResponse(raw)).body.trim();
     const fresh = findProblem(id);
     if (fresh && body) { fresh.recommended = body; saveProblem(fresh); }
@@ -11900,6 +12113,12 @@ function renderProblems() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeSidebar();
 });
+
+// Coming back to the window is the moment to find out what everyone else has been
+// doing — a chat a staff member started, a report they raised. Throttled inside
+// refreshShared, and add-only, so it never disturbs what is on screen.
+window.addEventListener('focus', refreshShared);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshShared(); });
 
 loadSidebarPref();
 initApp();

@@ -18,10 +18,14 @@
 //
 // THE INVARIANT. For every key filtered per item rather than per key — chats,
 // letters, problems — the `owns` predicate used by the merge must match the read
-// filter exactly. The merge treats "the caller owns it and did not send it back"
-// as a deletion, so a filter that hides an item the merge thinks they own would
-// delete that item the first time they saved. Read filter and owns predicate are
-// written next to each other below for that reason. Change them together.
+// filter exactly. For a role that is only sent its own items, the merge treats
+// "the caller owns it and did not send it back" as a deletion, so a filter that
+// hides an item the merge thinks they own would delete that item the first time
+// they saved. Read filter and owns predicate are written next to each other below
+// for that reason. Change them together.
+//
+// A role that is sent everybody's is merged by id instead, where absence means
+// nothing and deletion is named explicitly in `deletes`. See mergeById.
 //
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (all
 // provided by the platform), ALLOWED_ORIGIN. See docs/USERS.md.
@@ -75,6 +79,7 @@ const obj = (v: unknown): Record<string, unknown> =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 
 const idOf = (x: Record<string, unknown>) => String(x?.id ?? '');
+const touched = (x: Record<string, unknown>) => Number(x?.updatedAt ?? x?.createdAt ?? 0);
 
 // ---------------------------------------------------------------------------
 // Read filters. Each is paired with the `owns` predicate the merge uses.
@@ -190,6 +195,56 @@ function mergeOwned(
   return out;
 }
 
+// A full-access role (chats.all, letters.all, claims) used to have its whole array
+// written straight over the stored one. That is last-write-wins across people, not
+// a merge: the admin's tab holds the list as it was when they signed in, so the
+// first thing they saved after a staff member started a chat deleted that chat —
+// it was never theirs to send back, so it simply was not in the request.
+//
+// So nothing is ever deleted by absence here. The request updates the items it
+// carries, appends the ones that are new, and leaves the rest of the stored array
+// alone. Deletion is explicit: the browser names the ids it deleted, and only
+// those go — and only if the caller was sent that item in the first place, which
+// is checked here rather than taken on trust (see allowedDeletes).
+function mergeById(
+  storedArr: Record<string, unknown>[],
+  incomingArr: Record<string, unknown>[],
+  deleted: Set<string>,
+) {
+  const incomingById = new Map<string, Record<string, unknown>>();
+  for (const item of incomingArr) if (idOf(item)) incomingById.set(idOf(item), item);
+
+  const out: Record<string, unknown>[] = [];
+  const seen = new Set<string>();
+
+  for (const item of storedArr) {
+    const id = idOf(item);
+    if (id && deleted.has(id)) continue;
+    const updated = id ? incomingById.get(id) : null;
+    // A tab that has been open all morning holds somebody else's chat as it was
+    // when it loaded. Sending that copy back must not roll the thread back to
+    // where it was, so an item only replaces the stored one if it is at least as
+    // recent. Items from before updatedAt existed compare equal, which keeps the
+    // old behaviour for them.
+    out.push(updated && touched(updated) >= touched(item) ? updated : item);
+    if (id) seen.add(id);
+  }
+  for (const [id, item] of incomingById) if (!seen.has(id) && !deleted.has(id)) out.push(item);
+
+  return out;
+}
+
+// The ids this person says they deleted, narrowed to the ones they were actually
+// sent. A manager may delete a letter; they may not delete the HR letter they were
+// never shown, whatever a doctored request asks for. Anything that is not a plain
+// id string is ignored rather than argued with.
+const allowedDeletes = (v: unknown, visible: Record<string, unknown>[]) => {
+  const seen = new Set(visible.map(idOf).filter(Boolean));
+  const out = new Set<string>();
+  if (Array.isArray(v)) for (const x of v) if (typeof x === 'string' && seen.has(x)) out.add(x);
+  return out;
+};
+
 // Training attempts and practical sign-offs are append-only by design. Neither is
 // edited once written, so a union by id is safe and order-blind, and they are the
 // keys several people write in the same afternoon — the counter iPad and the back
@@ -221,6 +276,7 @@ function mergeBlob(
   incoming: Record<string, unknown>,
   role: string,
   uid: string,
+  deletes: Record<string, unknown>,
 ) {
   const next: Record<string, unknown> = { ...stored };
   const whole = (key: string, cap: string) => {
@@ -248,16 +304,19 @@ function mergeBlob(
   // Per-item sections. The predicates here mirror forRole above — see THE
   // INVARIANT at the top of this file before changing either.
   const mine = ownedBy(uid);
+  // What this caller was sent is what they may name in a delete list.
+  const shown = forRole(stored, role, uid);
+
   next.chats = can(role, 'chats.all')
-    ? (Array.isArray(incoming.chats) ? incoming.chats : stored.chats ?? [])
+    ? mergeById(arr(stored.chats), arr(incoming.chats), allowedDeletes(deletes.chats, arr(shown.chats)))
     : mergeOwned(arr(stored.chats), arr(incoming.chats), mine);
 
   next.problems = can(role, 'claims')
-    ? (Array.isArray(incoming.problems) ? incoming.problems : stored.problems ?? [])
+    ? mergeById(arr(stored.problems), arr(incoming.problems), allowedDeletes(deletes.problems, arr(shown.problems)))
     : mergeOwned(arr(stored.problems), arr(incoming.problems), mine);
 
   next.letters = can(role, 'letters.all')
-    ? (Array.isArray(incoming.letters) ? incoming.letters : stored.letters ?? [])
+    ? mergeById(arr(stored.letters), arr(incoming.letters), allowedDeletes(deletes.letters, arr(shown.letters)))
     : mergeOwned(arr(stored.letters), arr(incoming.letters), ownsLetter(uid));
 
   next.training = mergeAppendOnly(arr(stored.training), arr(incoming.training));
@@ -364,7 +423,7 @@ Deno.serve(async (req) => {
     }
 
     const stored = obj(biz?.data);
-    const next = mergeBlob(stored, incoming as Record<string, unknown>, role, me.id);
+    const next = mergeBlob(stored, incoming as Record<string, unknown>, role, me.id, obj(payload.deletes));
 
     const patch: Record<string, unknown> = { data: next };
     // The row's own name column follows the profile, so only a role that may write
@@ -380,9 +439,19 @@ Deno.serve(async (req) => {
       return json({ error: 'That could not be saved.' }, 500);
     }
 
-    // Handed back so the browser picks up completions other people recorded while
-    // it was away, which is what the old client-side merge did before this moved.
-    return json({ ok: true, training: next.training ?? [] });
+    // Handed back so the browser picks up what other people wrote while it was
+    // away — completions, and now the chats, reports and letters themselves. An
+    // admin no longer has to sign out and back in to see a thread a staff member
+    // started ten minutes ago. Filtered for the caller's role on the way out,
+    // exactly as a load would be.
+    const visible = forRole(next, role, me.id);
+    return json({
+      ok: true,
+      training: next.training ?? [],
+      chats: visible.chats,
+      problems: visible.problems,
+      letters: visible.letters,
+    });
   }
 
   return json({ error: 'Unknown action.' }, 400);
