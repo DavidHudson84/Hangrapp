@@ -163,11 +163,33 @@ cannot un-dismiss a notice for everybody else.
 
 For the sections filtered per item rather than per key — chats, letters,
 problems — the `owns` predicate used by the merge **must match the read filter
-exactly**. The merge reads "the caller owns it and did not send it back" as a
-deletion, so a filter that hid an item the merge believed they owned would delete
-that item on their next save. The two are written next to each other in the
-function for that reason. Change them together, and re-run the round-trip test:
-loading as a role and immediately saving must leave every key byte-identical.
+exactly**. For a role that only sends back its own items, the merge reads "the
+caller owns it and did not send it back" as a deletion, so a filter that hid an
+item the merge believed they owned would delete that item on their next save. The
+two are written next to each other in the function for that reason. Change them
+together, and re-run the round-trip test: loading as a role and immediately saving
+must leave every key byte-identical.
+
+A role that sees everybody's — owner, admin, manager — is merged by id instead,
+and absence means nothing at all. It has to: their tab holds the list as it was
+when they signed in, so the first save after a staff member started a chat used to
+delete that chat, simply because it was never in the request. Now the request
+updates what it carries, appends what is new, and leaves the rest alone. Two rules
+go with that:
+
+- **Deletion is explicit.** The browser names the ids it deleted, in
+  `deletes: { chats, problems, letters }` on the save, and holds them in
+  localStorage until a save carries them. The function then narrows that list to
+  the ids the caller was actually sent, so a doctored request cannot delete the HR
+  letter a manager was never shown.
+- **The more recent copy wins.** Every chat carries `updatedAt`, stamped on each
+  message and rename, so sending back a stale copy of somebody else's thread
+  cannot roll it back.
+
+A save also returns the merged chats, problems and letters, filtered for the
+caller exactly as a load would be, and the browser folds in anything new. That,
+plus a refresh when the window regains focus, is how an admin sees a thread a
+staff member started without signing out and back in.
 
 ### Deploy order
 
