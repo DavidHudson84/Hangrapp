@@ -309,6 +309,30 @@
   details p { color: var(--ink-2); font-size: 15px; margin-top: 12px; max-width: 70ch; }
 
   /* ---------- Trial form ---------- */
+  /* What happens after the form. Setting this out before the fields matters more
+     than it looks: the offer is a walked setup with a person, not a download, and
+     someone who does not know that reads "request a trial" as a sales funnel. */
+  .steps { display: grid; gap: 14px; margin-bottom: 26px; }
+  @media (min-width: 720px) { .steps { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+  .step {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 13px;
+    padding: 20px 20px 22px; position: relative;
+  }
+  .step .n {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .16em; color: var(--accent);
+    display: block; margin-bottom: 10px;
+  }
+  .step h3 { font-size: 17px; margin-bottom: 7px; }
+  .step p { font-size: 14px; color: var(--ink-2); }
+  .zoom-note {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--accent-soft); border: 1px solid var(--accent-edge);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 26px;
+  }
+  .zoom-note svg { flex: none; color: var(--accent); margin-top: 2px; }
+  .zoom-note p { font-size: 14.5px; color: var(--ink-2); }
+  .zoom-note b { color: var(--ink); font-weight: 600; }
+
   .trial { background: var(--surface); border: 1px solid var(--rule-strong); border-radius: 16px; padding: 30px 24px; }
   @media (min-width: 720px) { .trial { padding: 40px 38px; } }
   .field { margin-bottom: 16px; }
@@ -825,13 +849,36 @@
       </p>
     </details>
     <details>
+      <summary>What happens after I request a trial?</summary>
+      <p>
+        David emails you to find a time, and you do a Zoom call together — about 45
+        minutes. On the call your business gets set up properly: your sites, services,
+        equipment and solvents, your price list, and your logins for whoever needs one.
+        You come off the call using it rather than with a login and a help page.
+        It's free, there's nothing to buy at the end of it, and you're not signed up to
+        anything by doing it.
+      </p>
+    </details>
+    <details>
+      <summary>Why can't I just sign myself up?</summary>
+      <p>
+        Because Hangr is only as good as what it knows about your shop, and a form
+        can't get that out of you. Half an hour on a call loading your price list and
+        your documents is the difference between answers that are about your business
+        and answers that are about dry cleaning in general. We're also taking on a
+        small number of operators at a time while it's shaped around real shops, so
+        it's a conversation rather than a signup button on purpose.
+      </p>
+    </details>
+    <details>
       <summary>How long does it take to set up?</summary>
       <p>
-        The guided setup takes about twenty minutes — your business details, sites,
-        services, equipment and solvents. Upload your price list and it can start quoting
-        off it straight away. The document library (lease, insurance, manuals, SOPs) can
-        be added whenever you get to it, and every document you add makes the answers
-        better.
+        The setup itself is about twenty minutes — your business details, sites,
+        services, equipment and solvents — and we do it with you on the onboarding call
+        rather than leaving you to it. Upload your price list and it can start quoting
+        off it straight away. The document library (lease, insurance, manuals, SOPs) is
+        the part you add over the following weeks, and every document you put in makes
+        the answers better.
       </p>
     </details>
     <details>
@@ -894,8 +941,45 @@
       <div class="eyebrow">Request a trial</div>
       <h2>Have a look at it properly.</h2>
       <p class="lede">
-        Tell us a bit about your business and we'll be in touch to set you up. No
-        obligation, and no sales sequence — you'll hear from the person who built it.
+        Tell us a bit about your business and we'll set you up on a short Zoom call.
+        No obligation, and no sales sequence — you'll hear from the person who built it.
+      </p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <span class="n">STEP 01</span>
+        <h3>You send this form</h3>
+        <p>Takes a minute. Nothing is created yet and nothing is charged.</p>
+      </div>
+      <div class="step">
+        <span class="n">STEP 02</span>
+        <h3>We book a Zoom</h3>
+        <p>
+          You'll get an email back from David to find a time that suits — usually
+          within a day or so.
+        </p>
+      </div>
+      <div class="step">
+        <span class="n">STEP 03</span>
+        <h3>We set it up together</h3>
+        <p>
+          About 45 minutes on a call. Your business goes in, your logins get made,
+          and you leave the call using it.
+        </p>
+      </div>
+    </div>
+
+    <div class="zoom-note">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+      <p>
+        <b>Everyone starts with an onboarding call.</b> Hangr gets sharper the more it
+        knows about your shop — your sites, your equipment, your price list, your
+        documents — and walking through that together takes far less of your time than
+        working it out from a help page. It's free, it's part of the trial, and there
+        is nothing to buy at the end of it.
       </p>
     </div>
 
@@ -943,6 +1027,16 @@
           </div>
         </div>
         <div class="field">
+          <label for="f-when">Best time for a call</label>
+          <select id="f-when" name="when">
+            <option value="">No preference</option>
+            <option>Weekday mornings</option>
+            <option>Weekday afternoons</option>
+            <option>After hours</option>
+            <option>Saturdays</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="f-message">Anything you'd like us to know (optional)</label>
           <textarea id="f-message" name="message" maxlength="2000"></textarea>
         </div>
@@ -966,8 +1060,9 @@
       <div class="trial-done" id="trial-done" hidden>
         <h3>Thanks — that's come through.</h3>
         <p>
-          We'll be in touch shortly on the email you gave us. If it's urgent, reach us
-          directly at <a href="mailto:david@hudsongroup.com.au" style="color:var(--accent)">david@hudsongroup.com.au</a>.
+          You'll get an email from David at the address you gave us, to find a time for
+          the Zoom. Usually within a day or so. If it's urgent, reach him directly at
+          <a href="mailto:david@hudsongroup.com.au" style="color:var(--accent)">david@hudsongroup.com.au</a>.
         </p>
       </div>
     </div>
@@ -1046,7 +1141,8 @@
       'Email: ' + payload.email + '\n' +
       'Phone: ' + (payload.phone || '—') + '\n' +
       'State: ' + (payload.state || '—') + '\n' +
-      'Sites: ' + (payload.sites || '—') + '\n\n' +
+      'Sites: ' + (payload.sites || '—') + '\n' +
+      'Best time for a call: ' + (payload.when || 'No preference') + '\n\n' +
       (payload.message || '');
     return 'mailto:' + CONTACT +
       '?subject=' + encodeURIComponent('Hangr trial request — ' + payload.business) +
@@ -1063,6 +1159,7 @@
       phone: form.phone.value.trim(),
       state: form.state.value,
       sites: form.sites.value,
+      when: form.when.value,
       message: form.message.value.trim(),
       website: form.website.value,           // honeypot
       elapsed: Date.now() - openedAt         // time on page, checked server-side
