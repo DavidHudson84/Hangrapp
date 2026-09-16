@@ -5403,7 +5403,7 @@ function draftLetterFromStaff(staffId, type) {
 // ============ STAFF TRAINING ============
 // The app has carried a serious knowledge base since day one and never shown a
 // word of it to a human — it exists to be spliced into a prompt. This section
-// turns the parts a counter assistant actually needs into five short courses,
+// turns the parts a counter assistant actually needs into seven short courses,
 // each a read followed by a quiz, and keeps a dated record of who has done what.
 //
 // Content is authored here rather than generated, on purpose. A score is only
@@ -5535,6 +5535,10 @@ const MH_FIG_HEIGHT = `<svg viewBox="0 0 420 214" role="img" aria-label="Two sid
 
 const TRAINING_FIGURES = { lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_PUSH, height: MH_FIG_HEIGHT };
 
+// Adding or removing a course here changes what the landing page claims. The
+// hero section of index.html says how many built-in courses there are in words
+// ('Seven built-in courses...') and its training register panel shows rows of
+// 'n of 7' — both have to be updated in the same change.
 const TRAINING_MODULES = [
 {
   id: 'using-hangr',
@@ -8163,7 +8167,7 @@ function printTrainingRecord(who) {
 
 
 // ===== Courses built from the business's own SOPs =====
-// The six courses above are deliberately generic, because every shop tags,
+// The built-in courses above are deliberately generic, because every shop tags,
 // books in and hands back differently. This is how a business replaces them
 // with its own procedure: point at a document already on file, let the model
 // draft a course from it, read and fix that draft, then publish it to staff.
@@ -8174,7 +8178,7 @@ function printTrainingRecord(who) {
 
 const COURSE_MIN_QUESTIONS = 4;
 const COURSE_MAX_LESSONS = 8;
-const COURSE_TARGET_QUESTIONS = 8;   // matches the built-in six
+const COURSE_TARGET_QUESTIONS = 8;   // matches the built-in courses
 const SOP_TEXT_CAP = 14000;          // leaves room for the instructions under ASK_MAX
 // The quiz prompt carries the whole finished course, which on a long procedure is
 // bigger than the source was. ASK_MAX is 30000 on the way in and the 3000-token
