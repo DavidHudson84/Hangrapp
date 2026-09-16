@@ -429,11 +429,21 @@
   .claims-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .claims-table th { text-align: left; font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--rule-strong); }
   .claims-table td { padding: 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  .claim-pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid var(--rule-strong); }
+  .claim-pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid var(--rule-strong); white-space: nowrap; }
   .claim-pill.defended { background: rgba(21,128,61,.08); border-color: rgba(21,128,61,.35); color: #15803d; }
   .claim-pill.paid { background: rgba(180,83,9,.08); border-color: rgba(180,83,9,.35); color: #b45309; }
   .claim-pill.goodwill { background: rgba(2,132,199,.08); border-color: rgba(2,132,199,.35); color: #0284c7; }
   .claim-pill.intake { background: var(--accent-soft); border-color: var(--accent-edge); }
+  .claim-pill.other { background: var(--paper); color: var(--muted); }
+  /* The register's filter bar. Wraps to one control per line on a phone. */
+  .claims-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 16px 0 0; }
+  .claims-filters .f { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+  .claims-filters label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .claims-filters .select, .claims-filters .input { padding: 7px 9px; font-size: 13px; }
+  @media (max-width: 600px) { .claims-filters .f { min-width: 100%; } }
+  .claim-tag { display: inline-block; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .btn-link { appearance: none; background: none; border: none; padding: 0; font: inherit; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); text-decoration: underline; cursor: pointer; }
+  .btn-link:hover { color: var(--ink); }
 
   /* Photo attach (experimental) */
   .msg-photo { display: block; max-width: 260px; max-height: 220px; border-radius: 8px; border: 1px solid var(--rule-strong); margin-bottom: 10px; object-fit: cover; }
@@ -1071,6 +1081,10 @@ const state = {
   priceDraft: null,
   priceBusy: false,
   claims: [],
+  // The claim being edited, by id, and how the register is filtered. Both
+  // transient: a filter you set this morning is not a filter you meant to keep.
+  currentClaim: null,
+  claimFilters: defaultClaimFilters(),
   problems: [],
   letters: [],
   staff: [],
@@ -1192,6 +1206,8 @@ By using Hangr you consent to this overseas processing for the purpose of genera
 
 ## Who we share it with
 We don't sell your information or share it for marketing. We use a small number of service providers to run the app: **Anthropic** (generates the AI responses; United States) and **Supabase** (secure database and hosting; your data is stored in Australia, Sydney region). These providers handle your data only to run the service, under their own security and privacy obligations. We may also disclose information where required by law.
+
+**Industry claims data.** The Claims screen can write a de-identified file of your claims for industry benchmarking. It is written to your own device and nothing is sent anywhere unless you send it. It never contains customer names, dockets, garment descriptions or your notes; dates are reduced to the month, your business and sites appear as codes rather than names, and your postcode is reduced to its first two digits. You are told exactly what the file contains before it is written.
 
 ## Where your data is stored and how it's protected
 Your data is stored in Australia (Sydney). It is encrypted in transit and at rest, walled off so one business can never see another's, and access is controlled by login and role. Our AI key and your data are held on the server, never in your browser.
@@ -1360,6 +1376,12 @@ const MAKES = {
 const PRESS_TYPES = ['Shirt unit (collar/cuff/body/sleeve)', 'Utility / mushroom press', 'Trouser topper', 'Trouser legger', 'Form finisher'];
 const FINISHER_TYPES = ['Steam-air finisher', 'Steam tunnel', 'Suzy / form finisher', 'Spotting board'];
 
+// What the claims register shows before anyone touches it: everything, newest
+// first. Declared here because the state literal below calls it.
+function defaultClaimFilters() {
+  return { preset: 'all', from: '', to: '', site: '', tone: '', fault: '', channel: '', q: '', showDeleted: false };
+}
+
 const icons = {
   camera: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   chat: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
@@ -1397,7 +1419,7 @@ let cloudSaveTimer = null;
 const DELETES_KEY = STORAGE_KEY + ':deletes';
 function loadDeletes() {
   try { const v = JSON.parse(localStorage.getItem(DELETES_KEY) || 'null'); if (v && typeof v === 'object') return v; } catch (e) {}
-  return { chats: [], problems: [], letters: [] };
+  return { chats: [], problems: [], letters: [], claims: [] };
 }
 let pendingDeletes = loadDeletes();
 function saveDeletes() {
@@ -1448,6 +1470,7 @@ function scheduleCloudSave(blob) {
       chats: (pendingDeletes.chats || []).slice(),
       problems: (pendingDeletes.problems || []).slice(),
       letters: (pendingDeletes.letters || []).slice(),
+      claims: (pendingDeletes.claims || []).slice(),
     };
     try {
       const j = await stateApi({ action: 'save', blob, deletes: sent });
@@ -1457,6 +1480,7 @@ function scheduleCloudSave(blob) {
         chats: (pendingDeletes.chats || []).filter(id => !sent.chats.includes(id)),
         problems: (pendingDeletes.problems || []).filter(id => !sent.problems.includes(id)),
         letters: (pendingDeletes.letters || []).filter(id => !sent.letters.includes(id)),
+        claims: (pendingDeletes.claims || []).filter(id => !sent.claims.includes(id)),
       };
       saveDeletes();
       // Completions other people recorded while this device was away. The union
@@ -1475,8 +1499,8 @@ function scheduleCloudSave(blob) {
 // message off the screen in front of the person typing it.
 function adoptShared(j) {
   const when = x => Number((x && (x.updatedAt || x.createdAt)) || 0);
-  const changed = { chats: new Set(), problems: new Set(), letters: new Set() };
-  ['chats', 'problems', 'letters'].forEach(key => {
+  const changed = { chats: new Set(), problems: new Set(), letters: new Set(), claims: new Set() };
+  ['chats', 'problems', 'letters', 'claims'].forEach(key => {
     if (!Array.isArray(j[key])) return;
     const local = state[key] || [];
     const byId = new Map(local.map(x => [x.id, x]));
@@ -1491,7 +1515,7 @@ function adoptShared(j) {
     state[key] = local;
   });
 
-  const anything = changed.chats.size || changed.problems.size || changed.letters.size;
+  const anything = changed.chats.size || changed.problems.size || changed.letters.size || changed.claims.size;
   if (!anything) return;
   // Redrawing the whole page scrolls the open thread back to the top and clears a
   // half-typed message with it. Almost every adoption is somebody else's chat
@@ -1500,7 +1524,8 @@ function adoptShared(j) {
   const openChanged =
     changed.chats.has(state.activeChatId) ||
     (state.activeTab === 'problems' && changed.problems.size) ||
-    (state.activeTab === 'letters' && changed.letters.size);
+    (state.activeTab === 'letters' && changed.letters.size) ||
+    (state.activeTab === 'claims' && changed.claims.size);
   if (openChanged) renderKeepingDraft(); else renderSidebar();
 }
 
@@ -4346,8 +4371,18 @@ function openExportMenu() {
 }
 
 // ===== Claims register =====
-// Every claim letter is recorded. Gives the operator a number they have never had —
-// what claims actually cost them — and, aggregated, the industry data nobody has.
+// Two things land in this register. Every claim letter the app drafts is recorded
+// automatically; anything settled away from the app — verbally over the counter, on
+// the phone, through an insurer — is typed in by hand. They are the same record,
+// and either can be corrected, overridden or removed afterwards, because a register
+// nobody can fix is a register nobody keeps.
+//
+// The register exists for a number no operator has: what claims actually cost the
+// business over a year. The coded fields — article, fault, fabric, brand — exist for
+// a number no *industry* has. Both are set out in docs/CLAIMS.md.
+const CLAIM_SCHEMA = 2;
+
+// What each letter type records in the register.
 const CLAIM_OUTCOMES = {
   'twimc': { label: 'Defended', tone: 'defended' },
   'denial': { label: 'Defended', tone: 'defended' },
@@ -4358,10 +4393,243 @@ const CLAIM_OUTCOMES = {
   'intake-authorisation': { label: 'Risk flagged at intake', tone: 'intake' }
 };
 
+// The same outcomes as a list, because a claim settled without a letter has to be
+// given one by hand. The label is what is stored — CLAIM_OUTCOMES already writes
+// labels — so a hand-set outcome and a letter-set one are the same value.
+// "Withdrawn" carries the defended tone on purpose: the customer asked, the position
+// held, nothing was paid.
+const CLAIM_RESULTS = [
+  { label: 'Open', tone: 'other' },
+  { label: 'Defended', tone: 'defended' },
+  { label: 'Paid', tone: 'paid' },
+  { label: 'Goodwill', tone: 'goodwill' },
+  { label: 'Withdrawn', tone: 'defended' },
+  { label: 'Responded', tone: 'other' },
+  { label: 'Risk flagged at intake', tone: 'intake' }
+];
+function claimToneFor(label) { return (CLAIM_RESULTS.find(r => r.label === label) || { tone: 'other' }).tone; }
+
+const CLAIM_STATUSES = [['open', 'Open'], ['closed', 'Closed']];
+
+// Where the fault lies. The three answers the industry actually uses, plus the two
+// honest extras — the retailer sold it, and nobody ever established it.
+const CLAIM_FAULTS = [
+  ['', 'Not recorded'],
+  ['cleaner', 'Us — the cleaner'],
+  ['manufacturer', 'The manufacturer'],
+  ['consumer', 'The customer'],
+  ['retailer', 'The retailer'],
+  ['inherent', 'Inherent or expected wear'],
+  ['undetermined', 'Never determined']
+];
+
+// How it was actually settled. This is the field that lets a verbal settlement be
+// told apart from a letter, which is most of why the register was out of date.
+const CLAIM_CHANNELS = [
+  ['', 'Not recorded'],
+  ['letter', 'Letter from the app'],
+  ['verbal', 'Verbally, over the counter'],
+  ['phone', 'By phone'],
+  ['email', 'By email'],
+  ['insurer', 'Through an insurer'],
+  ['tribunal', 'Tribunal or Consumer Affairs'],
+  ['other', 'Other']
+];
+
+// What actually went wrong, as a code rather than a sentence. This is the field the
+// trade has never been able to count: free text describes one claim, a code describes
+// ten thousand. It is also what lets the industry file carry the fault without
+// carrying a customer's name in a sentence about them.
+const CLAIM_DAMAGE = [
+  ['', 'Not recorded'],
+  ['colour-loss', 'Colour loss or fading'],
+  ['dye-bleed', 'Dye bleed or transfer'],
+  ['shrinkage', 'Shrinkage or distortion'],
+  ['stain-remains', 'Stain not removed'],
+  ['hole-tear', 'Hole, tear or seam failure'],
+  ['trim-failure', 'Beading, sequin or trim failure'],
+  ['coating', 'Coating, bonding or finish failure'],
+  ['pilling', 'Pilling, abrasion or nap damage'],
+  ['fill-migration', 'Fill or down migration'],
+  ['odour', 'Odour'],
+  ['press-mark', 'Press or finishing mark'],
+  ['lost', 'Garment or component lost'],
+  ['other', 'Something else']
+];
+
+const CLAIM_CONDITIONS = [['', 'Not recorded'], ['excellent', 'Excellent'], ['average', 'Average'], ['poor', 'Poor']];
+
+// Every field the register holds, once. The editor, the CSV, the period report and
+// the de-identified industry export are all built from this list, so a field added
+// here appears in all four rather than three of them.
+//
+//   d   — derived from the letter. Editing one records an override that a redraft
+//         will not overwrite; everything else is the operator's own.
+//   ind — what the industry export does with it: 'code' a controlled value,
+//         'text' free text, 'money', 'number', 'month' a date cut back to its month.
+//         Absent means it never leaves the business. Customer, docket and notes
+//         have no ind, and that is the whole privacy model.
+const CLAIM_FIELDS = [
+  { k: 'dateIso',   l: 'Date of the claim',            t: 'date',     g: 'The claim',    d: true, ind: 'month' },
+  { k: 'settledOn', l: 'Date settled or closed',       t: 'date',     g: 'The claim',             ind: 'month' },
+  { k: 'status',    l: 'Status',                       t: 'select',   g: 'The claim',    v: CLAIM_STATUSES, ind: 'code' },
+  { k: 'outcome',   l: 'Outcome',                      t: 'result',   g: 'The claim',    d: true, ind: 'code' },
+  { k: 'channel',   l: 'How it was settled',           t: 'select',   g: 'The claim',    v: CLAIM_CHANNELS, ind: 'code' },
+  { k: 'site',      l: 'Site',                         t: 'text',     g: 'The claim',    d: true, ind: 'code' },
+  { k: 'customer',  l: 'Customer',                     t: 'text',     g: 'The customer & garment', d: true },
+  { k: 'docket',    l: 'Docket / order number',        t: 'text',     g: 'The customer & garment', d: true },
+  { k: 'garment',   l: 'Garment, as described',        t: 'text',     g: 'The customer & garment', d: true },
+  { k: 'article',   l: 'Fair Claims Guide category',   t: 'article',  g: 'The customer & garment', ind: 'code' },
+  { k: 'brand',     l: 'Brand',                        t: 'text',     g: 'The customer & garment', ind: 'text' },
+  { k: 'fabric',    l: 'Fabric / composition',         t: 'text',     g: 'The customer & garment', ind: 'text' },
+  { k: 'colour',    l: 'Colour',                       t: 'text',     g: 'The customer & garment', ind: 'text' },
+  { k: 'ageMonths', l: 'Age when cleaned (months)',    t: 'number',   g: 'The customer & garment', ind: 'number' },
+  { k: 'condition', l: 'Condition',                    t: 'select',   g: 'The customer & garment', v: CLAIM_CONDITIONS, ind: 'code' },
+  { k: 'cause',     l: 'What the case was called',     t: 'text',     g: 'The fault',    d: true },
+  { k: 'damage',    l: 'Type of damage',               t: 'select',   g: 'The fault',    v: CLAIM_DAMAGE, ind: 'code' },
+  { k: 'fault',     l: 'Where the fault lies',         t: 'select',   g: 'The fault',    v: CLAIM_FAULTS, ind: 'code' },
+  { k: 'tab',       l: 'TAB or reference relied on',   t: 'text',     g: 'The fault',             ind: 'text' },
+  { k: 'atStake',   l: 'Value at stake',               t: 'money',    g: 'The money',    d: true, ind: 'money' },
+  { k: 'paid',      l: 'Paid out',                     t: 'money',    g: 'The money',    d: true, ind: 'money' },
+  { k: 'waived',    l: 'Cleaning charge waived',       t: 'money',    g: 'The money',             ind: 'money' },
+  { k: 'reclean',   l: 'Cost of the re-clean or repair', t: 'money',  g: 'The money',             ind: 'money' },
+  { k: 'saved',     l: 'Claimed, not paid',            t: 'money',    g: 'The money',    d: true, ind: 'money' },
+  { k: 'notes',     l: 'Notes',                        t: 'textarea', g: 'Notes' }
+];
+const CLAIM_FIELD = (k) => CLAIM_FIELDS.find(f => f.k === k) || null;
+const CLAIM_DERIVED_KEYS = CLAIM_FIELDS.filter(f => f.d).map(f => f.k);
+const CLAIM_GROUPS = CLAIM_FIELDS.reduce((a, f) => (a.includes(f.g) ? a : a.concat(f.g)), []);
+
 const parseMoney = (v) => {
   const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.]/g, ''));
   return isNaN(n) ? 0 : n;
 };
+
+const CLAIM_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december'];
+
+// Claim dates were stored the way the letter prints them — "18 June 2026" — which
+// sorts alphabetically and filters not at all. Records written from here carry an
+// ISO date; older ones are read back into one rather than migrated, so a backup
+// restored from before this change reports correctly without being rewritten.
+function isoFromAny(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[0];
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const i = CLAIM_MONTHS.indexOf(m[2].toLowerCase());
+    if (i >= 0) return m[3] + '-' + String(i + 1).padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  }
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  return '';
+}
+function fmtDateAu(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return iso;
+  try { return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch (e) { return iso; }
+}
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+// The record as it should be read: what the letter put there, with any hand edit on
+// top. Nothing is written back — the override layer stays separate so that redrafting
+// a letter refreshes the letter's own fields and leaves the corrections alone.
+function claimView(c) {
+  const v = Object.assign({}, c, c.edits || {});
+  v.dateIso = v.dateIso || isoFromAny(c.date) || (c.ts ? new Date(c.ts).toISOString().slice(0, 10) : '');
+  v.tone = claimToneFor(v.outcome) || c.tone || 'other';
+  // "Claimed, not paid" follows the two figures above it unless it has been set by
+  // hand, or it would contradict an overridden settlement the moment it was typed.
+  if (!(c.edits && 'saved' in c.edits)) {
+    const at = parseMoney(v.atStake), paid = parseMoney(v.paid);
+    v.saved = v.tone === 'defended' ? at : (v.tone === 'paid' ? Math.max(at - paid, 0) : 0);
+  }
+  v.cost = parseMoney(v.paid) + parseMoney(v.waived) + parseMoney(v.reclean);
+  v.days = (v.settledOn && v.dateIso)
+    ? Math.max(0, Math.round((new Date(v.settledOn + 'T00:00:00') - new Date(v.dateIso + 'T00:00:00')) / 86400000))
+    : null;
+  return v;
+}
+const claimEdited = (c, k) => !!(c.edits && k in c.edits);
+const claimHasEdits = (c) => !!(c.edits && Object.keys(c.edits).length);
+// Deleted lines are kept, not destroyed: they stay out of the register and out of
+// every total, and they stop a redraft of the same letter putting the line back.
+function liveClaims() { return (state.claims || []).filter(c => !c.deleted); }
+
+function claimsTotals(list) {
+  const src = list || liveClaims();
+  const t = { n: 0, defended: 0, paid: 0, goodwill: 0, paidAmt: 0, savedAmt: 0, atStake: 0, intake: 0, cost: 0, open: 0, days: 0, dayN: 0 };
+  for (const raw of src) {
+    const c = claimView(raw);
+    if (c.tone === 'intake') { t.intake++; continue; }
+    t.n++;
+    t.atStake += parseMoney(c.atStake);
+    t.paidAmt += parseMoney(c.paid);
+    t.savedAmt += parseMoney(c.saved);
+    t.cost += c.cost;
+    if (c.tone === 'defended') t.defended++;
+    if (c.tone === 'paid') t.paid++;
+    if (c.tone === 'goodwill') t.goodwill++;
+    if (c.status === 'open' || c.outcome === 'Open') t.open++;
+    if (c.days != null) { t.days += c.days; t.dayN++; }
+  }
+  t.avgDays = t.dayN ? Math.round(t.days / t.dayN) : null;
+  return t;
+}
+
+// A blank record. Manual and letter-recorded claims are the same shape; only
+// `source` and what fills it differ.
+function newClaim(source) {
+  return {
+    id: newId('CL'), schema: CLAIM_SCHEMA, source: source || 'manual',
+    date: '', dateIso: todayIso(), ts: Date.now(),
+    customer: '', garment: '', cause: '', site: '', docket: '',
+    problemId: null, letterId: null, type: null,
+    outcome: 'Open', tone: 'other', status: 'open', channel: '',
+    settledOn: '', article: '', brand: '', fabric: '', colour: '',
+    ageMonths: '', condition: '', fault: '', damage: '', tab: '', notes: '',
+    atStake: 0, paid: 0, waived: 0, reclean: 0, saved: 0,
+    edits: {}, deleted: false,
+    createdBy: state.currentUserId || null, createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+const findClaim = (id) => (state.claims || []).find(c => c.id === id) || null;
+function saveClaim(c) {
+  if (!c) return;
+  c.updatedAt = Date.now();
+  const i = state.claims.findIndex(x => x.id === c.id);
+  if (i === -1) state.claims.push(c); else state.claims[i] = c;
+  persistState();
+}
+// An edit to a letter-derived field is recorded as an override rather than written
+// over the value, so redrafting the letter cannot quietly undo it. Everything else
+// is written straight to the record.
+function setClaimField(id, key, value) {
+  const c = findClaim(id);
+  if (!c) return null;
+  if (CLAIM_DERIVED_KEYS.includes(key) && c.source !== 'manual') {
+    if (!c.edits) c.edits = {};
+    c.edits[key] = value;
+    if (key === 'outcome') c.edits.tone = claimToneFor(value);
+  } else {
+    c[key] = value;
+    if (key === 'outcome') c.tone = claimToneFor(value);
+  }
+  saveClaim(c);
+  return c;
+}
+function revertClaimField(id, key) {
+  const c = findClaim(id);
+  if (!c || !c.edits) return null;
+  delete c.edits[key];
+  if (key === 'outcome') delete c.edits.tone;
+  saveClaim(c);
+  return c;
+}
 
 function recordClaim(letter) {
   if (!letter || !letter.sourceMsgId) return;
@@ -4375,83 +4643,145 @@ function recordClaim(letter) {
     ? parseFloat(c.offer)
     : (calc ? calc.amount : 0);
   const atStake = parseMoney(f.value) || (calc ? calc.replacementCost : 0);
+  const paid = letter.type === 'settlement' ? offered : 0;
 
-  const rec = {
-    id: letter.sourceMsgId,
+  // Only the fields the letter is the author of. Everything else on the record —
+  // the article, the fault, the notes, the date it was actually settled, and any
+  // override of what is below — belongs to the operator and is never touched here.
+  const derived = {
     date: letter.date,
-    ts: Date.now(),
+    dateIso: (pr && isoFromAny(pr.date)) || isoFromAny(letter.date) || todayIso(),
     customer: (pr && pr.customerName) || f.customerName || '',
     garment: (pr && pr.garment) || f.garment || letter.subject || '',
     cause: letter.subject || '',
     site: (pr && pr.site) || f.site || '',
     docket: (pr && pr.docket) || f.docket || '',
     problemId: letter.problemId || null,
+    letterId: letter.id || null,
     type: letter.type,
     outcome: outcome.label,
     tone: outcome.tone,
     atStake: atStake,
-    paid: letter.type === 'settlement' ? offered : 0,
+    paid: paid,
     // What the customer wanted, that you did not pay, because the position held.
-    saved: (outcome.tone === 'defended') ? atStake : (letter.type === 'settlement' ? Math.max(atStake - offered, 0) : 0)
+    saved: (outcome.tone === 'defended') ? atStake : (letter.type === 'settlement' ? Math.max(atStake - paid, 0) : 0)
   };
-  const i = state.claims.findIndex(x => x.id === rec.id);
-  if (i === -1) state.claims.push(rec); else state.claims[i] = rec;
+
+  const existing = findClaim(letter.sourceMsgId);
+  if (existing) {
+    // A line deleted on purpose stays deleted — redrafting the letter is not a
+    // reason to put it back on the register.
+    Object.assign(existing, derived);
+    existing.ts = Date.now();
+    existing.updatedAt = Date.now();
+    if (!existing.schema) existing.schema = CLAIM_SCHEMA;
+  } else {
+    const rec = Object.assign(newClaim('letter'), derived, {
+      id: letter.sourceMsgId,
+      ts: Date.now(),
+      status: letter.type === 'settlement' ? 'closed' : 'open',
+      settledOn: letter.type === 'settlement' ? (isoFromAny(letter.date) || todayIso()) : '',
+      channel: 'letter',
+      article: c.article || '',
+      condition: c.condition || '',
+      ageMonths: calc ? String(calc.ageMonths) : '',
+      fabric: f.fabric || '',
+      createdBy: letter.createdBy || state.currentUserId || null
+    });
+    state.claims.push(rec);
+  }
   // Close the loop: the report knows it became a claim. Leave a status someone has
   // already moved on (resolved, waiting) alone.
   if (pr) {
-    pr.claimId = rec.id;
+    pr.claimId = letter.sourceMsgId;
     if (pr.status === 'open') pr.status = 'claim';
     pr.updatedAt = Date.now();
   }
 }
 
-function claimsTotals() {
-  const t = { n: 0, defended: 0, paid: 0, paidAmt: 0, savedAmt: 0, atStake: 0, intake: 0 };
-  for (const c of state.claims) {
-    if (c.tone === 'intake') { t.intake++; continue; }
-    t.n++;
-    t.atStake += parseMoney(c.atStake);
-    t.paidAmt += parseMoney(c.paid);
-    t.savedAmt += parseMoney(c.saved);
-    if (c.tone === 'defended') t.defended++;
-    if (c.tone === 'paid') t.paid++;
+// ===== Periods =====
+// The financial year is the one that matters, so it is a preset rather than two
+// dates the owner has to remember to type. Australian FY: 1 July to 30 June.
+const fyOf = (d) => (d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1);
+function claimPeriod(preset, from, to) {
+  const now = new Date();
+  const iso = (y, m, d) => y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  const eom = (y, m) => new Date(y, m, 0).getDate();
+  const fy = fyOf(now);
+  switch (preset) {
+    case 'month':
+      return { from: iso(now.getFullYear(), now.getMonth() + 1, 1), to: iso(now.getFullYear(), now.getMonth() + 1, eom(now.getFullYear(), now.getMonth() + 1)), label: 'This month' };
+    case 'lastmonth': {
+      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return { from: iso(d.getFullYear(), d.getMonth() + 1, 1), to: iso(d.getFullYear(), d.getMonth() + 1, eom(d.getFullYear(), d.getMonth() + 1)), label: 'Last month' };
+    }
+    case 'quarter': {
+      const q = Math.floor(now.getMonth() / 3) * 3;
+      return { from: iso(now.getFullYear(), q + 1, 1), to: iso(now.getFullYear(), q + 3, eom(now.getFullYear(), q + 3)), label: 'This quarter' };
+    }
+    case 'fy': return { from: iso(fy, 7, 1), to: iso(fy + 1, 6, 30), label: 'FY ' + fy + '–' + String(fy + 1).slice(2) };
+    case 'lastfy': return { from: iso(fy - 1, 7, 1), to: iso(fy, 6, 30), label: 'FY ' + (fy - 1) + '–' + String(fy).slice(2) };
+    case '12m': {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      return { from: iso(d.getFullYear(), d.getMonth() + 1, 1), to: todayIso(), label: 'Last 12 months' };
+    }
+    case 'custom': return { from: from || '', to: to || '', label: 'Custom period' };
+    default: return { from: '', to: '', label: 'Everything on file' };
   }
-  return t;
 }
+const CLAIM_PERIODS = [
+  ['all', 'Everything'], ['month', 'This month'], ['lastmonth', 'Last month'],
+  ['quarter', 'This quarter'], ['fy', 'This financial year'], ['lastfy', 'Last financial year'],
+  ['12m', 'Last 12 months'], ['custom', 'Custom dates']
+];
 
-function claimsRegisterHtml() {
-  if (!state.claims.length) return '';
-  const t = claimsTotals();
-  const rows = state.claims.slice().sort((a, b) => b.ts - a.ts).map(c => `
-    <tr>
-      <td>${escapeHtml(c.date || '')}</td>
-      <td>${escapeHtml(c.garment || '—')}${(c.customer || c.docket) ? '<div style="font-size:11px;color:var(--muted)">' + escapeHtml([c.customer, c.docket ? 'docket ' + c.docket : ''].filter(Boolean).join(' · ')) + '</div>' : ''}</td>
-      <td><span class="claim-pill ${c.tone}">${escapeHtml(c.outcome)}</span></td>
-      <td style="text-align:right">${c.atStake ? fmtAud(c.atStake) : '—'}</td>
-      <td style="text-align:right">${c.paid ? fmtAud(c.paid) : '—'}</td>
-    </tr>`).join('');
-
-  return `
-    <div class="card" style="margin-top:28px">
-      <div class="facts-head">
-        <h3>Claims register</h3>
-        <span class="facts-count">${t.n} claim${t.n === 1 ? '' : 's'}${t.intake ? ' · ' + t.intake + ' flagged at intake' : ''}</span>
-      </div>
-      <div class="claims-tiles">
-        <div class="tile"><div class="tv">${t.defended}</div><div class="tl">Defended</div></div>
-        <div class="tile"><div class="tv">${fmtAud(t.paidAmt)}</div><div class="tl">Paid out</div></div>
-        <div class="tile"><div class="tv">${fmtAud(t.savedAmt)}</div><div class="tl">Claimed, not paid</div></div>
-        <div class="tile"><div class="tv">${fmtAud(t.atStake)}</div><div class="tl">Total at stake</div></div>
-      </div>
-      <div class="table-scroll">
-        <table class="claims-table">
-          <thead><tr><th>Date</th><th>Garment</th><th>Outcome</th><th style="text-align:right">At stake</th><th style="text-align:right">Paid</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="facts-note" style="margin:12px 0 0">Every letter you generate lands here. "Claimed, not paid" is the value customers asked for that you did not hand over — because the position held, or because the Guide put the number where it belongs.</div>
-    </div>`;
+// The register as the filters leave it: views, sorted newest first.
+function filteredClaims() {
+  const f = state.claimFilters;
+  const p = claimPeriod(f.preset, f.from, f.to);
+  const q = (f.q || '').trim().toLowerCase();
+  const out = (state.claims || [])
+    .filter(c => !!c.deleted === !!f.showDeleted)
+    .map(claimView)
+    .filter(c => {
+      if (p.from && (!c.dateIso || c.dateIso < p.from)) return false;
+      if (p.to && (!c.dateIso || c.dateIso > p.to)) return false;
+      if (f.site && c.site !== f.site) return false;
+      if (f.tone && c.tone !== f.tone) return false;
+      if (f.fault && (c.fault || '') !== f.fault) return false;
+      if (f.channel && (c.channel || '') !== f.channel) return false;
+      if (q) {
+        const hay = [c.customer, c.garment, c.cause, c.docket, c.brand, c.article, c.notes, c.tab]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  out.sort((a, b) => (b.dateIso || '').localeCompare(a.dateIso || '') || (b.ts || 0) - (a.ts || 0));
+  return out;
 }
+const claimSites = () => Array.from(new Set((state.claims || []).map(c => claimView(c).site).filter(Boolean))).sort();
+
+// One breakdown, reused for every table in the period report.
+function claimsGrouped(list, keyFn, labelFn) {
+  const map = new Map();
+  for (const c of list) {
+    const raw = keyFn(c);
+    const k = (raw == null || raw === '') ? '' : String(raw);
+    if (!map.has(k)) map.set(k, { key: k, label: (labelFn ? labelFn(k) : (k || '—')), n: 0, atStake: 0, paid: 0, cost: 0, saved: 0 });
+    const row = map.get(k);
+    row.n++;
+    row.atStake += parseMoney(c.atStake);
+    row.paid += parseMoney(c.paid);
+    row.cost += c.cost;
+    row.saved += parseMoney(c.saved);
+  }
+  return Array.from(map.values()).sort((a, b) => b.cost - a.cost || b.n - a.n);
+}
+const vocabLabel = (vocab, v) => {
+  const hit = (vocab || []).find(x => x[0] === (v || ''));
+  return hit ? hit[1] : (v || '—');
+};
 
 // ===== Backup =====
 // Everything lives in this browser. That is fine for a prototype and not fine forever —
@@ -4514,45 +4844,507 @@ function importBackup(file) {
 // ============ CLAIMS ============
 function renderClaims() {
   const screen = $('#screen-claims');
-  if (!state.claims.length) {
+  if (!screen) return;
+  if (state.currentClaim) { renderClaimDetail(screen); return; }
+
+  const anyClaims = (state.claims || []).length > 0;
+  if (!anyClaims) {
     screen.innerHTML = `
       <div class="screen-header">
         <div class="ix">Module 06</div>
         <h2>Claims</h2>
-        <p>Every claim letter you generate is recorded here — what it was, who was at fault, what was at stake, what you paid. The number no operator has.</p>
+        <p>Every claim letter you generate is recorded here — what it was, who was at fault, what was at stake, what you paid. Anything settled over the counter gets typed in. The number no operator has.</p>
       </div>
       <div class="empty">
         <div class="icon">${icons.letter}</div>
         <h3>No claims recorded yet</h3>
-        <p>Work a garment complaint through the chat and draft a letter — defence, settlement, or an at-risk authorisation at intake — and it lands here automatically.</p>
-        <button class="btn btn-primary" id="claims-go-chat">Go to chat &rarr;</button>
+        <p>Work a garment complaint through the chat and draft a letter — defence, settlement, or an at-risk authorisation at intake — and it lands here automatically. A claim you settled verbally, you add by hand.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button class="btn btn-primary" id="claims-go-chat">Go to chat &rarr;</button>
+          <button class="btn btn-secondary" id="claims-add">${icons.plus} Add a claim by hand</button>
+        </div>
       </div>
     `;
     const b = document.getElementById('claims-go-chat');
     if (b) b.addEventListener('click', () => { state.activeTab = 'chat'; render(); });
+    const a = document.getElementById('claims-add');
+    if (a) a.addEventListener('click', addManualClaim);
     return;
   }
+
+  const f = state.claimFilters;
+  const p = claimPeriod(f.preset, f.from, f.to);
+  const list = filteredClaims();
+  const t = claimsTotals(list);
+  const deletedCount = (state.claims || []).filter(c => c.deleted).length;
+
   screen.innerHTML = `
     <div class="screen-header">
       <div class="ix">Module 06</div>
       <h2>Claims</h2>
-      <p>Every claim letter you generate is recorded here. Over a year this tells you what claims actually cost you, which garments and brands keep failing, and how much you did not pay because the position held.</p>
+      <p>Every claim letter you generate is recorded here, and anything settled off the app is typed in. Over a year this tells you what claims actually cost you, which garments and brands keep failing, and how much you did not pay because the position held.</p>
     </div>
-    ${claimsRegisterHtml()}
-    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-secondary" id="claims-csv">Export the register (CSV)</button>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
+      <div class="facts-count">${escapeHtml(p.label)}${p.from || p.to ? ' · ' + escapeHtml(fmtDateAu(p.from) || 'the start') + ' to ' + escapeHtml(fmtDateAu(p.to) || 'today') : ''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="claims-add">${icons.plus} Add a claim</button>
+      </div>
+    </div>
+
+    <div class="claims-filters">
+      <div class="f"><label>Period</label>
+        <select class="select" id="cf-preset">
+          ${CLAIM_PERIODS.map(([k, l]) => `<option value="${k}" ${f.preset === k ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}
+        </select></div>
+      ${f.preset === 'custom' ? `
+        <div class="f"><label>From</label><input class="input" type="date" id="cf-from" value="${escapeHtml(f.from || '')}"></div>
+        <div class="f"><label>To</label><input class="input" type="date" id="cf-to" value="${escapeHtml(f.to || '')}"></div>` : ''}
+      <div class="f"><label>Outcome</label>
+        <select class="select" id="cf-tone">
+          <option value="">Any</option>
+          ${[['defended', 'Defended'], ['paid', 'Paid'], ['goodwill', 'Goodwill'], ['intake', 'Flagged at intake'], ['other', 'Open / responded']].map(([k, l]) =>
+            `<option value="${k}" ${f.tone === k ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}
+        </select></div>
+      <div class="f"><label>Fault</label>
+        <select class="select" id="cf-fault">
+          <option value="">Any</option>
+          ${CLAIM_FAULTS.filter(x => x[0]).map(([k, l]) => `<option value="${k}" ${f.fault === k ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}
+        </select></div>
+      <div class="f"><label>Settled by</label>
+        <select class="select" id="cf-channel">
+          <option value="">Any</option>
+          ${CLAIM_CHANNELS.filter(x => x[0]).map(([k, l]) => `<option value="${k}" ${f.channel === k ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}
+        </select></div>
+      ${claimSites().length > 1 ? `
+      <div class="f"><label>Site</label>
+        <select class="select" id="cf-site">
+          <option value="">All sites</option>
+          ${claimSites().map(s => `<option value="${escapeHtml(s)}" ${f.site === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
+        </select></div>` : ''}
+      <div class="f" style="flex:1;min-width:160px"><label>Search</label>
+        <input class="input" id="cf-q" placeholder="Customer, docket, brand, garment" value="${escapeHtml(f.q || '')}"></div>
+      ${(f.preset !== 'all' || f.tone || f.fault || f.channel || f.site || f.q)
+        ? '<div class="f"><label>&nbsp;</label><button class="btn btn-ghost" id="cf-clear">Clear</button></div>' : ''}
+    </div>
+
+    ${claimsRegisterHtml(list, t, p)}
+
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-secondary" id="claims-csv">Export what is showing (CSV)</button>
+      <button class="btn btn-secondary" id="claims-report">Period report</button>
+      <button class="btn btn-ghost" id="claims-industry">De-identified industry export</button>
+      ${(deletedCount || f.showDeleted) ? `<button class="btn btn-ghost" id="claims-deleted" style="margin-left:auto">${f.showDeleted ? 'Back to the register' : 'Deleted lines (' + deletedCount + ')'}</button>` : ''}
     </div>
   `;
-  const csv = document.getElementById('claims-csv');
-  if (csv) csv.addEventListener('click', exportClaimsCsv);
+
+  const on = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+  const setF = (k, v) => { state.claimFilters[k] = v; render(); };
+  on('cf-preset', 'change', e => {
+    state.claimFilters.preset = e.target.value;
+    if (e.target.value === 'custom' && !state.claimFilters.from) {
+      const r = claimPeriod('fy');
+      state.claimFilters.from = r.from; state.claimFilters.to = r.to;
+    }
+    render();
+  });
+  on('cf-from', 'change', e => setF('from', e.target.value));
+  on('cf-to', 'change', e => setF('to', e.target.value));
+  on('cf-tone', 'change', e => setF('tone', e.target.value));
+  on('cf-fault', 'change', e => setF('fault', e.target.value));
+  on('cf-channel', 'change', e => setF('channel', e.target.value));
+  on('cf-site', 'change', e => setF('site', e.target.value));
+  // Typed, not re-rendered on every keystroke — the field would lose focus.
+  on('cf-q', 'input', e => {
+    state.claimFilters.q = e.target.value;
+    clearTimeout(state._claimSearchTimer);
+    state._claimSearchTimer = setTimeout(() => {
+      const pos = e.target.selectionStart;
+      render();
+      const again = document.getElementById('cf-q');
+      if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (x) {} }
+    }, 250);
+  });
+  on('cf-clear', 'click', () => {
+    state.claimFilters = defaultClaimFilters();
+    render();
+  });
+  on('claims-add', 'click', addManualClaim);
+  on('claims-csv', 'click', () => exportClaimsCsv(list, p));
+  on('claims-report', 'click', () => exportClaimsReport(list, t, p));
+  on('claims-industry', 'click', () => exportClaimsIndustry(list, p));
+  on('claims-deleted', 'click', () => { state.claimFilters.showDeleted = !state.claimFilters.showDeleted; render(); });
+  screen.querySelectorAll('[data-claim-row]').forEach(tr =>
+    tr.addEventListener('click', () => { state.currentClaim = tr.dataset.claimRow; render(); }));
+  screen.querySelectorAll('[data-claim-restore]').forEach(b =>
+    b.addEventListener('click', (e) => { e.stopPropagation(); restoreClaim(b.dataset.claimRestore); }));
+  screen.querySelectorAll('[data-claim-purge]').forEach(b =>
+    b.addEventListener('click', (e) => { e.stopPropagation(); purgeClaim(b.dataset.claimPurge); }));
 }
 
-function exportClaimsCsv() {
-  const head = ['Date', 'Customer', 'Docket', 'Garment', 'Cause', 'Site', 'Outcome', 'Value at stake', 'Paid', 'Claimed not paid'];
-  const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const rows = state.claims.slice().sort((a, b) => b.ts - a.ts).map(c =>
-    [c.date, c.customer, c.docket || '', c.garment, c.cause, c.site, c.outcome, c.atStake || 0, c.paid || 0, c.saved || 0].map(esc).join(','));
-  downloadFile([head.map(esc).join(','), ...rows].join('\n'), 'hangr-claims-register.csv', 'text/csv');
+function claimsRegisterHtml(list, t, p) {
+  if (!list.length) {
+    return `<div class="card" style="margin-top:18px"><div class="facts-note" style="margin:0">
+      ${state.claimFilters.showDeleted ? 'No deleted lines.' : 'No claims in this period. Widen the dates or clear the filters.'}
+    </div></div>`;
+  }
+  const del = state.claimFilters.showDeleted;
+  const rows = list.map(c => `
+    <tr data-claim-row="${escapeHtml(c.id)}" style="cursor:pointer">
+      <td>${escapeHtml(fmtDateAu(c.dateIso) || c.date || '')}${c.source === 'manual' ? '<div class="claim-tag">Entered by hand</div>' : ''}${claimHasEdits(findClaim(c.id) || {}) ? '<div class="claim-tag">Overridden</div>' : ''}</td>
+      <td>${escapeHtml(c.garment || '—')}${(c.customer || c.docket) ? '<div style="font-size:11px;color:var(--muted)">' + escapeHtml([c.customer, c.docket ? 'docket ' + c.docket : ''].filter(Boolean).join(' · ')) + '</div>' : ''}</td>
+      <td>${escapeHtml(vocabLabel(CLAIM_FAULTS, c.fault))}</td>
+      <td><span class="claim-pill ${c.tone}">${escapeHtml(c.outcome || '—')}</span></td>
+      <td style="text-align:right">${c.atStake ? fmtAud(parseMoney(c.atStake)) : '—'}</td>
+      <td style="text-align:right">${c.cost ? fmtAud(c.cost) : '—'}</td>
+      ${del ? `<td style="text-align:right;white-space:nowrap">
+        <button class="btn btn-ghost" data-claim-restore="${escapeHtml(c.id)}">Restore</button>
+        <button class="btn btn-ghost" data-claim-purge="${escapeHtml(c.id)}" style="color:var(--warn)">Erase</button></td>` : ''}
+    </tr>`).join('');
+
+  return `
+    <div class="card" style="margin-top:18px">
+      <div class="facts-head">
+        <h3>${del ? 'Deleted lines' : 'Claims register'}</h3>
+        <span class="facts-count">${t.n} claim${t.n === 1 ? '' : 's'}${t.intake ? ' · ' + t.intake + ' flagged at intake' : ''}${t.open ? ' · ' + t.open + ' still open' : ''}</span>
+      </div>
+      <div class="claims-tiles">
+        <div class="tile"><div class="tv">${t.defended}</div><div class="tl">Defended</div></div>
+        <div class="tile"><div class="tv">${fmtAud(t.cost)}</div><div class="tl">Cost to the business</div></div>
+        <div class="tile"><div class="tv">${fmtAud(t.paidAmt)}</div><div class="tl">Paid out</div></div>
+        <div class="tile"><div class="tv">${fmtAud(t.savedAmt)}</div><div class="tl">Claimed, not paid</div></div>
+        <div class="tile"><div class="tv">${fmtAud(t.atStake)}</div><div class="tl">Total at stake</div></div>
+        ${t.avgDays != null ? `<div class="tile"><div class="tv">${t.avgDays}</div><div class="tl">Avg days to settle</div></div>` : ''}
+      </div>
+      <div class="table-scroll">
+        <table class="claims-table">
+          <thead><tr><th>Date</th><th>Garment</th><th>Fault</th><th>Outcome</th><th style="text-align:right">At stake</th><th style="text-align:right">Cost to us</th>${del ? '<th></th>' : ''}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="facts-note" style="margin:12px 0 0">"Cost to us" is what you paid out plus any cleaning charge waived and the cost of a re-clean or repair. "Claimed, not paid" is the value customers asked for that you did not hand over — because the position held, or because the Guide put the number where it belongs.</div>
+    </div>`;
+}
+
+// ===== One claim, open =====
+function renderClaimDetail(screen) {
+  const rec = findClaim(state.currentClaim);
+  if (!rec) { state.currentClaim = null; render(); return; }
+  const c = claimView(rec);
+  const letter = rec.letterId ? (state.letters || []).find(l => l.id === rec.letterId) : null;
+  const problem = rec.problemId ? findProblem(rec.problemId) : null;
+
+  const provenance = rec.source === 'manual'
+    ? 'Entered by hand' + (rec.createdAt ? ' on ' + escapeHtml(fmtDateAu(new Date(rec.createdAt).toISOString().slice(0, 10))) : '') + '. Nothing in the app wrote it, and nothing in the app will overwrite it.'
+    : 'Recorded from the ' + escapeHtml(claimTypeLabel(rec.type)) + ' of ' + escapeHtml(fmtDateAu(isoFromAny(rec.date)) || rec.date || '') + '. Redrafting that letter refreshes the fields it owns; anything you change here is kept.';
+
+  screen.innerHTML = `
+    <div class="screen-header">
+      <div class="ix">Module 06</div>
+      <h2>${escapeHtml(c.garment || c.customer || 'Claim')}</h2>
+      <p>${provenance}</p>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-ghost" id="claim-back">&larr; The register</button>
+      <span class="claim-pill ${c.tone}">${escapeHtml(c.outcome || '—')}</span>
+    </div>
+    <div class="card" style="margin-top:16px">
+      ${CLAIM_GROUPS.map(g => `
+        <h3 style="font-size:13px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:${g === CLAIM_GROUPS[0] ? '0' : '22px'} 0 10px">${escapeHtml(g)}</h3>
+        <div class="${g === 'Notes' ? '' : 'field-row'}">
+          ${CLAIM_FIELDS.filter(x => x.g === g).map(x => claimFieldHtml(rec, c, x)).join('')}
+        </div>`).join('')}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;align-items:center">
+        ${letter ? `<button class="btn btn-secondary" id="claim-letter">${icons.letter} Open the letter</button>` : ''}
+        ${problem ? `<button class="btn btn-secondary" id="claim-problem">Open the problem report</button>` : ''}
+        <button class="btn btn-ghost" id="claim-delete" style="color:var(--warn);margin-left:auto">Delete this line</button>
+      </div>
+      <div class="facts-note" style="margin:14px 0 0">Everything here saves as you type. A field you change that the letter also fills is marked <em>overridden</em> — it keeps your figure, and a revert button puts the letter's own back.</div>
+    </div>
+  `;
+
+  const back = document.getElementById('claim-back');
+  if (back) back.addEventListener('click', () => { state.currentClaim = null; render(); });
+
+  screen.querySelectorAll('[data-cfield]').forEach(el => {
+    const key = el.dataset.cfield;
+    const ev = (el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(ev, (e) => {
+      const f = CLAIM_FIELD(key);
+      const v = (f && f.t === 'money') ? parseMoney(e.target.value) : e.target.value;
+      setClaimField(rec.id, key, v);
+      // A select changes the pill and the derived figures, so redraw; a typed field
+      // must not, or it loses the cursor.
+      if (ev === 'change') render();
+    });
+  });
+  screen.querySelectorAll('[data-crevert]').forEach(b => b.addEventListener('click', () => {
+    revertClaimField(rec.id, b.dataset.crevert);
+    render();
+  }));
+  const dl = document.getElementById('claim-delete');
+  if (dl) dl.addEventListener('click', () => deleteClaim(rec.id));
+  const bl = document.getElementById('claim-letter');
+  if (bl && letter) bl.addEventListener('click', () => openLetter(letter.id));
+  const bp = document.getElementById('claim-problem');
+  if (bp && problem) bp.addEventListener('click', () => { state.currentProblem = problem; state.currentClaim = null; goToTab('problems'); });
+}
+
+const CLAIM_TYPE_LABELS = {
+  'twimc': 'to-whom-it-may-concern letter', 'denial': 'denial letter',
+  'settlement': 'settlement offer', 'goodwill': 'goodwill letter', 'apology': 'apology',
+  'complaint-response': 'complaint response', 'intake-authorisation': 'at-risk authorisation'
+};
+const claimTypeLabel = (t) => CLAIM_TYPE_LABELS[t] || 'letter';
+
+function claimFieldHtml(rec, c, f) {
+  const overridden = claimEdited(rec, f.k);
+  const val = c[f.k] == null ? '' : c[f.k];
+  const label = `<label class="label">${escapeHtml(f.l)}${overridden
+    ? ` <span class="claim-tag">overridden</span> <button class="btn-link" data-crevert="${escapeHtml(f.k)}">revert</button>` : ''}</label>`;
+  let input;
+  if (f.t === 'textarea') {
+    input = `<textarea class="textarea" data-cfield="${f.k}" rows="3" placeholder="What was agreed, who agreed it, anything you would want in front of you in a year.">${escapeHtml(String(val))}</textarea>`;
+  } else if (f.t === 'select') {
+    input = `<select class="select" data-cfield="${f.k}">${f.v.map(([k, l]) =>
+      `<option value="${escapeHtml(k)}" ${String(val) === k ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}</select>`;
+  } else if (f.t === 'result') {
+    input = `<select class="select" data-cfield="${f.k}">${CLAIM_RESULTS.map(r =>
+      `<option value="${escapeHtml(r.label)}" ${String(val) === r.label ? 'selected' : ''}>${escapeHtml(r.label)}</option>`).join('')}</select>`;
+  } else if (f.t === 'article') {
+    input = `<select class="select" data-cfield="${f.k}"><option value="">Not recorded</option>${LIFE_EXPECTANCY.map(([grp, items]) =>
+      `<optgroup label="${escapeHtml(grp)}">${items.map(([name]) =>
+        `<option value="${escapeHtml(name)}" ${String(val) === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+  } else if (f.t === 'money') {
+    input = `<input class="input" data-cfield="${f.k}" inputmode="decimal" value="${val ? escapeHtml(String(parseMoney(val).toFixed(2))) : ''}" placeholder="0.00">`;
+  } else if (f.t === 'date') {
+    input = `<input class="input" type="date" data-cfield="${f.k}" value="${escapeHtml(String(val).slice(0, 10))}">`;
+  } else if (f.t === 'number') {
+    input = `<input class="input" type="number" min="0" data-cfield="${f.k}" value="${escapeHtml(String(val))}">`;
+  } else {
+    input = `<input class="input" data-cfield="${f.k}" value="${escapeHtml(String(val))}">`;
+  }
+  return `<div class="field">${label}${input}</div>`;
+}
+
+function addManualClaim() {
+  const rec = newClaim('manual');
+  rec.channel = 'verbal';
+  saveClaim(rec);
+  state.currentClaim = rec.id;
+  state.claimFilters.showDeleted = false;
+  render();
+}
+
+async function deleteClaim(id) {
+  const rec = findClaim(id);
+  if (!rec) return;
+  const c = claimView(rec);
+  const who = c.garment || c.customer || 'this claim';
+  if (!(await uiConfirm('Remove ' + who + ' from the register? It comes off every total and every report. You can restore it from "Deleted lines".',
+    { title: 'Delete this line?', confirmLabel: 'Delete' }))) return;
+  rec.deleted = true;
+  rec.deletedAt = Date.now();
+  rec.deletedBy = state.currentUserId || null;
+  saveClaim(rec);
+  state.currentClaim = null;
+  render();
+}
+function restoreClaim(id) {
+  const rec = findClaim(id);
+  if (!rec) return;
+  rec.deleted = false;
+  rec.deletedAt = null;
+  saveClaim(rec);
+  render();
+}
+async function purgeClaim(id) {
+  const rec = findClaim(id);
+  if (!rec) return;
+  const note = rec.source === 'letter'
+    ? '\n\nThis one came from a letter. If that letter is ever redrafted, the line comes back.'
+    : '';
+  if (!(await uiConfirm('Erase this line for good? It cannot be undone.' + note,
+    { title: 'Erase permanently?', confirmLabel: 'Erase' }))) return;
+  state.claims = state.claims.filter(x => x.id !== id);
+  noteDeleted('claims', id);
+  persistState();
+  render();
+}
+
+// ===== Getting it out =====
+const csvEsc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+const csvLines = (head, rows) => [head.map(csvEsc).join(','), ...rows.map(r => r.map(csvEsc).join(','))].join('\n');
+
+// Every field, in the order the register holds them, plus what the app worked out.
+// A spreadsheet is where most of this ends up, so nothing is summarised away.
+function exportClaimsCsv(list, p) {
+  const head = ['Claim ID', 'Source', 'Overridden']
+    .concat(CLAIM_FIELDS.map(f => f.l))
+    .concat(['Cost to the business', 'Days to settle', 'Letter type']);
+  const rows = list.map(c => {
+    const rec = findClaim(c.id) || {};
+    return [c.id, c.source === 'manual' ? 'Entered by hand' : 'From a letter', claimHasEdits(rec) ? 'Yes' : '']
+      .concat(CLAIM_FIELDS.map(f => claimCsvValue(c, f)))
+      .concat([parseMoney(c.cost).toFixed(2), c.days == null ? '' : c.days, claimTypeLabel(c.type)]);
+  });
+  const stamp = (p && p.from ? p.from + '_to_' + (p.to || todayIso()) : 'all');
+  downloadFile(csvLines(head, rows), 'hangr-claims-' + stamp + '.csv', 'text/csv');
+}
+function claimCsvValue(c, f) {
+  const v = c[f.k];
+  if (f.t === 'money') return parseMoney(v).toFixed(2);
+  if (f.t === 'select') return vocabLabel(f.v, v);
+  if (f.t === 'date') return v || '';
+  return v == null ? '' : String(v);
+}
+
+// The period report — the thing you print for the accountant, the insurer or the
+// next management meeting. Same document furniture as a chat export, so it carries
+// the letterhead.
+function exportClaimsReport(list, t, p) {
+  if (!list.length) { uiAlert('Nothing to report on in this period.'); return; }
+  const money = (n) => fmtAud(parseMoney(n));
+  const table = (title, rows, note) => rows.length ? `
+    <h2>${escapeHtml(title)}</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5pt;margin-bottom:14px">
+      <thead><tr>
+        <th style="text-align:left;border-bottom:1px solid #999;padding:4px 6px">${escapeHtml(note || '')}</th>
+        <th style="text-align:right;border-bottom:1px solid #999;padding:4px 6px">Claims</th>
+        <th style="text-align:right;border-bottom:1px solid #999;padding:4px 6px">At stake</th>
+        <th style="text-align:right;border-bottom:1px solid #999;padding:4px 6px">Cost to us</th>
+        <th style="text-align:right;border-bottom:1px solid #999;padding:4px 6px">Claimed, not paid</th>
+      </tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td style="padding:4px 6px;border-bottom:1px solid #eee">${escapeHtml(r.label)}</td>
+        <td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${r.n}</td>
+        <td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${money(r.atStake)}</td>
+        <td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${money(r.cost)}</td>
+        <td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${money(r.saved)}</td>
+      </tr>`).join('')}</tbody>
+    </table>` : '';
+
+  const monthLabel = (k) => {
+    if (!/^\d{4}-\d{2}$/.test(k)) return 'Undated';
+    const d = new Date(k + '-01T00:00:00');
+    return isNaN(d.getTime()) ? k : d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+  };
+  const byMonth = claimsGrouped(list, c => (c.dateIso || '').slice(0, 7), monthLabel)
+    .sort((a, b) => a.key.localeCompare(b.key));
+
+  const inner = `
+    <p style="margin:0 0 14px">${list.length} claim${list.length === 1 ? '' : 's'} recorded in this period.
+    ${[t.paid + ' settled', t.defended + ' defended', t.goodwill ? t.goodwill + ' settled as goodwill' : '',
+       t.intake ? t.intake + ' flagged at intake' : '', t.open ? t.open + ' still open' : ''].filter(Boolean).join(', ')}.
+    ${t.avgDays != null ? 'Average ' + t.avgDays + ' days from the claim being raised to it being settled.' : ''}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:18px">
+      <tr><td style="padding:4px 6px">Value customers put at stake</td><td style="padding:4px 6px;text-align:right">${money(t.atStake)}</td></tr>
+      <tr><td style="padding:4px 6px">Paid out</td><td style="padding:4px 6px;text-align:right">${money(t.paidAmt)}</td></tr>
+      <tr><td style="padding:4px 6px"><strong>Total cost to the business</strong></td><td style="padding:4px 6px;text-align:right"><strong>${money(t.cost)}</strong></td></tr>
+      <tr><td style="padding:4px 6px">Claimed, not paid</td><td style="padding:4px 6px;text-align:right">${money(t.savedAmt)}</td></tr>
+    </table>
+    ${table('By month', byMonth, 'Month')}
+    ${table('By outcome', claimsGrouped(list, c => c.outcome || '—'), 'Outcome')}
+    ${table('Where the fault lay', claimsGrouped(list, c => c.fault || '', k => vocabLabel(CLAIM_FAULTS, k)), 'Fault')}
+    ${table('By garment category', claimsGrouped(list, c => c.article || 'Not categorised'), 'Fair Claims Guide category')}
+    ${claimSites().length > 1 ? table('By site', claimsGrouped(list, c => c.site || '—'), 'Site') : ''}
+    ${table('How it was settled', claimsGrouped(list, c => c.channel || '', k => vocabLabel(CLAIM_CHANNELS, k)), 'Settled by')}
+    <h2>Every claim in the period</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:9.5pt">
+      <thead><tr>
+        <th style="text-align:left;border-bottom:1px solid #999;padding:4px 6px">Date</th>
+        <th style="text-align:left;border-bottom:1px solid #999;padding:4px 6px">Garment</th>
+        <th style="text-align:left;border-bottom:1px solid #999;padding:4px 6px">Customer</th>
+        <th style="text-align:left;border-bottom:1px solid #999;padding:4px 6px">Outcome</th>
+        <th style="text-align:right;border-bottom:1px solid #999;padding:4px 6px">At stake</th>
+        <th style="text-align:right;border-bottom:1px solid #999;padding:4px 6px">Cost to us</th>
+      </tr></thead>
+      <tbody>${list.map(c => `<tr>
+        <td style="padding:3px 6px;border-bottom:1px solid #eee">${escapeHtml(fmtDateAu(c.dateIso) || c.date || '')}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #eee">${escapeHtml(c.garment || '')}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #eee">${escapeHtml(c.customer || '')}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #eee">${escapeHtml(c.outcome || '')}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right">${money(c.atStake)}</td>
+        <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right">${money(c.cost)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+  const title = 'Claims report — ' + p.label;
+  const html = buildExportDocument(title, inner, _exportDateStr(),
+    p.from || p.to ? 'Period: ' + (fmtDateAu(p.from) || 'the start of the register') + ' to ' + (fmtDateAu(p.to) || _exportDateStr()) + '.' : 'The whole register.');
+  printHtmlDocument(html);
+}
+
+// ===== The industry file =====
+// One business's register is an operating number. Every business's register, in the
+// same shape, is the thing the trade has never had: what actually fails, whose fault
+// it is, and what it costs — measured rather than argued about.
+//
+// Nothing goes anywhere on its own. This writes a file, the operator reads it, and
+// the operator sends it. What is in it is set by CLAIM_FIELDS: a field with an `ind`
+// goes, a field without one never does. Customer names, dockets, notes and the two
+// descriptive free-text fields have no `ind`, which is why none of them can leak by
+// accident: what went wrong travels as a code, not as a sentence somebody typed.
+const claimHash = (s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+};
+function claimRegionCode() {
+  const addr = String((state.profile && state.profile.address) || '');
+  const pc = (addr.match(/\b(\d{4})\b/) || [])[1];
+  const st = (addr.match(/\b(VIC|NSW|QLD|SA|WA|TAS|NT|ACT)\b/i) || [])[1];
+  // Postcode cut to its first two digits — enough for a region, not enough for a shop.
+  return { state: st ? st.toUpperCase() : '', region: pc ? pc.slice(0, 2) + 'xx' : '' };
+}
+function claimIndustryRows(list) {
+  const p = state.profile || {};
+  const bizKey = claimHash([p.businessName || '', p.abn || '', p.email || ''].join('|'));
+  const geo = claimRegionCode();
+  return list.map(c => {
+    const row = {
+      schema: CLAIM_SCHEMA,
+      contributor: bizKey,
+      claimKey: claimHash(bizKey + '|' + c.id),
+      state: geo.state,
+      region: geo.region
+    };
+    for (const f of CLAIM_FIELDS) {
+      if (!f.ind) continue;
+      const v = c[f.k];
+      if (f.ind === 'month') row[f.k] = v ? String(v).slice(0, 7) : '';
+      else if (f.ind === 'money') row[f.k] = Number(parseMoney(v).toFixed(2));
+      else if (f.ind === 'number') row[f.k] = v === '' || v == null ? null : Number(v);
+      else if (f.k === 'site') row.siteKey = v ? claimHash(bizKey + '|' + v) : '';
+      else row[f.k] = v == null ? '' : String(v);
+    }
+      row.costToBusiness = Number(parseMoney(c.cost).toFixed(2));
+    row.daysToSettle = c.days;
+    return row;
+  });
+}
+async function exportClaimsIndustry(list, p) {
+  if (!list.length) { uiAlert('Nothing to contribute for this period.'); return; }
+  const kept = CLAIM_FIELDS.filter(f => f.ind).map(f => f.l.toLowerCase());
+  const dropped = CLAIM_FIELDS.filter(f => !f.ind).map(f => f.l.toLowerCase());
+  const okGo = await uiConfirm(
+    list.length + ' claim' + (list.length === 1 ? '' : 's') + ' from ' + p.label.toLowerCase() + '.\n\n'
+    + 'What the file carries: ' + kept.join(', ') + '. Dates are cut back to the month, your business and each site appear as a code rather than a name, and your postcode is reduced to its first two digits.\n\n'
+    + 'What it never carries: ' + dropped.join(', ') + '.\n\n'
+    + 'The file is written to this device. Nothing is sent anywhere until you send it.',
+    { title: 'Write the de-identified file?', confirmLabel: 'Write the file' });
+  if (!okGo) return;
+  const rows = claimIndustryRows(list);
+  const payload = {
+    format: 'hangr-claims-contribution',
+    schema: CLAIM_SCHEMA,
+    generatedAt: new Date().toISOString(),
+    period: { from: p.from || null, to: p.to || null, label: p.label },
+    count: rows.length,
+    claims: rows
+  };
+  const stamp = (p.from ? p.from + '_to_' + (p.to || todayIso()) : 'all');
+  downloadFile(JSON.stringify(payload, null, 2), 'hangr-industry-' + stamp + '.json', 'application/json');
 }
 
 function downloadFile(text, filename, mime) {

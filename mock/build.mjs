@@ -530,9 +530,15 @@ letters.forEach(l => {
   check(!/\[(insert|customer name|amount|TBC|placeholder)/i.test(l.body), `letter ${l.id} still contains a bracketed placeholder`);
 });
 
+// A claim recorded from a letter must trace back to it. A claim entered by hand —
+// one settled verbally over the counter — has nothing behind it by definition, and
+// that is the case the register exists to hold.
 claims.forEach(c => {
-  check(problemIds.has(c.problemId), `claim ${c.id} points at problem ${c.problemId}, which does not exist`);
-  check(letters.some(l => l.sourceMsgId === c.id), `claim ${c.id} has no letter behind it`);
+  const manual = c.source === 'manual';
+  check(manual || problemIds.has(c.problemId), `claim ${c.id} points at problem ${c.problemId}, which does not exist`);
+  check(manual || letters.some(l => l.sourceMsgId === c.id), `claim ${c.id} has no letter behind it`);
+  check(!manual || (c.problemId === null && c.letterId === null), `claim ${c.id} is marked manual but points at a letter or a report`);
+  check(/^\d{4}-\d{2}-\d{2}$/.test(c.dateIso || ''), `claim ${c.id} has no ISO date, so it cannot be reported on by period`);
   check(siteOk(c.site), `claim ${c.id} names site "${c.site}", which is not one of ours`);
 });
 

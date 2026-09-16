@@ -15,7 +15,7 @@ site layout.
 | `assets/` | The logo and the social-preview image. |
 | `supabase/` | Auth, the database migrations, and four edge functions. |
 | `mock/` | The Main Street Dry Cleaners demo tenant. See `docs/MOCK.md`. |
-| `docs/` | DNS, email, users, training, and the feature-scope notes. |
+| `docs/` | DNS, email, users, training, claims, and the feature-scope notes. |
 | `tools/` | Small build scripts. |
 
 Nothing compiles. Serving the repository root is enough to run the whole thing:

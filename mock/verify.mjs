@@ -18,7 +18,7 @@ import { dirname, join } from 'node:path';
 import vm from 'node:vm';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const src = readFileSync(join(HERE, '..', 'index.html'), 'utf8');
+const src = readFileSync(join(HERE, '..', 'app', 'index.html'), 'utf8');
 const blob = JSON.parse(readFileSync(join(HERE, 'blob.json'), 'utf8'));
 
 // Pull a top-level declaration out of index.html by name, balancing braces and
@@ -55,7 +55,9 @@ function lift(kind, name) {
 const LIFTED = [
   ['const', 'TRAINING_MODULES'], ['const', 'ROLE_CAPS'], ['const', 'SECTION_CAP'],
   ['const', 'DOC_STAFF_SAFE'], ['const', 'CLAIM_OUTCOMES'], ['const', 'LIFE_EXPECTANCY'],
-  ['const', 'ADJ_BANDS'], ['const', 'ADJ_PCT'],
+  ['const', 'ADJ_BANDS'], ['const', 'ADJ_PCT'], ['const', 'CLAIM_RESULTS'], ['const', 'CLAIM_MONTHS'],
+  ['function', 'claimToneFor'], ['function', 'isoFromAny'], ['function', 'claimView'],
+  ['function', 'liveClaims'],
   ['function', 'courseWithNum'], ['function', 'activeCourses'], ['function', 'courseById'],
   ['function', 'claimsTotals'],
   ['function', 'docVisibleToRole'], ['function', 'machineryUnits'],
@@ -96,12 +98,24 @@ const ok = (label, cond, detail) => {
 
 console.log('\nThe claims dashboard');
 const t = ctx('claimsTotals()');
-ok('four claims paid', t.paid === 4, `got ${t.paid}`);
-ok('paid total is $2,774', Math.round(t.paidAmt) === 2774, `got ${t.paidAmt}`);
+ok('five claims paid', t.paid === 5, `got ${t.paid}`);
+ok('paid total is $2,870', Math.round(t.paidAmt) === 2870, `got ${t.paidAmt}`);
 ok('two claims defended', t.defended === 2, `got ${t.defended}`);
 ok('one risk flagged at intake, counted separately', t.intake === 1, `got ${t.intake}`);
 ok('intake row excluded from the claim count', t.n === blob.claims.length - 1, `n=${t.n} of ${blob.claims.length}`);
 ok('money saved is positive and sane', t.savedAmt > 1000 && t.savedAmt < 20000, `$${t.savedAmt}`);
+ok('cost to the business is more than the cash paid', t.cost > t.paidAmt, `cost $${t.cost}, paid $${t.paidAmt}`);
+
+console.log('\nThe register holds what the app never saw');
+const manual = blob.claims.filter(c => c.source === 'manual');
+ok('one claim was entered by hand', manual.length === 1, `got ${manual.length}`);
+ok('it has no letter behind it', manual.every(c => !c.letterId && !blob.letters.some(l => l.sourceMsgId === c.id)));
+ok('it still counts in the totals', ctx('claimsTotals()').n === blob.claims.length - 1);
+ok('every claim can be filtered by date', blob.claims.every(c => /^\d{4}-\d{2}-\d{2}$/.test(ctx(`claimView(${JSON.stringify(c)})`).dateIso)));
+ok('an override wins over the letter it came from',
+   ctx(`claimView(${JSON.stringify({ ...blob.claims[0], edits: { paid: 1234, outcome: 'Paid' } })}).paid`) === 1234);
+ok('and the outcome it sets carries its own tone',
+   ctx(`claimView(${JSON.stringify({ ...blob.claims[0], edits: { outcome: 'Withdrawn' } })}).tone`) === 'defended');
 
 console.log('\nSettlement offers still recompute to the letter figures');
 for (const l of blob.letters.filter(x => x.type === 'settlement')) {

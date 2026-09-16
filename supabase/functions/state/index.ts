@@ -18,7 +18,8 @@
 //
 // THE INVARIANT. For every key filtered per item rather than per key — chats,
 // letters, problems — the `owns` predicate used by the merge must match the read
-// filter exactly. For a role that is only sent its own items, the merge treats
+// filter exactly. (Claims are filtered per key — the whole register or none of it —
+// but merged by id all the same, because several people now edit it.) For a role that is only sent its own items, the merge treats
 // "the caller owns it and did not send it back" as a deletion, so a filter that
 // hides an item the merge thinks they own would delete that item the first time
 // they saved. Read filter and owns predicate are written next to each other below
@@ -287,7 +288,6 @@ function mergeBlob(
   whole('profile', 'settings');
   whole('onboardingComplete', 'settings');
   whole('bills', 'financials');
-  whole('claims', 'claims');
   whole('staff', 'staffRecords');
   whole('customCourses', 'training.manage');
   whole('hiddenCourses', 'training.manage');
@@ -314,6 +314,21 @@ function mergeBlob(
   next.problems = can(role, 'claims')
     ? mergeById(arr(stored.problems), arr(incoming.problems), allowedDeletes(deletes.problems, arr(shown.problems)))
     : mergeOwned(arr(stored.problems), arr(incoming.problems), mine);
+
+  // The claims register used to be a whole-key section, written over in one piece
+  // by anyone holding the claims capability. That was safe while every line was
+  // written by a letter and nobody edited one. It stopped being safe when the
+  // register became something three people can type into: the owner's tab, open
+  // since this morning, does not have the claim the manager entered at lunchtime,
+  // and writing its array back deleted it. Same merge as chats and reports now —
+  // an item updates the stored one if it is at least as recent, new items are
+  // appended, absence means nothing, and erasing a line for good is named in
+  // `deletes`. A line deleted in the ordinary way is not named here at all: it
+  // stays in the array carrying `deleted: true`, which is what lets it be
+  // restored and what stops a redrafted letter recording it again.
+  next.claims = can(role, 'claims')
+    ? mergeById(arr(stored.claims), arr(incoming.claims), allowedDeletes(deletes.claims, arr(shown.claims)))
+    : (stored.claims ?? []);
 
   next.letters = can(role, 'letters.all')
     ? mergeById(arr(stored.letters), arr(incoming.letters), allowedDeletes(deletes.letters, arr(shown.letters)))
@@ -440,10 +455,12 @@ Deno.serve(async (req) => {
     }
 
     // Handed back so the browser picks up what other people wrote while it was
-    // away — completions, and now the chats, reports and letters themselves. An
-    // admin no longer has to sign out and back in to see a thread a staff member
-    // started ten minutes ago. Filtered for the caller's role on the way out,
-    // exactly as a load would be.
+    // away — completions, and now the chats, reports, letters and claims
+    // themselves. An admin no longer has to sign out and back in to see a thread a
+    // staff member started ten minutes ago, or a claim the manager settled over the
+    // counter at lunchtime. Filtered for the caller's role on the way out, exactly
+    // as a load would be — a role without the claims capability is sent an empty
+    // register here for the same reason it is sent one on load.
     const visible = forRole(next, role, me.id);
     return json({
       ok: true,
@@ -451,6 +468,7 @@ Deno.serve(async (req) => {
       chats: visible.chats,
       problems: visible.problems,
       letters: visible.letters,
+      claims: visible.claims,
     });
   }
 

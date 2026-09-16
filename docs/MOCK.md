@@ -55,13 +55,15 @@ retrieval is not working and you have found that out before a prospect did.
 | Documents | Lease, licence, insurance, two supply agreements, boiler inspection, environmental manual, two SOPs, brand standards, six equipment manuals |
 | Problem reports | 8, across all four statuses |
 | Letters | 11 — 8 garment and intake, 3 HR |
-| Claims | 4 paid, 2 defended, 1 goodwill, 1 risk flagged at intake |
+| Claims | 5 paid, 2 defended, 1 goodwill, 1 risk flagged at intake — one of the five settled verbally and typed into the register by hand |
 | Training | 34 records, plus one course the business wrote from its own SOP |
 | Bills | 32, with real seasonal shape |
 
 The claims register is wired the way the app wires it: every claim traces back
 through a letter to the chat message that offered it and to the problem report
-the counter raised. Clicking "redraft as a settlement offer" on a seeded letter
+the counter raised — except the one that does not, and deliberately. Trevor
+Hanley's overcoat was settled at the counter by Sharon and typed straight into
+the register, so the demo can show the case the app never saw. Clicking "redraft as a settlement offer" on a seeded letter
 works, because the message it came from exists and carries a `letterOffer`.
 
 The training register is deliberately uneven. Sharon and Peter have passed

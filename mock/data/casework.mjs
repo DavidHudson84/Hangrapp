@@ -25,6 +25,8 @@ const T = (iso) => new Date(iso + 'T09:00:00+10:00').getTime();
 export const CASES = [
   {
     slug: 'beaded-gown',
+    fault: 'manufacturer', article: 'Dress — evening', damage: 'trim-failure',
+    tab: 'DLI TABS — plastic bead coating failure; at-risk authorisation signed at intake',
     status: 'claim',
     takenBy: 'Emma Sutton', createdBy: UID.emma, site: SITE_MAIN,
     date: '2026-06-12', letterDate: '2026-06-18',
@@ -68,6 +70,8 @@ export const CASES = [
 
   {
     slug: 'wool-suit',
+    fault: 'cleaner', damage: 'colour-loss',
+    tab: 'Our own SOP 02 — collar and cuff pre-treatment before a perc cycle',
     status: 'resolved',
     takenBy: 'Sharon Delaney', createdBy: UID.sharon, site: SITE_MAIN,
     date: '2026-05-28', letterDate: '2026-06-04',
@@ -111,6 +115,8 @@ export const CASES = [
 
   {
     slug: 'silk-dress',
+    fault: 'cleaner', damage: 'dye-bleed',
+    tab: 'Our own intake SOP — detachable trims removed and bagged separately',
     status: 'resolved',
     takenBy: 'Rebecca Toomey', createdBy: UID.rebecca, site: SITE_DROP,
     date: '2026-07-16', letterDate: '2026-07-21',
@@ -154,6 +160,8 @@ export const CASES = [
 
   {
     slug: 'cashmere-jumper',
+    fault: 'cleaner', damage: 'shrinkage',
+    tab: 'Plant log — machine 2 temperature excursion',
     status: 'claim',
     takenBy: 'Emma Sutton', createdBy: UID.emma, site: SITE_MAIN,
     date: '2026-08-05', letterDate: '2026-08-11',
@@ -197,6 +205,8 @@ export const CASES = [
 
   {
     slug: 'wedding-gown',
+    fault: 'cleaner', damage: 'colour-loss',
+    tab: 'Our own preservation spec — acid-free materials',
     status: 'claim',
     takenBy: 'Sharon Delaney', createdBy: UID.sharon, site: SITE_MAIN,
     date: '2026-08-10', letterDate: '2026-08-19',
@@ -240,6 +250,8 @@ export const CASES = [
 
   {
     slug: 'curtains',
+    fault: 'inherent', damage: 'shrinkage',
+    tab: 'DLI TABS — relaxation shrinkage in a hung cotton/linen union within trade tolerance',
     status: 'claim',
     takenBy: 'Sharon Delaney', createdBy: UID.sharon, site: SITE_MAIN,
     date: '2026-04-09', letterDate: '2026-04-16',
@@ -283,6 +295,7 @@ export const CASES = [
 
   {
     slug: 'leather-jacket',
+    fault: '', article: 'Coat/jacket — leather or suede', damage: '',
     status: 'open',
     takenBy: 'Rebecca Toomey', createdBy: UID.rebecca, site: SITE_DROP,
     date: '2026-08-24', letterDate: '2026-08-24',
@@ -322,6 +335,8 @@ export const CASES = [
 
   {
     slug: 'down-jacket',
+    fault: 'inherent', damage: 'fill-migration',
+    tab: 'DLI TABS — down migration is recoverable and not damage',
     status: 'awaiting-customer',
     takenBy: 'Chloe Barnes', createdBy: UID.chloe, site: SITE_MAIN,
     date: '2026-08-22', letterDate: '2026-08-25',
@@ -383,6 +398,43 @@ const parseMoney = (v) => {
 
 const dateLong = (iso) => new Date(iso + 'T09:00:00+10:00')
   .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Melbourne' });
+
+// Mirrors CLAIM_SCHEMA in index.html.
+const CLAIM_SCHEMA = 2;
+
+// One claim that never went through the app at all. A customer came back over the
+// counter, Sharon settled it there and then, and it was typed into the register
+// afterwards. It has no letter, no problem report and no chat behind it — which is
+// the point of it: the register has to hold what the business actually did, not
+// only what the app saw it do.
+const MANUAL_CLAIMS = [
+  {
+    id: 'CLmsdverbal01',
+    schema: CLAIM_SCHEMA,
+    source: 'manual',
+    date: '', dateIso: '2026-07-02', ts: T('2026-07-02'),
+    customer: 'Trevor Hanley',
+    garment: 'Charcoal wool overcoat',
+    cause: 'Horn button lost in finishing',
+    site: SITE_MAIN,
+    docket: 'B-24390',
+    problemId: null, letterId: null, type: null,
+    outcome: 'Paid', tone: 'paid',
+    status: 'closed', settledOn: '2026-07-02', channel: 'verbal',
+    article: 'Coat/jacket — wool',
+    brand: 'Oxford', fabric: '100% wool melton', colour: 'Charcoal',
+    ageMonths: '30', condition: 'average',
+    fault: 'cleaner',
+    damage: 'lost',
+    tab: '',
+    notes: 'Settled at the counter by Sharon. Matching horn buttons sourced and the full set replaced at our cost, cleaning not charged. He was happy and has been back since. Nothing in writing — this line is the record.',
+    atStake: 420, paid: 96, waived: 34, reclean: 0, saved: 324,
+    edits: {},
+    deleted: false,
+    createdBy: UID.sharon,
+    createdAt: T('2026-07-02'), updatedAt: T('2026-07-02')
+  }
+];
 
 // Fan one case out into the four records the app stores. bodies is a map of
 // slug -> the letter text, read from mock/letters/ by build.mjs.
@@ -454,9 +506,14 @@ export function buildRecords(bodies) {
     const offered = calc ? calc.amount : 0;
     const atStake = parseMoney(k.facts.value) || (calc ? calc.replacementCost : 0);
 
+    const openStill = k.letterType === 'intake-authorisation';
+
     claims.push({
       id: aiMsgId,
+      schema: CLAIM_SCHEMA,
+      source: 'letter',
       date: dateLong(k.letterDate),
+      dateIso: k.date,
       ts: lts,
       customer: k.customerName,
       garment: k.garment,
@@ -464,16 +521,36 @@ export function buildRecords(bodies) {
       site: k.site,
       docket: k.docket,
       problemId: pid,
+      letterId: 'L' + k.slug,
       type: k.letterType,
       outcome: outcome.label,
       tone: outcome.tone,
+      status: openStill ? 'open' : 'closed',
+      settledOn: openStill ? '' : k.letterDate,
+      channel: 'letter',
+      article: k.article || (k.claim ? k.claim.article : ''),
+      brand: k.brand || '',
+      fabric: (k.facts && k.facts.fabric) || '',
+      colour: k.colour || '',
+      ageMonths: calc ? String(calc.ageMonths) : '',
+      condition: (k.claim && k.claim.condition) || '',
+      fault: k.fault || '',
+      damage: k.damage || '',
+      tab: k.tab || '',
+      notes: '',
       atStake: atStake,
       paid: k.letterType === 'settlement' ? offered : 0,
+      waived: k.claim && k.claim.waiveCharge ? parseMoney(k.claim.charge) : 0,
+      reclean: 0,
       saved: outcome.tone === 'defended'
         ? atStake
-        : (k.letterType === 'settlement' ? Math.max(atStake - offered, 0) : 0)
+        : (k.letterType === 'settlement' ? Math.max(atStake - offered, 0) : 0),
+      edits: {},
+      deleted: false,
+      createdBy: k.createdBy,
+      createdAt: lts, updatedAt: lts
     });
   }
 
-  return { problems, chats, letters, claims };
+  return { problems, chats, letters, claims: claims.concat(MANUAL_CLAIMS) };
 }
