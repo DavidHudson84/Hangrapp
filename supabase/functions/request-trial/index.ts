@@ -1,0 +1,202 @@
+// request-trial — takes the trial enquiry from the public landing page at
+// hangr.au and emails it through Resend.
+//
+// Unlike every other function here this one is deliberately unauthenticated:
+// the whole point is that a dry cleaner who has never heard of us can fill in a
+// form. That makes it the only open door in the project, so it is narrow by
+// design — it sends to exactly one hard-coded address, it cannot be told who to
+// mail, and the body it sends is assembled here from fields it has validated.
+// There is nothing a caller can do with it except send us an enquiry.
+//
+// Deploy with JWT verification off, or the anon key requirement turns the form
+// into a sign-in wall:
+//
+//     supabase functions deploy request-trial --no-verify-jwt
+//
+// Secrets: RESEND_API_KEY, EMAIL_FROM, ALLOWED_ORIGIN, TRIAL_INBOX (optional).
+// See docs/EMAIL.md.
+
+// A secret pasted into the dashboard often arrives with a stray newline, or
+// wrapped in the quotes it was copied inside. Both read as "set" and then fail
+// somewhere far less obvious, so tidy them here rather than at the far end.
+const secret = (name: string) =>
+  (Deno.env.get(name) ?? '')
+    .trim()
+    .replace(/^(['"])(.*)\1$/s, '$2')
+    .trim();
+
+const RESEND_API_KEY = secret('RESEND_API_KEY');
+const EMAIL_FROM = secret('EMAIL_FROM');
+
+// Where enquiries land. Overridable so it can be pointed at a shared inbox
+// later without a redeploy, but it is never taken from the request.
+const TRIAL_INBOX = secret('TRIAL_INBOX') || 'david@hudsongroup.com.au';
+
+const cors = {
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') ?? '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, 'content-type': 'application/json' },
+  });
+
+const isEmail = (s: unknown) =>
+  typeof s === 'string' &&
+  s.length < 254 &&
+  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
+
+// Header injection: a newline in a subject lets a caller append headers of
+// their own. Strip control characters here rather than trusting Resend to.
+const clean = (s: unknown, max = 200) =>
+  String(s ?? '')
+    .replace(/[\x00-\x1f]+/g, ' ')
+    .trim()
+    .slice(0, max);
+
+// The message is the one field that may legitimately contain line breaks, so it
+// keeps newlines and loses everything else.
+const cleanMultiline = (s: unknown, max = 2000) =>
+  String(s ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\x00-\x09\x0b-\x1f]+/g, ' ')
+    .trim()
+    .slice(0, max);
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+// Per-IP rate limiting, in the isolate's memory. This is not a guarantee —
+// Supabase may run several isolates, and recycles them — but it costs nothing
+// and stops the obvious case of one script hammering the form. The honeypot and
+// the time-on-page check below do the rest.
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 5;
+const hits = new Map<string, number[]>();
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  // Keep the map from growing without bound across a long-lived isolate.
+  if (hits.size > 5000) {
+    for (const [k, v] of hits) {
+      if (!v.some((t) => now - t < WINDOW_MS)) hits.delete(k);
+    }
+  }
+  return recent.length > MAX_PER_WINDOW;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
+
+  if (!RESEND_API_KEY || !EMAIL_FROM) {
+    // Names, never values — and the landing page falls back to a mailto link
+    // when it sees this, so the enquiry still reaches us either way.
+    const missing = [
+      ...(RESEND_API_KEY ? [] : ['RESEND_API_KEY']),
+      ...(EMAIL_FROM ? [] : ['EMAIL_FROM']),
+    ];
+    console.error('request-trial not configured:', missing.join(', '));
+    return json({ error: 'Not configured.', code: 'not_configured' }, 503);
+  }
+
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  if (rateLimited(ip)) {
+    return json({ error: 'Too many requests. Try again shortly.' }, 429);
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = await req.json();
+  } catch {
+    return json({ error: 'Bad request.' }, 400);
+  }
+
+  // The honeypot is a field positioned off-screen. A person never sees it, so
+  // anything in it came from something filling the form in programmatically.
+  // Answer 200 rather than an error: a bot told it failed will try again with
+  // the field left blank, whereas one told it succeeded has no reason to.
+  if (clean(payload.website, 200)) {
+    console.log('request-trial: honeypot tripped from', ip);
+    return json({ ok: true });
+  }
+
+  // Nobody reads the form and fills it in within two seconds.
+  const elapsed = Number(payload.elapsed);
+  if (Number.isFinite(elapsed) && elapsed >= 0 && elapsed < 2000) {
+    console.log('request-trial: submitted in', elapsed, 'ms from', ip);
+    return json({ ok: true });
+  }
+
+  const name = clean(payload.name, 120);
+  const business = clean(payload.business, 160);
+  const email = isEmail(payload.email) ? String(payload.email).trim() : '';
+  const phone = clean(payload.phone, 40);
+  const state = clean(payload.state, 12);
+  const sites = clean(payload.sites, 40);
+  const when = clean(payload.when, 40);
+  const message = cleanMultiline(payload.message, 2000);
+
+  if (!name || !business || !email) {
+    return json({ error: 'Name, business name and email are all needed.' }, 400);
+  }
+
+  const rows: [string, string][] = [
+    ['Name', name],
+    ['Business', business],
+    ['Email', email],
+    ['Phone', phone || '—'],
+    ['State', state || '—'],
+    ['Sites', sites || '—'],
+    ['Best time for a call', when || 'No preference'],
+  ];
+
+  const text = rows.map(([k, v]) => `${k}: ${v}`).join('\n') +
+    (message ? `\n\nMessage:\n${message}` : '') +
+    `\n\n— Sent from the trial form at hangr.au`;
+
+  const html = `<div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a">
+  <h2 style="margin:0 0 4px;font-size:18px">Trial request — ${escapeHtml(business)}</h2>
+  <p style="margin:0 0 18px;color:#666;font-size:13px">From the landing page at hangr.au</p>
+  <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px">
+    ${rows.map(([k, v]) =>
+      `<tr><td style="padding:5px 18px 5px 0;color:#666;vertical-align:top">${escapeHtml(k)}</td>` +
+      `<td style="padding:5px 0"><strong>${escapeHtml(v)}</strong></td></tr>`).join('')}
+  </table>
+  ${message
+      ? `<p style="margin:20px 0 6px;color:#666;font-size:13px">Message</p>
+         <div style="white-space:pre-wrap;padding:12px 14px;background:#f4f4f2;border-radius:8px">${escapeHtml(message)}</div>`
+      : ''}
+</div>`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      from: EMAIL_FROM,
+      to: [TRIAL_INBOX],
+      subject: `Trial request — ${business}`,
+      text,
+      html,
+      // So hitting Reply in Outlook answers the dry cleaner, not the robot.
+      reply_to: email,
+    }),
+  });
+
+  if (!res.ok) {
+    const out = await res.json().catch(() => ({}));
+    console.error('resend failed', res.status, out);
+    // Resend's errors can name the sending domain and the key's state. Not the
+    // enquirer's problem, and the page shows them the mailto fallback instead.
+    return json({ error: 'Could not send. Try again shortly.' }, 502);
+  }
+
+  return json({ ok: true });
+});
