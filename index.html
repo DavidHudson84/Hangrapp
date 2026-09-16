@@ -3724,10 +3724,38 @@ function stepNavHtml(editMode) {
   }).join('') + `</div></div>`;
 }
 // ============ CHAT ============
+// What the chat invites you to ask. A staff login is told plainly it cannot be
+// helped with HR, financials or claims (see ROLE_FORBIDDEN), so the invitation
+// must not dangle those in front of them — it asks for the garment and counter
+// work they are actually there to do. Manager sits in between: no HR or
+// financials, but claims are theirs.
+const CHAT_INVITES = {
+  owner: {
+    lede: 'Owner-to-owner advice that knows your sites, staff and equipment. Ask about complaints, HR, claims, suppliers, anything.',
+    blurb: "Ask me anything about running your business — a customer complaint, an HR or staffing question, a claim, a supplier, pricing, whatever's come up.",
+    placeholder: 'Ask me anything — a complaint, an HR question, a claim, a supplier, pricing…',
+  },
+  manager: {
+    lede: 'Advice that knows your sites, equipment and price lists. Ask about garments, stains, complaints, claims and pricing.',
+    blurb: "Ask me anything about the work — a stain or fabric you're not sure about, a customer complaint, a claim, what to charge, whatever's come up.",
+    placeholder: 'Ask about a garment, a stain, a complaint, a claim, pricing…',
+  },
+  staff: {
+    lede: 'Advice that knows your equipment and price lists. Ask about garments, stains, spotting, intake and customer complaints.',
+    blurb: "Ask me anything about the garments and the counter — a stain you're not sure how to treat, a fabric or care label, whether to take something in at risk, a customer complaint.",
+    placeholder: 'Ask about a garment, a stain, a care label, intake, a complaint…',
+  },
+};
+function chatInvite() {
+  const role = effectiveRole();
+  if (role === 'owner' || role === 'admin') return CHAT_INVITES.owner;
+  return CHAT_INVITES[role] || CHAT_INVITES.staff;
+}
 // Tracks chat scroll intent across renders: land at top on entry, pin to bottom on new/incoming messages.
 let _chatScroll = { inChat: false, chatId: null, msgCount: 0, wasBusy: false };
 function renderChat() {
   const screen = $('#screen-chat');
+  const invite = chatInvite();
   const p = state.profile;
   const namedSites = p.sites.filter(s => s.name).length;
   const contextLine = `${escapeHtml(p.businessName || 'Your business')} &middot; ${namedSites || 0} site${namedSites === 1 ? '' : 's'} &middot; ${p.staffCount || '?'} staff &middot; ${escapeHtml(p.state)}`;
@@ -3762,7 +3790,7 @@ function renderChat() {
     ? `<div class="empty" style="margin:24px 0">
          <div class="icon">${icons.chat}</div>
          <h3>${escapeHtml(greetingLine())} — what can I help you with today?</h3>
-         <p>Ask me anything about running your business — a customer complaint, an HR or staffing question, a claim, a supplier, pricing, whatever's come up.</p>
+         <p>${escapeHtml(invite.blurb)}</p>
        </div>`
     : messages.map(m => {
         let content;
@@ -3792,7 +3820,7 @@ function renderChat() {
     <div class="screen-header">
       <div class="ix">Module 02</div>
       <h2>Chat</h2>
-      <p>Owner-to-owner advice that knows your sites, staff and equipment. Ask about complaints, HR, claims, suppliers, anything.</p>
+      <p>${escapeHtml(invite.lede)}</p>
     </div>
     <div class="chat-main">
         <div class="chat-topline">
@@ -3815,7 +3843,7 @@ function renderChat() {
           </div>` : ''}
           <div class="chat-input">
             <input type="file" id="photo-file" accept="image/*" style="display:none">
-            <textarea class="input chat-textarea" id="chat-input" placeholder="Ask me anything — a complaint, an HR question, a claim, a supplier, pricing…" ${state.chatBusy ? 'disabled' : ''}></textarea>
+            <textarea class="input chat-textarea" id="chat-input" placeholder="${escapeHtml(invite.placeholder)}" ${state.chatBusy ? 'disabled' : ''}></textarea>
             <div class="chat-actions">
               <button class="btn btn-secondary" id="photo-btn" ${state.chatBusy ? 'disabled' : ''} title="Attach a photo of the damage">${icons.camera} Photo</button>
               <button class="btn btn-primary" id="chat-send" ${state.chatBusy ? 'disabled' : ''}>${icons.send} Send</button>
