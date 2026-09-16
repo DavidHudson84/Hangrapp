@@ -76,13 +76,13 @@ Three fields it will not touch, and cannot: **where the fault lay**, **the type 
 damage** and **the reference relied on**. None of them is written down anywhere in
 a form a rule can read — the letter argues the position in prose rather than
 recording it. They are a judgement, and they are the three that carry the most
-weight in the industry data. The first two can be *suggested*; see below. The
-reference relied on is still typed by hand.
+weight in the industry data. All three can be *suggested* — see below.
 
-## Suggesting the fault and the type of damage
+## Suggesting the fault, the damage and the reference
 
-**Suggest fault & damage** reads the letter, the problem report and the facts on
-file behind each claim showing, and proposes both against the fixed vocabularies —
+**Suggest the codes** reads the letter, the problem report and the facts on file
+behind each claim showing, and proposes where the fault lay and what kind of damage
+it was against the fixed vocabularies, plus the reference the position rested on —
 one question to the consultant per claim, so it takes a moment on a year's backlog.
 
 A proposal is not a finding, and the whole design follows from that.
@@ -98,6 +98,17 @@ rather than shown, and that case is reported differently from the model saying i
 cannot tell, because they are different answers. A field the operator has already
 filled in is never overwritten.
 
+**The reference is held to a harder rule than the other two, and deliberately.**
+Fault and damage are a judgement the model is asked to make. A reference is a
+citation it is only ever asked to *copy*. A TAB number that is not in the file is
+worse than a blank field — it is an authority the business would go on to quote at
+a customer, in writing, in a dispute — so the model is told never to compose,
+complete or correct one, and anything it returns that is not in the material word
+for word is dropped before anyone sees it. The row still offers the fault and the
+damage, and says the reference was dropped. A claim where an invented reference was
+all it had to offer is set aside with that as the reason, rather than being
+reported as "nothing cited".
+
 What is accepted is marked on the claim as having come from a suggestion, and the
 editor says so beside the field. Typing over it by hand clears the mark: it is the
 operator's answer again. The register can therefore always say which verdicts a
@@ -105,8 +116,10 @@ person reached and which a machine proposed — which matters most on the day th
 data is pooled with other businesses'.
 
 `mock/verify.mjs` checks the guard rather than the model: that an off-list code is
-dropped, that a quote which is not in the file is flagged, and that neither
-punctuation nor case defeats the check.
+dropped, that a quote which is not in the file is flagged, that neither punctuation
+nor case defeats the check, that a TAB number absent from the file never survives
+while the business's own SOP does, and that a long citation is cut to length rather
+than thrown away.
 
 ## Reporting on it
 
