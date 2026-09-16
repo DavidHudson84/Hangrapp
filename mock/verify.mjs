@@ -173,6 +173,30 @@ ok('a quote that is not in the file is flagged', madeUp.quoteFound === false);
 ok('punctuation and case do not defeat the check',
    val({ fault: 'cleaner', damage: '', confidence: 'low', reason: '', quote: 'OUR OWN SOP CALLS FOR A PRE-TREATMENT!' }).quoteFound === true);
 ok('a confidence it did not offer reads as low', val({ fault: 'cleaner', confidence: 'certain' }).confidence === 'low');
+
+// The reference is held harder than the two classifications: fault and damage are a
+// judgement the model is asked to make, a reference is a citation it is only ever
+// asked to copy. An invented TAB number is an authority the business would go on to
+// quote at a customer, so anything not in the file word for word is dropped.
+const REF_SRC = { text: 'Held on DLI TAB 316 — the binder holding the flock is dissolved by solvent. Our own SOP 02 covers the intake check.' };
+const refVal = (o) => ctx(`validateClaimSuggestion(${JSON.stringify(o)}, ${JSON.stringify(REF_SRC)})`);
+ok('a reference written in the file is kept',
+   refVal({ fault: 'manufacturer', reference: 'DLI TAB 316' }).reference === 'DLI TAB 316');
+ok("the business's own SOP counts as one",
+   refVal({ fault: 'cleaner', reference: 'Our own SOP 02' }).reference === 'Our own SOP 02');
+const invented = refVal({ fault: 'manufacturer', reference: 'DLI TAB 412' });
+ok('a TAB number that is not in the file is dropped', invented.reference === '');
+ok('and dropping it is reported rather than passed off as none cited', invented.referenceDropped === true);
+ok('a reference nobody offered is not reported as dropped',
+   refVal({ fault: 'cleaner', reference: '' }).referenceDropped === false);
+// A long citation that IS in the file is cut to length rather than dropped, so the
+// clamp is tested for itself and not by the rule above happening to fire.
+const LONG = 'DLI TAB 316 on the loss of synthetic suede finish, being the bulletin covering binder softened by light, oils, alcohol or perspiration and dissolved by solvent';
+const longVal = ctx(`validateClaimSuggestion(${JSON.stringify({ reference: LONG })}, ${JSON.stringify({ text: 'Held on ' + LONG + '.' })})`);
+ok('a long reference is cut to length, not thrown away',
+   longVal.reference.length === 120 && LONG.startsWith(longVal.reference), `got ${longVal.reference.length} chars`);
+ok('and a 400-character blob is dropped outright',
+   refVal({ reference: 'DLI TAB 316 ' + 'x'.repeat(400) }).reference === '');
 ok('every damage code the model is offered is one the register holds',
    ctx('CLAIM_DAMAGE').every(([k]) => k === '' || typeof k === 'string'));
 
