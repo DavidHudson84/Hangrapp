@@ -282,20 +282,11 @@ Deno.serve(async (req) => {
     // must_change_password is read by index.html on sign-in. The owner knows this
     // password — it is a handover, not a secret — so it has to stop being the
     // password before the person does any real work under their own name.
-    //
-    // invited is read by handle_new_user(), the trigger on auth.users. Creating a
-    // login is an insert into that table like any other, so without this the
-    // trigger would hand the new staff member a business of their own a fraction
-    // of a second before the membership below puts them in the real one — leaving
-    // them with two, and landing them in onboarding for the empty one. It goes in
-    // app_metadata rather than user_metadata because only the service role can
-    // write that, so a login cannot set it on itself at signup.
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: { must_change_password: true },
-      app_metadata: { invited: true },
     });
 
     if (createErr || !created?.user) {
@@ -316,15 +307,28 @@ Deno.serve(async (req) => {
       return json({ error: 'That login could not be created.' }, 500);
     }
 
-    const { error: memErr } = await admin
-      .from('memberships')
-      .insert({ user_id: created.user.id, business_id: businessId, role });
+    // handle_new_user() fires on every insert into auth.users and gives the new
+    // row a business of its own with an owner membership. Creating a login is
+    // such an insert, so by the time we get here that has already happened, and
+    // a plain insert would be a second membership — which the unique index on
+    // memberships.user_id correctly refuses.
+    //
+    // There is no way to tell the trigger not to: app_metadata set here is
+    // written by GoTrue after the row exists, so the trigger never sees it. So
+    // this absorbs the trigger's work instead of fighting it. attach_invited_user
+    // repoints that membership at the real business and deletes the empty one it
+    // came from, or inserts from scratch if there was nothing to repoint.
+    const { error: memErr } = await admin.rpc('attach_invited_user', {
+      p_user: created.user.id,
+      p_business: businessId,
+      p_role: role,
+    });
 
     if (memErr) {
-      // The login exists but belongs to no business, which would leave an
-      // account that can sign in and see nothing. Undo it.
+      // The login exists but is on the wrong business or none at all, which would
+      // leave an account that signs in to somebody else's empty shell. Undo it.
       await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
-      console.error('membership insert failed', memErr.message);
+      console.error('attach_invited_user failed', memErr.message);
       return json({ error: 'That login could not be created.' }, 500);
     }
 
