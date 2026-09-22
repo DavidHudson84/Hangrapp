@@ -6914,12 +6914,193 @@ const MH_FIG_HEIGHT = `<svg viewBox="0 0 420 214" role="img" aria-label="Two sid
   </g>
 </svg>`;
 
-const TRAINING_FIGURES = { lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_PUSH, height: MH_FIG_HEIGHT };
+// ===== Care symbol diagrams, for course 05 =====
+// Drawn rather than reproduced. The symbol set is standardised in ISO 3758 and
+// carried into AS/NZS 1957, and GINETEX asserts rights over the marks in a
+// number of jurisdictions — so these are our own line drawings teaching the
+// shapes, not a chart lifted out of a manufacturer's manual.
+//
+// Grouped by family rather than one figure per symbol, which keeps it to seven
+// constants instead of twenty-odd and, more to the point, puts each modifier
+// beside the base shape. The grammar is what is being taught; the individual
+// symbols are just the grammar applied.
+const CARE_TUB = '<path d="M6 14 L11 44 L37 44 L42 14"/><path d="M6 14 q4.5 -4 9 0 t9 0 t9 0 t9 0"/>';
+const CARE_TRI = '<path d="M24 12 L44 46 L4 46 Z"/>';
+const CARE_SQR = '<path d="M3 12 H47 V56 H3 Z"/>';
+const CARE_IRN = '<path d="M4 44 L46 44 L46 30 Q46 24 40 24 L20 24 Q14 24 11 29 Z"/>';
+const CARE_CIR = '<circle cx="24" cy="32" r="19"/>';
+// A cross sized to the symbol under it, rather than one cross stretched over
+// everything — the tub, the triangle and the circle all sit at different heights.
+const CARE_X = (x1, y1, x2, y2) =>
+  '<path d="M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2 + '"/><path d="M' + x2 + ' ' + y1 + ' L' + x1 + ' ' + y2 + '"/>';
+
+const CARE_FIG_WASH = `<svg viewBox="0 0 420 92" role="img" aria-label="Four wash tub symbols in a row. The first has the number 40 inside it, the second has a single bar underneath, the third has a hand in it, and the fourth is crossed out.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(14,8)">${CARE_TUB}</g>
+    <g transform="translate(114,8)">${CARE_TUB}<path d="M13 52 H35"/></g>
+    <g transform="translate(214,8)">${CARE_TUB}<path d="M18 42 V32 q0 -3 3 -3 t3 3 V27 q0 -3 3 -3 t3 3 V30 q0 -3 3 -3 t3 3 V42"/></g>
+    <g transform="translate(314,8)">${CARE_TUB}${CARE_X(4, 12, 44, 48)}</g>
+  </g>
+  <g font-family="inherit" fill="currentColor" text-anchor="middle">
+    <text x="38" y="42" font-size="14" font-weight="600">40</text>
+    <g font-size="10.5" fill-opacity=".75">
+      <text x="38" y="80">Max 40 °C</text>
+      <text x="138" y="80">Mild — one bar</text>
+      <text x="238" y="80">Hand wash only</text>
+      <text x="338" y="80">Do not wash</text>
+    </g>
+  </g>
+</svg>`;
+
+const CARE_FIG_BLEACH = `<svg viewBox="0 0 420 90" role="img" aria-label="Three bleach triangles. The first is empty, the second has two diagonal lines inside it, and the third is crossed out.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(46,8)">${CARE_TRI}</g>
+    <g transform="translate(186,8)">${CARE_TRI}<path d="M16 40 L26 24"/><path d="M25 40 L35 24"/></g>
+    <g transform="translate(326,8)">${CARE_TRI}${CARE_X(4, 12, 44, 50)}</g>
+  </g>
+  <g font-family="inherit" font-size="11" fill="currentColor" fill-opacity=".75" text-anchor="middle">
+    <text x="70" y="78">Any bleach</text>
+    <text x="210" y="78">Oxygen bleach only</text>
+    <text x="350" y="78">No bleach at all</text>
+  </g>
+</svg>`;
+
+const CARE_FIG_DRY = `<svg viewBox="0 0 420 96" role="img" aria-label="Four drying squares. The first has a circle inside with two dots for medium heat, the second has a circle and is crossed out, the third has a vertical line inside for line drying, and the fourth a horizontal line for flat drying.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(13,8)">${CARE_SQR}<circle cx="25" cy="34" r="13"/></g>
+    <g transform="translate(113,8)">${CARE_SQR}<circle cx="25" cy="34" r="13"/>${CARE_X(5, 14, 45, 54)}</g>
+    <g transform="translate(213,8)">${CARE_SQR}<path d="M25 18 V50"/></g>
+    <g transform="translate(313,8)">${CARE_SQR}<path d="M9 34 H41"/></g>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <circle cx="33" cy="42" r="2.4"/><circle cx="43" cy="42" r="2.4"/>
+  </g>
+  <g font-family="inherit" font-size="10.5" fill="currentColor" fill-opacity=".75" text-anchor="middle">
+    <text x="38" y="84">Tumble dry</text>
+    <text x="138" y="84">Do not tumble</text>
+    <text x="238" y="84">Line dry</text>
+    <text x="338" y="84">Dry flat</text>
+  </g>
+</svg>`;
+
+const CARE_FIG_IRON = `<svg viewBox="0 0 420 88" role="img" aria-label="Four iron symbols. The first has one dot for about 110 degrees, the second two dots for about 150, the third three dots for about 200, and the fourth is crossed out.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(14,8)">${CARE_IRN}</g>
+    <g transform="translate(114,8)">${CARE_IRN}</g>
+    <g transform="translate(214,8)">${CARE_IRN}</g>
+    <g transform="translate(314,8)">${CARE_IRN}${CARE_X(4, 18, 46, 50)}</g>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <circle cx="42" cy="43" r="2.4"/>
+    <circle cx="138" cy="43" r="2.4"/><circle cx="146" cy="43" r="2.4"/>
+    <circle cx="234" cy="43" r="2.4"/><circle cx="242" cy="43" r="2.4"/><circle cx="250" cy="43" r="2.4"/>
+  </g>
+  <g font-family="inherit" font-size="10.5" fill="currentColor" fill-opacity=".75" text-anchor="middle">
+    <text x="38" y="76">1 dot — 110°</text>
+    <text x="138" y="76">2 dots — 150°</text>
+    <text x="238" y="76">3 dots — 200°</text>
+    <text x="338" y="76">Do not iron</text>
+  </g>
+</svg>`;
+
+const CARE_FIG_PRO = `<svg viewBox="0 0 420 92" role="img" aria-label="Five professional care circles. P for perc or hydrocarbon, F for hydrocarbon only, W for professional wet cleaning, W again with a bar underneath for the mild process, and an empty circle crossed out meaning do not dry clean.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(18,8)">${CARE_CIR}</g>
+    <g transform="translate(102,8)">${CARE_CIR}</g>
+    <g transform="translate(186,8)">${CARE_CIR}</g>
+    <g transform="translate(270,8)">${CARE_CIR}<path d="M13 58 H35"/></g>
+    <g transform="translate(354,8)">${CARE_CIR}${CARE_X(6, 14, 42, 50)}</g>
+  </g>
+  <g font-family="inherit" fill="currentColor" text-anchor="middle">
+    <g font-size="18" font-weight="600">
+      <text x="42" y="46">P</text>
+      <text x="126" y="46">F</text>
+      <text x="210" y="46">W</text>
+      <text x="294" y="46">W</text>
+    </g>
+    <g font-size="10.5" fill-opacity=".75">
+      <text x="42" y="82">Perc or HC</text>
+      <text x="126" y="82">HC only</text>
+      <text x="210" y="82">Wet clean</text>
+      <text x="294" y="82">Wet clean, mild</text>
+      <text x="378" y="82">No dry clean</text>
+    </g>
+  </g>
+</svg>`;
+
+const CARE_FIG_LABEL = `<svg viewBox="0 0 420 196" role="img" aria-label="A whole care label read across: do not wash, no bleach, do not tumble, cool iron, and professional wet cleaning with a bar under it. The last symbol is picked out, because the bar makes it an instruction to use the mild programme rather than the normal one.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="56" y="16" width="308" height="104" rx="6" stroke-opacity=".45"/>
+    <path d="M56 40 H364" stroke-opacity=".2" stroke-dasharray="3 5"/>
+    <g transform="translate(76,56) scale(.62)">${CARE_TUB}${CARE_X(4, 12, 44, 48)}</g>
+    <g transform="translate(130,54) scale(.62)">${CARE_TRI}${CARE_X(4, 12, 44, 50)}</g>
+    <g transform="translate(184,52) scale(.62)">${CARE_SQR}<circle cx="25" cy="34" r="13"/>${CARE_X(5, 14, 45, 54)}</g>
+    <g transform="translate(240,56) scale(.62)">${CARE_IRN}</g>
+    <g transform="translate(296,52) scale(.62)">${CARE_CIR}<path d="M13 58 H35"/></g>
+    <rect x="292" y="52" width="42" height="54" rx="5" stroke="var(--warn)" stroke-dasharray="4 4" stroke-width="1.8"/>
+    <path d="M313 112 C313 132 280 138 256 146" stroke="var(--warn)" stroke-width="1.8"/>
+    <path d="M256 146 L265 145" stroke="var(--warn)" stroke-width="1.8"/>
+    <path d="M256 146 L257 137" stroke="var(--warn)" stroke-width="1.8"/>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <circle cx="257" cy="78" r="1.7"/>
+  </g>
+  <g font-family="inherit" fill="currentColor">
+    <text x="72" y="34" font-size="10.5" fill-opacity=".6" letter-spacing="1.4">100% VISCOSE — MADE IN CHINA</text>
+    <text x="311" y="80" font-size="12" font-weight="600" text-anchor="middle">W</text>
+    <g font-size="11.5" fill-opacity=".8" text-anchor="middle">
+      <text x="200" y="172">The last symbol is a W with a bar under it. That is not</text>
+      <text x="200" y="188">permission to wet clean — it is the mild programme, only.</text>
+    </g>
+  </g>
+</svg>`;
+
+const CARE_FIG_ROUTE = `<svg viewBox="0 0 420 296" role="img" aria-label="The routing decision as four questions in order: what is the fibre, how is it built, what has the maker said, and what has life done to it. Each one can override the answer before it, and every garment comes out at one of five outcomes.">
+  <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="28" y="14" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="66" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="118" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="170" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="228" width="360" height="56" rx="6" stroke-opacity=".5" stroke="var(--green)"/>
+    <g stroke-opacity=".55">
+      <path d="M152 50 V64"/><path d="M152 64 L148 58"/><path d="M152 64 L156 58"/>
+      <path d="M152 102 V116"/><path d="M152 116 L148 110"/><path d="M152 116 L156 110"/>
+      <path d="M152 154 V168"/><path d="M152 168 L148 162"/><path d="M152 168 L156 162"/>
+      <path d="M152 206 V226"/><path d="M152 226 L148 220"/><path d="M152 226 L156 220"/>
+    </g>
+  </g>
+  <g font-family="inherit" fill="currentColor">
+    <g font-size="12.5">
+      <text x="44" y="37">1 &#183; What is the fibre?</text>
+      <text x="44" y="89">2 &#183; How is it built?</text>
+      <text x="44" y="141">3 &#183; What has the maker said?</text>
+      <text x="44" y="193">4 &#183; What has life done to it?</text>
+    </g>
+    <g font-size="10" fill-opacity=".55">
+      <text x="288" y="37">the starting route</text>
+      <text x="288" y="89">construction wins</text>
+      <text x="288" y="141">the label, read right</text>
+      <text x="288" y="193">age, wear, dye</text>
+    </g>
+    <text x="44" y="249" font-size="10.5" fill-opacity=".6">One of five outcomes</text>
+    <g font-size="12">
+      <text x="44" y="268">Dry clean &#183; Wet clean &#183; Launder</text>
+      <text x="44" y="284">Press only &#183; Decline, or take it at-risk</text>
+    </g>
+  </g>
+</svg>`;
+
+const TRAINING_FIGURES = {
+  lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_PUSH, height: MH_FIG_HEIGHT,
+  'sym-wash': CARE_FIG_WASH, 'sym-bleach': CARE_FIG_BLEACH, 'sym-dry': CARE_FIG_DRY,
+  'sym-iron': CARE_FIG_IRON, 'sym-pro': CARE_FIG_PRO, 'label-read': CARE_FIG_LABEL,
+  route: CARE_FIG_ROUTE,
+};
 
 // Adding or removing a course here changes what the landing page claims. The
 // hero section of index.html says how many built-in courses there are in words
-// ('Seven built-in courses...') and its training register panel shows rows of
-// 'n of 7' — both have to be updated in the same change.
+// ('Eight built-in courses...') and its training register panel shows rows of
+// 'n of 8' — both have to be updated in the same change.
 const TRAINING_MODULES = [
 {
   id: 'using-hangr',
@@ -7635,8 +7816,337 @@ The tag is not paperwork. It is the only reason the right garment goes home with
   ]
 },
 {
-  id: 'reading',
+  id: 'fibres',
   num: '05',
+  title: 'Fibres, fabrics and cleaning method',
+  blurb: 'Every other course assumes you already know what you are holding. This is the step underneath: what the fabric is, what that lets you do to it, and how to read what the maker has told you.',
+  minutes: 18,
+  reviewed: 'September 2026',
+  source: 'AS/NZS 1957:1998, the ISO 3758 care symbol set, and the DLI Textile Analysis Bulletins',
+  // The second course with a practical half. You can name six fibres on a
+  // multiple choice and still not tell viscose from linen with it in your hand,
+  // and it is the hand that decides what goes in which machine.
+  practical: true,
+  practicalBlurb: 'Once you have passed the questions, a supervisor puts five garments in front of you — at least two with no usable label — and watches you identify, read, test and route each one. That second half is what finishes the course.',
+  signoffChecks: [
+    'Names the fibre family by hand and drape, on a garment with no usable label',
+    'Reads a symbol label correctly, including the modifier bars and the professional care letter',
+    'Checks the lining, the trim and the interfacing separately from the face fabric',
+    'Runs the right test before committing — colour transfer, wet thread, solvent spot',
+    'Routes each garment to a process, and can say what drove the decision',
+    'Recognises an at-risk case, words it properly to the customer, and records it',
+  ],
+  lessons: [
+    { h: 'Why this is the first question, not the last',
+      body: `Everything else you have been taught about taking a garment in assumes you already know what you are holding.
+
+Spotting a worn seat, checking whether stones are sewn or glued, noticing that a curtain spent ten years in a west-facing window — all of that is judgement about a fabric you have already identified. This course is the step underneath it.
+
+### Four ways to lose a garment before it reaches a machine
+- **Viscose that got wet.** Viscose loses up to half its strength the moment water hits it. A blouse that felt like silk goes through a wet process and comes out shrunk, distorted and water-marked, and there is no bringing it back.
+- **Acetate and the wrong spotter.** Acetate dissolves in acetone. It is usually the lining rather than the face fabric, so it does not look like an acetate problem until there is a hole in it.
+- **Wool with heat, moisture and agitation together.** Any one of the three is survivable. All three at once is felting, and felting is permanent.
+- **A polyester print at press temperature.** Low-sublimation disperse dyes move with heat. The print leaves the garment and lands on whatever goes through the press next.
+
+Not one of those is a stain, a machine fault or bad luck. Every one is somebody choosing a process for a fabric they had not identified.
+
+### Where the label sits in this
+A care label is the manufacturer's opinion about their own garment. It belongs in the decision and it is not the decision. You will meet labels that are missing, cut out, wrong, or perfectly accurate about a face fabric while saying nothing about the lining that is actually going to fail.
+
+So the order matters. Work out what the fibre is, then read the label, and let the two of them argue if they are going to. Lesson 4 teaches you to read one properly. Lesson 5 is what to do when it cannot be trusted.` },
+
+    { h: 'The five families',
+      body: `There are hundreds of fibres and five families, and the families are what you actually need. Everything inside a family behaves roughly the same way in water, heat, agitation and solvent, which is all a process decision asks of you.
+
+### 1. Natural cellulosics — cotton, linen
+Plant fibres. **Stronger wet than dry**, tolerant of heat, tolerant of alkali. They shrink if they were never pre-shrunk, they crease — linen especially — and dark shades crock, rubbing colour off onto lighter things.
+
+### 2. Protein — wool, cashmere, mohair, silk
+Animal fibres, and the two halves are different enough to separate.
+
+**Wool and the hair fibres** felt when heat, moisture and agitation arrive together. Alkali damages them, and ordinary laundry detergent is alkaline — which is most of why wool and the domestic wash end badly. Solvent is safe.
+
+**Silk** is weak when wet, water-spots, and its dyes bleed readily. Light and perspiration degrade it over years, so an old silk blouse can already be perished along the fold lines before it ever reaches you.
+
+### 3. Regenerated cellulosics — viscose, rayon, modal, lyocell, acetate
+Plant cellulose, chemically reconstructed. They look and drape like silk at a fraction of the price, which is why so much of a fast-fashion rail is made of them.
+
+**Viscose, rayon and modal** are the dangerous ones: up to half their strength gone when wet, and prone to shrinking, distorting and water-marking. **Lyocell, sold as Tencel, is far more stable** and should not be lumped in with them. **Acetate and triacetate** dissolve in acetone, soften with heat and water-spot — and acetate is very often the lining rather than the garment.
+
+### 4. Synthetics — polyester, nylon, acrylic, elastane
+Plastics, spun into fibre. Strong, cheap, and each with one specific weakness.
+
+**Polyester** takes almost anything, but it holds oily soil and its disperse dyes sublime at press temperature. **Nylon** is strong and scavenges loose dye out of a dirty load, which is why whites come back grey. **Acrylic** is heat-sensitive, pills, and stretches out of shape while it is warm and wet. **Elastane** is degraded by heat, chlorine and body oils.
+
+### 5. Skins — leather, suede, fur
+Not a textile and not routed like one. Its own process, its own specialists, and never decided by the rules in this course.
+
+### The one that is not a family
+**Blends**, which is most of what you handle. A blend is governed by its most vulnerable component rather than its largest one. A shirt that is 97 per cent cotton and 3 per cent elastane takes the elastane's heat limit, not the cotton's — the elastane is three per cent of the garment and a hundred per cent of the constraint.` },
+
+    { h: 'Identifying it without a label',
+      body: `Plenty of garments arrive with nothing to read. Here is what your hands will tell you in two minutes.
+
+### Hand and drape
+- **Cotton** — dry, slightly grainy, creases and holds the crease. Little lustre.
+- **Linen** — cooler and crisper than cotton, slubs visible in the weave, creases hard.
+- **Wool** — warm and springy. Crush it in your fist and it recovers.
+- **Silk** — warm to the touch, a fine hand, and a subtle lustre that shifts as you turn it.
+- **Viscose** — drapes heavily, cool and a little limp, creases and does not recover. Silk's look with none of silk's spring.
+- **Polyester** — slick and faintly waxy, springs out of a crush with no crease at all.
+- **Acrylic** — soft and warm like wool but with no spring, and very often already pilling.
+- **Acetate** — crisp, glassy lustre, sharp creases. Usually a lining.
+
+Hand gives you a shortlist, not an answer. Where it matters, test.
+
+### The wet-thread test
+The one distinction worth testing every time, because it is the one that costs garments: **viscose or cotton.** Hand alone will not settle it and the two want opposite processes.
+
+Pull a thread from a seam allowance. Wet it, and pull it apart between your fingers. **Cotton barely notices — it is stronger wet than dry. Viscose parts easily.** That is the strength loss happening in your hand instead of in a machine.
+
+Inside, on a seam allowance, where a missing thread will never show. Never on the face of the garment.
+
+### The solvent spot test
+A drop of the solvent you are proposing to use, on an inside seam allowance, blotted. You are watching for colour on the blotter, for the surface going dull or tacky, and for a coating lifting.
+
+It answers the question you are actually asking, which is not *what is this* but *will my process hurt it*.
+
+### The colour transfer test
+A damp white cloth pressed firmly against an inside seam allowance. Colour on the cloth means the dye is not fast — and that decides the load before it decides the process.
+
+### What we do not do
+**We do not burn-test.** You will hear it talked about, and it is a real technique: cellulose burns fast and smells of paper, protein self-extinguishes and smells of hair, synthetics melt and bead. It is also an open flame in a building full of solvent, and we have decided against it here. The wet-thread test covers the case that actually matters.
+
+### When it will not resolve
+Some garments will not identify. Four fibres in a blend, no label, a coating over the top. That is not a failure — that is the at-risk conversation, and lesson 7 is where it gets recorded.` },
+
+    { h: 'Reading a care label',
+      body: `**AS/NZS 1957** allows care instructions in words, in symbols, or both. Australian-labelled goods usually carry words. Imports usually carry symbols only. You need to read both, and the symbols are the half almost nobody is taught.
+
+Every symbol is a base shape with modifiers on it. Learn five shapes and three modifiers and you can read any label in the world.
+
+### The five shapes
+- **Wash tub** — domestic washing
+- **Triangle** — bleach
+- **Square** — drying
+- **Iron** — ironing
+- **Circle** — professional textile care. This one is ours.
+
+### The grammar, and it is the same on every shape
+- **A cross through the symbol** means do not do it at all.
+- **Dots** mean temperature. More dots, more heat.
+- **A bar underneath** means a gentler version of the process, and **two bars** means gentler again.
+
+That is the whole system. Five shapes, three modifiers.`,
+      figures: [
+        { fig: 'sym-wash', caption: 'The wash tub. A number is the maximum temperature in degrees Celsius; one bar is reduced mechanical action, two bars much reduced; a hand means hand wash only; crossed out means do not wash.' },
+        { fig: 'sym-bleach', caption: 'The bleach triangle. Empty means any bleach, two diagonal lines mean oxygen bleach only and no chlorine, crossed out means no bleach at all.' },
+        { fig: 'sym-dry', caption: 'The drying square. A circle inside means tumble dry, with dots for heat; lines inside mean line, drip or flat dry; crossed out means do not tumble.' },
+        { fig: 'sym-iron', caption: 'The iron. One dot is about 110 degrees for synthetics, two about 150 for wool, three about 200 for cotton and linen. Crossed steam lines underneath mean no steam.' }
+      ] },
+
+    { h: 'The circle, which is the one that matters to us',
+      body: `Everything else on a care label is advice to the customer. **The circle is an instruction to the plant**, and it is the symbol most likely to be read wrongly at a counter.
+
+### The letters
+- **P** — tetrachloroethylene, which is perc, and hydrocarbon solvents. The normal case.
+- **F** — hydrocarbon solvent only. **Not perc.** A garment marked F that goes through perc is a claim waiting to be made.
+- **W** — professional wet cleaning.
+
+### The bars
+- **A bar under the letter** means a mild process: reduced mechanical action, lower temperature, shorter cycle, gentler drying.
+- **Two bars** means very mild.
+- **A crossed circle** means do not dry clean. **A crossed W** means do not wet clean.
+
+The bar is the half that gets missed, because it looks like decoration and it is not. It is an instruction about how, not whether, and ignoring it is exactly the kind of departure from the label that moves liability from the manufacturer onto us.
+
+### The thing the label never tells you
+The label describes the **main fabric**. It says nothing about the acetate lining, the leather trim on the cuffs, the glued appliqué, or the fusible interfacing inside the collar — every one of which will react differently to the process it recommends.
+
+Read the label. Then look at the garment.`,
+      figures: [
+        { fig: 'sym-pro', caption: 'The professional care circle. P takes perc or hydrocarbon, F is hydrocarbon only, W is professional wet cleaning; a bar underneath means a mild process and two bars very mild; crossed means do not.' },
+        { fig: 'label-read', caption: 'A whole label read end to end. The trap is the last symbol: a W with a bar under it is not a licence to wet clean normally, it is an instruction to use the mild programme.' }
+      ] },
+
+    { h: 'Labels that lie, contradict, or are missing',
+      body: `Labels are wrong often enough that treating one as fact is itself a mistake.
+
+### The ways they go wrong
+- **Mislabelled imports.** The commonest case by a distance. The label was printed for a production run, not tested on this garment.
+- **Dry clean only as legal cover.** Plenty of manufacturers print it because it is the safest thing to print, not because anyone tested it. It still sets the expectation, and it still shifts liability if we depart from it.
+- **The label contradicts the garment.** Dry clean only, on a dress covered in glued stones whose adhesive the solvent will soften. Both of those cannot be true.
+- **Two labels that disagree.** A jacket and its matching skirt, labelled differently, brought in as one order.
+- **The label is gone.** Cut out because it itched, or worn away to nothing.
+- **The label is right about the fabric and silent about everything else.** The most common of the lot.
+
+### The rule that settles almost all of it
+**The garment decides what is safe. The label decides who pays.**
+
+Read it in two halves:
+
+- **What is safe** is a question about fibre, construction and condition — everything in lessons 2 and 3. A label does not override the garment in front of you.
+- **Who pays** is a question about the label. Follow a reasonable label and the garment fails anyway, and we have a genuine answer while the manufacturer has a problem. Depart from it, and we own the outcome — whether or not departing was the right call.
+
+So when the two disagree: take the safe route, name the departure to the customer, and write it down. All three. A careful decision nobody recorded looks exactly like a careless one when the complaint arrives six weeks later.
+
+### No label at all
+Not a free hand. **No label means at-risk, every time.** Identify what you can, take the most conservative route that will still do the job, tell the customer what you are doing and why, and record that they accepted it.` },
+
+    { h: 'From fibre to process',
+      body: `Now the decision itself. Four questions in order, and each one can override the answer before it.
+
+### 1. What is the fibre?
+The starting route, before anything else is considered:
+
+- **Cotton, linen** — launder or wet clean. Dry clean where the construction or the dye demands it.
+- **Wool and the hair fibres** — dry clean, or wet clean on a controlled wool programme.
+- **Silk** — dry clean.
+- **Viscose, rayon, modal** — dry clean, unless the label says otherwise and the garment agrees with it.
+- **Lyocell** — more tolerant than its cousins. Follow the label.
+- **Acetate, triacetate** — dry clean, low heat, and never an acetone-based spotter.
+- **Polyester, nylon** — almost anything. Watch press temperature on polyester, and keep light nylon out of a dirty load.
+- **Acrylic** — cool, low agitation, dried with support so it does not hang itself out of shape.
+- **Elastane blends** — the partner fibre decides, at the lower of the two heat limits.
+- **Leather, suede, fur** — specialist process. It never enters this decision.
+
+### 2. How is it built?
+Construction beats fibre. Any of these overrides the answer above:
+
+- **Fusible interfacing** in collars, cuffs, plackets and jacket fronts — an adhesive that can bubble whatever the face fabric tolerates
+- **Glued trim** — stones, foil, flock, heat-applied motifs
+- **Coated and laminated fabrics** — vinyl, PU, anything with a plastic hand or a metallic finish
+- **Beading and sequins** — sewn usually survives solvent, glued very often does not
+- **More than one fabric in one garment** — a lining that will shrink at a different rate from its face fabric
+- **Built-in structure** — shoulder pads, down fill, heat-set pleating
+
+### 3. What has the maker said?
+The label, read properly. Where it agrees with the first two answers you are finished. Where it does not, lesson 6 applies.
+
+### 4. What has life done to it?
+Age, wear, sun damage, old repairs, and whether the dye is still fast. That is the ground *Reading the garment* covers, and it is the last gate — a correct process on a perished fabric still produces a destroyed garment.
+
+### The five outcomes
+Every garment lands on one of these:
+
+- **Dry clean** — and in which solvent, if the label says F
+- **Wet clean** — and on which programme, if the label carries a bar
+- **Launder**
+- **Press or hand finish only** — clean nothing, freshen it and present it
+- **Decline, or take it at-risk** — with the conversation had, and recorded
+
+That last one is a legitimate answer and not a failure. A garment you decline costs a conversation. A garment you destroy costs the garment, the customer, and whatever the claim settles at.`,
+      figures: [
+        { fig: 'route', caption: 'The four questions in order. Fibre gives you a starting route; construction, the label and the condition of the garment can each override it; and every garment comes out at one of five outcomes.' }
+      ] },
+
+    { h: 'Putting the call on the ticket',
+      body: `The decision is worth exactly as much as the record of it.
+
+### What goes on the ticket
+- **The fibre call** — what you decided it was, and especially so where there was no label to go on
+- **What the label said**, where there was one, and particularly an F or a bar
+- **Any test you ran**, and what it showed
+- **The route** you chose, and where it departs from the label, that it does
+- **The at-risk conversation**, in your words
+
+### Why the fibre call has to be written down
+Because the person who processes the garment is very often not the person who took it in, and because a complaint arrives weeks later when nobody remembers the garment at all.
+
+A ticket reading *no label, hand and wet test read as viscose, dry cleaning rather than wet, customer advised* answers the entire claim by itself. A ticket that says nothing leaves you arguing from memory against a customer who is certain.
+
+### Wording an at-risk acceptance
+Plain, specific, and about the garment rather than about us:
+
+*There is no care label in this one, and the way it handles reads as viscose. That is a fibre that can shrink and mark if it gets wet, so I will dry clean it rather than take that risk. Most of the time it is completely fine. I just want to flag it before we start, because if it does react, that is the fabric rather than anything we have done.*
+
+Name the thing, say what you will do about it, say what could still happen. Then record that you said it.` }
+  ],
+  quiz: [
+    { q: 'What happens to viscose the moment it gets wet?',
+      a: ['It becomes stronger, like cotton',
+          'It loses up to half its strength, and can shrink, distort and water-mark',
+          'Nothing — it behaves like polyester',
+          'The dye sets permanently'],
+      correct: 1,
+      why: 'Viscose loses up to half its strength wet. It is the single most common way a garment is lost to the wrong process, and it is why the wet-thread test is worth the two minutes.' },
+
+    { q: 'Why is acetate a problem that often goes unnoticed until it is too late?',
+      a: ['It is always a bright colour',
+          'It is usually the lining rather than the face fabric, so the garment does not look like an acetate problem',
+          'It only appears in leather garments',
+          'It cannot be dry cleaned at all'],
+      correct: 1,
+      why: 'Acetate dissolves in acetone and softens with heat, and it is very often the lining. You have to look inside the garment, not just at it.' },
+
+    { q: 'A jacket lining carries a circle with an F in it. What does that tell the plant?',
+      a: ['It can go through perc or hydrocarbon, whichever is free',
+          'Hydrocarbon solvent only — not perc',
+          'It must be wet cleaned',
+          'It is a fire-resistant finish'],
+      correct: 1,
+      why: 'F means hydrocarbon solvent only. A garment marked F that goes through perc is a claim waiting to be made, and the label is what the claim will be argued from.' },
+
+    { q: 'What does a bar underneath a care symbol mean?',
+      a: ['Nothing — it is a printing decoration',
+          'A gentler version of that process: reduced action, lower temperature, shorter cycle',
+          'That the instruction is optional',
+          'That the garment has been cleaned before'],
+      correct: 1,
+      why: 'The bar is an instruction about how, not whether, and it is the half that gets missed most often. Ignoring it is a departure from the label like any other.' },
+
+    { q: 'A label says dry clean only. The dress is covered in glued stones that the solvent will soften. What is the rule?',
+      a: ['The label wins — clean it as labelled',
+          'The garment decides what is safe; the label decides who pays. Take the safe route, name the departure, and record it',
+          'Refuse the garment outright',
+          'Clean it as labelled and say nothing'],
+      correct: 1,
+      why: 'Following a reasonable label gives us an answer if the garment fails anyway. Departing from it means we own the outcome — which is exactly why a departure has to be named to the customer and written down.' },
+
+    { q: 'You have a garment with no label and you cannot tell viscose from cotton by hand. What do you do?',
+      a: ['Burn a thread and smell the smoke',
+          'Pull a thread from a seam allowance, wet it and pull it — cotton holds, viscose parts easily',
+          'Guess, based on the price of the garment',
+          'Wash a corner of the hem'],
+      correct: 1,
+      why: 'The wet-thread test shows you the strength loss in your hand instead of in a machine. We do not burn-test — an open flame does not belong near a solvent plant.' },
+
+    { q: 'What causes wool to felt?',
+      a: ['Solvent',
+          'Heat, moisture and agitation arriving together',
+          'Sunlight alone',
+          'Being stored folded'],
+      correct: 1,
+      why: 'Any one of the three on its own is survivable. It is the combination that felts wool, and felting is permanent.' },
+
+    { q: 'A shirt is 97 per cent cotton and 3 per cent elastane. What governs how you treat it?',
+      a: ['The cotton, because it is almost all of the garment',
+          'The elastane, because a blend is governed by its most vulnerable component',
+          'Neither — blends have no rules',
+          'Whichever is listed first on the label'],
+      correct: 1,
+      why: 'The elastane is three per cent of the garment and a hundred per cent of the constraint. Elastane is degraded by heat, so the blend takes the lower of the two heat limits.' },
+
+    { q: 'A garment arrives with the care label cut out. What does that mean for how you take it in?',
+      a: ['We can clean it however we judge best, with nothing further to do',
+          'We must refuse it',
+          'It is at-risk — identify what you can, take the conservative route, tell the customer and record their acceptance',
+          'We follow the label from a similar garment'],
+      correct: 2,
+      why: 'No label is not a free hand and it is not a reason to refuse. It is the textbook trigger for an at-risk acceptance that has been named out loud and written down.' },
+
+    { q: 'What does a care label describe?',
+      a: ['Every component of the garment',
+          'The main fabric only — not the lining, the trim, the buttons or the interfacing',
+          'Only the colour fastness',
+          'The fibre content and nothing else'],
+      correct: 1,
+      why: 'The label covers the face fabric. The acetate lining, the leather cuff trim and the fusible in the collar are all unlabelled and will all react differently to the process it recommends.' }
+  ]
+},
+{
+  id: 'reading',
+  num: '06',
   title: 'Reading the garment',
   blurb: 'Most claims and write-offs are decided before the garment goes anywhere near a machine — at the counter, by whoever looked at it. Here is what to look for.',
   minutes: 12,
@@ -7644,10 +8154,10 @@ The tag is not paperwork. It is the only reason the right garment goes home with
   source: 'Garment Categories and Risk Profiles, and the DLI Textile Analysis Bulletins',
   lessons: [
     { h: 'The care label is a starting point, not gospel',
-      body: `Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong — mislabelled imports, labels cut out because they itched, labels that describe the face fabric and ignore the trim.
+      body: `Course 05 taught you to read one — the five symbols, the professional care circle, and what to do when the label and the garment disagree. This lesson is the half of it that decides who pays.
 
-### How to use a label
-Read it, and treat it as the manufacturer's opinion rather than a guarantee.
+### The label is an opinion, not a guarantee
+Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong. Read it, and treat it as the manufacturer's opinion about their own garment.
 
 - If the label says dry clean only and the fabric is obviously fine to wet clean, the label still sets the expectation. Departing from it is a decision, not a default.
 - **Once we depart from the label, liability shifts to us.** That is the whole point of the rule. If we followed a reasonable label and the garment failed anyway, we have a genuine answer. If we ignored it, we own the outcome.
@@ -7672,7 +8182,9 @@ Glued embellishment is an at-risk conversation, every time. Name it: "These ston
 The same question applies to **coated and laminated fabrics** — vinyl, PU, anything with a plastic-feeling face or a metallic finish. Those coatings crack, peel and go tacky, and they were never really designed to be cleaned.` },
 
     { h: 'Fabrics that need a second look',
-      body: `### Wool
+      body: `Course 05 covered what each of these fibres will tolerate. This is the other question — what to look for on the way in, before it goes anywhere.
+
+### Wool
 Shrinks and felts with heat and agitation. Check for existing pilling and for shine on the seat, elbows and cuffs — that shine is worn fibre and it will not come back.
 
 ### Silk
@@ -7792,7 +8304,7 @@ Curtains deserve their own warning. Sun-rotted curtains **will** split when they
 },
 {
   id: 'fault',
-  num: '06',
+  num: '07',
   title: 'Whose fault is it?',
   blurb: 'Most garment faults are not the cleaner’s. Knowing which is which is what stops us paying for damage we did not cause — and stops us fighting one we did.',
   minutes: 10,
@@ -7949,7 +8461,7 @@ Hangr will take the fault, the fabric, the garment's age and the intake record a
 },
 {
   id: 'manual-handling',
-  num: '07',
+  num: '08',
   title: 'Lifting and moving things safely',
   blurb: 'The tasks in this trade that wreck backs and shoulders, how to do them so they do not, and why saying something early matters more than being tough about it.',
   minutes: 15,
@@ -7960,6 +8472,14 @@ Hangr will take the fault, the fabric, the garment's age and the intake record a
   // courseStanding() for how the sign-off gates the pass.
   practical: true,
   practicalBlurb: 'Once you have passed the questions, a supervisor watches you do the work and records that you can do it properly. That second half is what finishes the course.',
+  signoffChecks: [
+    'Assesses and plans before lifting — asks for help, or gets the equipment, when the load needs it',
+    'Lifts and lowers with a stable base, the load in against them, and no twisting',
+    'Pushes rather than carries wherever a trolley or a cage will do the job',
+    'Communicates and leads a team lift properly',
+    'Works at a sensible height, and rotates through tasks rather than staying on one',
+    'Knows how to report discomfort, and when',
+  ],
   lessons: [
     { h: 'What the law actually asks of us',
       body: `Most people think manual handling training means being shown how to lift a box. That is part of it, and it is the smallest part.
@@ -8293,6 +8813,12 @@ const REFRESH_WARN_DAYS = 30;
 // all. Manual handling is the exception, and deliberately so: a lifting course
 // with no deadline and no refresh is a tick in a box rather than a control.
 const COURSE_RULE_DEFAULTS = {
+  // 60 days rather than manual handling's 30, deliberately. Manual handling
+  // already owns a new starter's first month, and two hard deadlines inside it
+  // means both get missed. The risk this one controls is a garment, not a back.
+  // 24 months because fibre behaviour does not change, but label practice and
+  // the fabrics coming through the door do.
+  'fibres': { required: true, dueDays: 60, refreshMonths: 24 },
   'manual-handling': { required: true, dueDays: 30, refreshMonths: 12 },
 };
 
@@ -8345,21 +8871,29 @@ function staffStartMs(staffRec) {
 }
 
 // ===== The practical half =====
-// One course asks for more than a quiz. Manual handling is the obvious case and
-// the reason this exists: a person can answer ten out of ten on lifting and
-// still hurt themselves the first time they pull a loaded cage out of the van,
-// which is why every regulator in the country treats instruction on its own as
-// something short of controlling the risk.
+// Some courses ask for more than a quiz, because knowing and doing are
+// different things. Manual handling was the first: a person can answer ten out
+// of ten on lifting and still hurt themselves the first time they pull a loaded
+// cage out of the van, which is why every regulator in the country treats
+// instruction on its own as something short of controlling the risk. Fibre
+// identification is the second, for the commercial version of the same reason —
+// naming six fibres on a multiple choice is not the same skill as telling
+// viscose from linen with it in your hand.
 //
-// What a supervisor is signing that they watched. All six, or it is not a pass.
-const SIGNOFF_CHECKS = [
-  'Assesses and plans before lifting — asks for help, or gets the equipment, when the load needs it',
-  'Lifts and lowers with a stable base, the load in against them, and no twisting',
-  'Pushes rather than carries wherever a trolley or a cage will do the job',
-  'Communicates and leads a team lift properly',
-  'Works at a sensible height, and rotates through tasks rather than staying on one',
-  'Knows how to report discomfort, and when',
-];
+// The checklist belongs to the course rather than to the app. It lived in one
+// global constant while manual handling was the only practical course; a second
+// one makes it per course. Existing sign-off records already carry courseId, so
+// they render against the right list with nothing to migrate.
+//
+// What a supervisor is signing that they watched. All of them, or it is not a pass.
+function signoffChecksFor(course) {
+  if (!course) return [];
+  if (Array.isArray(course.signoffChecks) && course.signoffChecks.length) return course.signoffChecks;
+  // A business's own course that replaces a practical built-in inherits its
+  // checklist, the same way courseWithNum() has it inherit the running number.
+  const b = course.replaces ? TRAINING_MODULES.find(m => m.id === course.replaces) : null;
+  return (b && Array.isArray(b.signoffChecks)) ? b.signoffChecks : [];
+}
 
 function signoffsFor(who, courseId) {
   if (!who) return [];
@@ -9026,6 +9560,10 @@ function renderTrainingResult(screen) {
 // should say so once, rather than turning a register red overnight and leaving
 // the owner to work out what broke.
 const NOTICE_MANUAL_HANDLING = 'course-07-manual-handling';
+// Keyed on what the course was called when the notice shipped, not on its
+// current number — the id is what state.seenNotices already holds, so renaming
+// it would show the note again to everyone who has already dismissed it.
+const NOTICE_FIBRES = 'course-05-fibres';
 
 function noticeSeen(id) { return (state.seenNotices || []).includes(id); }
 
@@ -9035,17 +9573,38 @@ function dismissNotice(id) {
   persistState();
 }
 
+// A release that ships a new required course turns it on for every business at
+// once, and everyone past its deadline reads as overdue the moment it lands.
+// This is the note that says so. Listed rather than written per course, because
+// there has now been a second one and there will be a third. Lowest course
+// number first, and one at a time — two notices stacked on one screen reads as
+// a problem rather than an explanation.
+const NEW_COURSE_NOTICES = [
+  { id: NOTICE_FIBRES, courseId: 'fibres' },
+  { id: NOTICE_MANUAL_HANDLING, courseId: 'manual-handling' },
+];
+
+function trainingNoticeDue() {
+  if (!can('training.manage')) return null;
+  for (const n of NEW_COURSE_NOTICES) {
+    if (noticeSeen(n.id)) continue;
+    const c = activeCourses().find(x => x.id === n.courseId);
+    if (c) return { noticeId: n.id, course: c };
+  }
+  return null;
+}
+
 function trainingNoticeHtml() {
-  if (!can('training.manage') || noticeSeen(NOTICE_MANUAL_HANDLING)) return '';
-  const c = activeCourses().find(x => x.id === 'manual-handling');
-  if (!c) return '';
-  const r = courseRuleDefault('manual-handling');
+  const due = trainingNoticeDue();
+  if (!due) return '';
+  const c = due.course;
+  const r = courseRuleDefault(c.id);
   return `<div class="tr-queue" style="border-left-color:var(--green)">
       <h3>Course ${escapeHtml(c.num)}, ${escapeHtml(c.title)}, is new</h3>
       <p>It is required of everyone, due within ${r.dueDays} days of a person's start date, and falls due again every ${r.refreshMonths} months. Anyone who started more than ${r.dueDays} days ago reads as overdue until they do it &mdash; that is the course being new, not something being wrong.</p>
-      <p>It also carries a half the others do not. Once somebody passes the questions, a supervisor records that they watched them do the work, and the course is not finished until they have. Whoever is waiting on that shows at the top of this screen, and your managers can record a sign-off as well as you can.</p>
+      ${c.practical ? `<p>It also carries a half most of the others do not. Once somebody passes the questions, a supervisor records that they watched them do the work, and the course is not finished until they have. Whoever is waiting on that shows at the top of this screen, and your managers can record a sign-off as well as you can.</p>` : ''}
       <p>What it asks of people and by when is yours to change at the bottom of this screen, switching it off included.</p>
-      <button class="btn btn-secondary" id="tr-notice-ok">Got it</button>
+      <button class="btn btn-secondary" id="tr-notice-ok" data-notice="${escapeHtml(due.noticeId)}">Got it</button>
     </div>`;
 }
 
@@ -9126,7 +9685,7 @@ function openSignoff(staffId, staffName, courseId) {
   if (!canRecordSignoff(who)) return;
   state.signoffDraft = {
     staffId: staffId || null, staffName, courseId,
-    checks: SIGNOFF_CHECKS.map(() => false),
+    checks: signoffChecksFor(courseById(courseId)).map(() => false),
     competent: true, note: '', by: signoffByName()
   };
   renderTraining();
@@ -9148,7 +9707,7 @@ function renderSignoff(screen) {
   const self = signoffIsSelf(who);
   const prior = signoffsFor(who, course.id).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
 
-  const checks = SIGNOFF_CHECKS.map((t, i) => `
+  const checks = signoffChecksFor(course).map((t, i) => `
       <label class="tr-check ${d.checks[i] ? 'on' : ''}">
         <input type="checkbox" data-sign-check="${i}" ${d.checks[i] ? 'checked' : ''}>
         <span>${escapeHtml(t)}</span>
@@ -9365,7 +9924,7 @@ function renderTrainingTeam(screen) {
   const csv = document.getElementById('tr-csv');
   if (csv) csv.addEventListener('click', exportTrainingCsv);
   const nb = document.getElementById('tr-notice-ok');
-  if (nb) nb.addEventListener('click', () => { dismissNotice(NOTICE_MANUAL_HANDLING); renderTraining(); });
+  if (nb) nb.addEventListener('click', () => { dismissNotice(nb.dataset.notice); renderTraining(); });
   bindSignoffQueue(screen);
   bindCourseRulesPanel(screen);
 }

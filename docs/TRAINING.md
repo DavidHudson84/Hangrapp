@@ -45,20 +45,27 @@ records a result, it does not change who owns what.
 Courses sort by `num`, everywhere — the trainee's list, the register columns, the
 certificate. The number is the order; nothing else carries it.
 
+The order is the teaching order, and it has been changed twice for that reason.
+
 **How to use Hangr is 01.** It was 06, behind five courses about garments and the
 law, which is the wrong way round for the one course that teaches somebody to
-operate the thing the other six live in. A person who cannot work the app cannot
-sit the rest of it, so it goes first and everything it displaced moves down one:
+operate the thing the others live in. A person who cannot work the app cannot sit
+the rest of it.
 
-| Course | Was | Now |
-|---|---|---|
-| How to use Hangr | 06 | **01** |
-| The law at the counter | 01 | 02 |
-| Taking garments in | 02 | 03 |
-| Tagging garments | 03 | 04 |
-| Reading the garment | 04 | 05 |
-| Whose fault is it? | 05 | 06 |
-| Lifting and moving things safely | 07 | 07 |
+**Fibres is 05.** Every course after it — reading a garment for risk, deciding
+whose fault a fault is — assumes the person already knows what they are holding.
+That assumption had never been taught anywhere, so it goes in ahead of them:
+
+| Course | Now |
+|---|---|
+| How to use Hangr | 01 |
+| The law at the counter | 02 |
+| Taking garments in | 03 |
+| Tagging garments | 04 |
+| **Fibres, fabrics and cleaning method** | **05** |
+| Reading the garment | 06 |
+| Whose fault is it? | 07 |
+| Lifting and moving things safely | 08 |
 
 Nothing is keyed on the number. Attempts, sign-offs and `state.courseRules` are
 all keyed on the course **id**, so renumbering moves the running order and touches
@@ -83,20 +90,25 @@ a person*:
 | `refreshMonths` | `null` | a pass older than N months falls due again |
 
 The defaults are per course, in `COURSE_RULE_DEFAULTS`. Everything falls back to
-the old behaviour — required of everyone, no deadline, no expiry — with one
-exception: **manual handling ships required, due within 30 days of starting, and
+the old behaviour — required of everyone, no deadline, no expiry — with two
+exceptions. **Manual handling ships required, due within 30 days of starting, and
 refreshing every 12 months.** A lifting course with no deadline and no refresh is
 a tick in a box rather than a control, which is the whole reason the per-course
-defaults exist.
+defaults exist. **Fibres ships required, due within 60 days, refreshing every 24
+months** — looser on both counts, deliberately: manual handling already owns a new
+starter's first month, and the risk this one controls is a garment rather than a
+back.
 
 `setCourseRule()` stores nothing for a course left at *its own* defaults, so an
 untouched business still carries no rules at all and the defaults stay free to
 change later.
 
-Because that course ships required, the release carrying it turns a new required
-course on for every existing business at once, and anyone past their first month
-reads as overdue immediately. `trainingNoticeHtml()` is the one-time note that
-says so on the register, dismissed into `state.seenNotices`.
+Because both of those ship required, the release carrying one turns a new required
+course on for every existing business at once, and anyone already past its deadline
+reads as overdue immediately. `NEW_COURSE_NOTICES` and `trainingNoticeHtml()` are
+the one-time note that says so on the register, dismissed into `state.seenNotices`
+— lowest course number first, one at a time, because two notices stacked on one
+screen read as a problem rather than an explanation.
 
 Deadlines count from the start date in Staff because it is the only anchor the
 business can defend: *"within 30 days of starting"* is a rule a tribunal can
@@ -132,12 +144,19 @@ either.
 
 ## The practical half
 
-One course asks for more than a quiz. `course.practical` marks it, and manual
-handling is the case it was built for: somebody can answer ten out of ten on
-lifting and still hurt themselves the first time they pull a loaded cage out of
-the van. Every regulator in the country treats instruction on its own as
+Two courses ask for more than a quiz, and `course.practical` marks them.
+
+**Manual handling** is the case it was built for: somebody can answer ten out of
+ten on lifting and still hurt themselves the first time they pull a loaded cage
+out of the van. Every regulator in the country treats instruction on its own as
 something short of controlling the risk, so the course is not finished until a
 supervisor has watched the person work and said so.
+
+**Fibres** is the commercial version of the same argument. Naming six fibres on a
+multiple choice is not the same skill as telling viscose from linen with it in
+your hand, and it is the hand that decides which machine a garment goes in. Its
+practical is a bench test: five garments, at least two with no usable label,
+identified, read, tested and routed while somebody watches.
 
 ### The record
 
@@ -148,9 +167,20 @@ cloud write — so editing an existing attempt on the back-office machine would 
 quietly undone by the counter iPad's untouched copy of that same id. Records that
 are only ever added merge with no new failure mode.
 
-Each carries the six `SIGNOFF_CHECKS` as `observed`, a `competent` verdict, a
+Each carries the course's six checks as `observed`, a `competent` verdict, a
 note, who watched (`byName`, editable, because a shared iPad's last login is not
 necessarily the person doing the watching), and `selfSigned`.
+
+The checklist belongs to the course rather than to the app. It lived in one global
+`SIGNOFF_CHECKS` while manual handling was the only practical course; a second one
+made it `course.signoffChecks`, read through `signoffChecksFor()`. Records already
+carry `courseId`, so old sign-offs render against the right list with nothing to
+migrate — and a business's own course that replaces a practical built-in inherits
+its checklist, the same way `courseWithNum()` has it inherit the running number.
+
+Checklists are not versioned, on the same trade as the rules: editing a check
+re-labels the boxes on records already written. If proving what was ticked two
+years ago ever matters, stamp the labels onto the record at `saveSignoff()` time.
 
 A **"not yet"** is a record too, and deliberately so. It shows the observation
 happened and says what to work on, which is a better training record than silence
@@ -200,7 +230,7 @@ attempt at `submitTrainingQuiz()` time.
 
 | Where | What |
 |---|---|
-| `index.html` → `TRAINING_MODULES` | the seven built-in courses, in running order |
+| `index.html` → `TRAINING_MODULES` | the eight built-in courses, in running order |
 | `index.html` → `courseWithNum` | a replacement course wearing its built-in's number |
 | `index.html` → `MH_FIG_*` / `lessonFiguresHtml` | lesson diagrams, built-ins only |
 | `index.html` → `COURSE_RULE_DEFAULTS` | what a course asks before anyone changes it |
@@ -209,6 +239,7 @@ attempt at `submitTrainingQuiz()` time.
 | `index.html` → `trainingKnownWho` / `trainingPickableRoster` / `trainingSetWho` | who the app thinks is in front of it |
 | `index.html` → `renderTrainingTeam` | the register and the rules panel |
 | `index.html` → `linkUserToStaff` | tying a login to a roster record |
-| `index.html` → `SIGNOFF_CHECKS` / `renderSignoff` / `saveSignoff` | recording a practical |
+| `index.html` → `signoffChecksFor` / `renderSignoff` / `saveSignoff` | recording a practical |
+| `index.html` → `course.signoffChecks` | what a supervisor ticks, per course |
 | `index.html` → `signoffQueue` / `signoffQueueHtml` | who is waiting on a supervisor |
-| `index.html` → `trainingNoticeHtml` | the one-time note about a new required course |
+| `index.html` → `NEW_COURSE_NOTICES` / `trainingNoticeHtml` | the one-time note about a new required course |
