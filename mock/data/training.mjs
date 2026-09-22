@@ -18,8 +18,11 @@ import { STAFF } from './staff.mjs';
 import { UID } from './identity.mjs';
 
 const T = (iso) => new Date(iso + 'T14:30:00+10:00').getTime();
-const TOTAL = 8;                       // every course has 8 questions
-const PASS  = Math.ceil(TOTAL * 0.8);  // 7
+// Most built-ins ask eight questions. The ones that do not are listed here, so a
+// seeded attempt claims the same number of questions the real course asks.
+const QUESTIONS = { fibres: 10 };
+const totalFor = (moduleId) => QUESTIONS[moduleId] || 8;
+const passFor  = (total) => Math.ceil(total * 0.8);
 
 // [staff key, moduleId, score, date]  — in the order they were sat.
 const SAT = [
@@ -68,6 +71,14 @@ const SAT = [
   // Anh — alterations. Reading the garment is her course.
   ['Sanh',    'reading',       8, '2026-06-17'],
 
+  // Fibres is the newest course, so only a few people are through it yet —
+  // which is what a register looks like in the months after one is switched on.
+  ['Ssharon', 'fibres',        9, '2026-09-09'],
+  ['Speter',  'fibres',       10, '2026-09-09'],
+  ['Sanh',    'fibres',        9, '2026-09-16'],
+  ['Srebecca','fibres',        8, '2026-09-16'],
+  ['Smarco',  'fibres',        7, '2026-09-16'],
+
   // Dylan — driver, casual. Failed the app course, came back and passed it.
   ['Sdylan',  'using-hangr',   6, '2026-07-01'],
   ['Sdylan',  'using-hangr',   7, '2026-07-08'],
@@ -85,10 +96,19 @@ const LOGIN_OF = Object.fromEntries(STAFF.filter(s => s.userId).map(s => [s.id, 
 
 // Deterministic but not uniform: spread the wrong answers around so no two
 // records mark the same questions wrong.
-function markAnswers(score, seed) {
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+
+function markAnswers(score, seed, TOTAL) {
   const wrong = new Set();
-  let n = TOTAL - score, k = seed % TOTAL;
-  while (wrong.size < n) { wrong.add(k % TOTAL); k += 3 + (seed % 4); }
+  const n = TOTAL - score;
+  // The walk has to step by something coprime with the question count or it
+  // revisits the same few questions forever and never fills the set. With eight
+  // questions a step of four lands on two of them and nothing else; the
+  // ten-question course turned that latent bug into a hang.
+  let step = 3 + (seed % 4);
+  while (gcd(step, TOTAL) !== 1) step++;
+  let k = seed % TOTAL;
+  while (wrong.size < n) { wrong.add(k); k = (k + step) % TOTAL; }
   return Array.from({ length: TOTAL }, (_, q) => ({
     q,
     choice: wrong.has(q) ? (q + 1) % 4 : (q * 2 + seed) % 4,
@@ -102,6 +122,7 @@ export const TRAINING = SAT.map(([staffId, moduleId, score, date], i) => {
   const key = staffId + ':' + moduleId;
   attempts[key] = (attempts[key] || 0) + 1;
   const staff = STAFF.find(s => s.id === staffId);
+  const total = totalFor(moduleId);
   return {
     id: 'T' + String(i + 1).padStart(3, '0'),
     staffId,
@@ -110,10 +131,10 @@ export const TRAINING = SAT.map(([staffId, moduleId, score, date], i) => {
     moduleId,
     attempt: attempts[key],
     score,
-    total: TOTAL,
-    percent: Math.round((score / TOTAL) * 100),
-    passed: score >= PASS,
-    answers: markAnswers(score, i + 1),
+    total,
+    percent: Math.round((score / total) * 100),
+    passed: score >= passFor(total),
+    answers: markAnswers(score, i + 1, total),
     completedAt: T(date)
   };
 }).sort((a, b) => b.completedAt - a.completedAt);

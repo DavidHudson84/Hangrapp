@@ -32,7 +32,7 @@ const DOC_TEXT_CAP   = 20000;
 const DOC_MANUAL_CAP = 60000;
 const capFor = (type) => type === 'Equipment manual' ? DOC_MANUAL_CAP : DOC_TEXT_CAP;
 
-const BUILT_IN_MODULES = ['acl', 'intake', 'tagging', 'reading', 'fault', 'using-hangr'];
+const BUILT_IN_MODULES = ['acl', 'intake', 'tagging', 'reading', 'fault', 'using-hangr', 'fibres'];
 
 const T = (iso) => new Date(iso + 'T09:00:00+10:00').getTime();
 const uploadedStr = (iso) => new Date(iso + 'T09:00:00+10:00')

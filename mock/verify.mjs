@@ -212,7 +212,7 @@ for (const l of blob.letters.filter(x => x.type === 'settlement')) {
 console.log('\nThe business’s own course displaces the built-in one');
 const active = ctx('activeCourses()');
 const ids = active.map(c => c.id);
-ok('seven courses are active', active.length === 7, `got ${active.length}`);
+ok('eight courses are active', active.length === 8, `got ${active.length}`);
 ok('the custom course is one of them', ids.includes('Cmsdtagging'));
 ok('the built-in tagging course is gone', !ids.includes('tagging'));
 ok('it sits at 04, where tagging was', (active.find(c => c.id === 'Cmsdtagging') || {}).num === '04');
@@ -224,13 +224,17 @@ const passMark = ctx('trainingPassMark(8)');
 const passedActive = (sid) => new Set(blob.training
   .filter(r => r.staffId === sid && r.passed && ids.includes(r.moduleId)).map(r => r.moduleId)).size;
 ok('pass mark is 7 of 8', passMark === 7, `got ${passMark}`);
-ok('Sharon has passed all six', passedActive('Ssharon') === 6, `got ${passedActive('Ssharon')}`);
-ok('Emma is genuinely halfway (3 of 6)', passedActive('Semma') === 3, `got ${passedActive('Semma')}`);
+ok('pass mark is 8 of 10', ctx('trainingPassMark(10)') === 8, `got ${ctx('trainingPassMark(10)')}`);
+// Counted against the active list rather than a hard number, so adding a course
+// changes what these mean without changing what they assert.
+ok('Sharon has passed everything but manual handling',
+   passedActive('Ssharon') === active.length - 1, `got ${passedActive('Ssharon')} of ${active.length}`);
+ok(`Emma is genuinely halfway (3 of ${active.length})`, passedActive('Semma') === 3, `got ${passedActive('Semma')}`);
 ok('somebody has failed and not retried', blob.training.some(r => !r.passed
    && !blob.training.some(o => o.staffId === r.staffId && o.moduleId === r.moduleId && o.attempt > r.attempt)));
 ok('somebody failed then passed', blob.training.some(r => r.passed && r.attempt > 1));
 ok('nobody has passed everything on the roster', 
-   blob.staff.filter(s => passedActive(s.id) === 6).length < blob.staff.length);
+   blob.staff.filter(s => passedActive(s.id) === active.length).length < blob.staff.length);
 
 console.log('\nWhat a counter login can reach');
 const caps = ctx('ROLE_CAPS');

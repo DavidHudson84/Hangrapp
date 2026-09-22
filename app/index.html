@@ -6752,8 +6752,8 @@ const TRAINING_FIGURES = { lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_
 
 // Adding or removing a course here changes what the landing page claims. The
 // hero section of index.html says how many built-in courses there are in words
-// ('Seven built-in courses...') and its training register panel shows rows of
-// 'n of 7' — both have to be updated in the same change.
+// ('Eight built-in courses...') and its training register panel shows rows of
+// 'n of 8' — both have to be updated in the same change.
 const TRAINING_MODULES = [
 {
   id: 'using-hangr',
@@ -7469,8 +7469,324 @@ The tag is not paperwork. It is the only reason the right garment goes home with
   ]
 },
 {
-  id: 'reading',
+  id: 'fibres',
   num: '05',
+  title: 'Fibres, fabrics and cleaning method',
+  blurb: 'Every other course assumes you already know what you are holding. This is the step underneath: what the fabric is, what that lets you do to it, and how to read what the maker has told you.',
+  minutes: 18,
+  reviewed: 'September 2026',
+  source: 'AS/NZS 1957:1998, the ISO 3758 care symbol set, and the DLI Textile Analysis Bulletins',
+  lessons: [
+    { h: 'Why this is the first question, not the last',
+      body: `Everything else you have been taught about taking a garment in assumes you already know what you are holding.
+
+Spotting a worn seat, checking whether stones are sewn or glued, noticing that a curtain spent ten years in a west-facing window — all of that is judgement about a fabric you have already identified. This course is the step underneath it.
+
+### Four ways to lose a garment before it reaches a machine
+- **Viscose that got wet.** Viscose loses up to half its strength the moment water hits it. A blouse that felt like silk goes through a wet process and comes out shrunk, distorted and water-marked, and there is no bringing it back.
+- **Acetate and the wrong spotter.** Acetate dissolves in acetone. It is usually the lining rather than the face fabric, so it does not look like an acetate problem until there is a hole in it.
+- **Wool with heat, moisture and agitation together.** Any one of the three is survivable. All three at once is felting, and felting is permanent.
+- **A polyester print at press temperature.** Low-sublimation disperse dyes move with heat. The print leaves the garment and lands on whatever goes through the press next.
+
+Not one of those is a stain, a machine fault or bad luck. Every one is somebody choosing a process for a fabric they had not identified.
+
+### Where the label sits in this
+A care label is the manufacturer's opinion about their own garment. It belongs in the decision and it is not the decision. You will meet labels that are missing, cut out, wrong, or perfectly accurate about a face fabric while saying nothing about the lining that is actually going to fail.
+
+So the order matters. Work out what the fibre is, then read the label, and let the two of them argue if they are going to. Lesson 4 teaches you to read one properly. Lesson 5 is what to do when it cannot be trusted.` },
+
+    { h: 'The five families',
+      body: `There are hundreds of fibres and five families, and the families are what you actually need. Everything inside a family behaves roughly the same way in water, heat, agitation and solvent, which is all a process decision asks of you.
+
+### 1. Natural cellulosics — cotton, linen
+Plant fibres. **Stronger wet than dry**, tolerant of heat, tolerant of alkali. They shrink if they were never pre-shrunk, they crease — linen especially — and dark shades crock, rubbing colour off onto lighter things.
+
+### 2. Protein — wool, cashmere, mohair, silk
+Animal fibres, and the two halves are different enough to separate.
+
+**Wool and the hair fibres** felt when heat, moisture and agitation arrive together. Alkali damages them, and ordinary laundry detergent is alkaline — which is most of why wool and the domestic wash end badly. Solvent is safe.
+
+**Silk** is weak when wet, water-spots, and its dyes bleed readily. Light and perspiration degrade it over years, so an old silk blouse can already be perished along the fold lines before it ever reaches you.
+
+### 3. Regenerated cellulosics — viscose, rayon, modal, lyocell, acetate
+Plant cellulose, chemically reconstructed. They look and drape like silk at a fraction of the price, which is why so much of a fast-fashion rail is made of them.
+
+**Viscose, rayon and modal** are the dangerous ones: up to half their strength gone when wet, and prone to shrinking, distorting and water-marking. **Lyocell, sold as Tencel, is far more stable** and should not be lumped in with them. **Acetate and triacetate** dissolve in acetone, soften with heat and water-spot — and acetate is very often the lining rather than the garment.
+
+### 4. Synthetics — polyester, nylon, acrylic, elastane
+Plastics, spun into fibre. Strong, cheap, and each with one specific weakness.
+
+**Polyester** takes almost anything, but it holds oily soil and its disperse dyes sublime at press temperature. **Nylon** is strong and scavenges loose dye out of a dirty load, which is why whites come back grey. **Acrylic** is heat-sensitive, pills, and stretches out of shape while it is warm and wet. **Elastane** is degraded by heat, chlorine and body oils.
+
+### 5. Skins — leather, suede, fur
+Not a textile and not routed like one. Its own process, its own specialists, and never decided by the rules in this course.
+
+### The one that is not a family
+**Blends**, which is most of what you handle. A blend is governed by its most vulnerable component rather than its largest one. A shirt that is 97 per cent cotton and 3 per cent elastane takes the elastane's heat limit, not the cotton's — the elastane is three per cent of the garment and a hundred per cent of the constraint.` },
+
+    { h: 'Identifying it without a label',
+      body: `Plenty of garments arrive with nothing to read. Here is what your hands will tell you in two minutes.
+
+### Hand and drape
+- **Cotton** — dry, slightly grainy, creases and holds the crease. Little lustre.
+- **Linen** — cooler and crisper than cotton, slubs visible in the weave, creases hard.
+- **Wool** — warm and springy. Crush it in your fist and it recovers.
+- **Silk** — warm to the touch, a fine hand, and a subtle lustre that shifts as you turn it.
+- **Viscose** — drapes heavily, cool and a little limp, creases and does not recover. Silk's look with none of silk's spring.
+- **Polyester** — slick and faintly waxy, springs out of a crush with no crease at all.
+- **Acrylic** — soft and warm like wool but with no spring, and very often already pilling.
+- **Acetate** — crisp, glassy lustre, sharp creases. Usually a lining.
+
+Hand gives you a shortlist, not an answer. Where it matters, test.
+
+### The wet-thread test
+The one distinction worth testing every time, because it is the one that costs garments: **viscose or cotton.** Hand alone will not settle it and the two want opposite processes.
+
+Pull a thread from a seam allowance. Wet it, and pull it apart between your fingers. **Cotton barely notices — it is stronger wet than dry. Viscose parts easily.** That is the strength loss happening in your hand instead of in a machine.
+
+Inside, on a seam allowance, where a missing thread will never show. Never on the face of the garment.
+
+### The solvent spot test
+A drop of the solvent you are proposing to use, on an inside seam allowance, blotted. You are watching for colour on the blotter, for the surface going dull or tacky, and for a coating lifting.
+
+It answers the question you are actually asking, which is not *what is this* but *will my process hurt it*.
+
+### The colour transfer test
+A damp white cloth pressed firmly against an inside seam allowance. Colour on the cloth means the dye is not fast — and that decides the load before it decides the process.
+
+### What we do not do
+**We do not burn-test.** You will hear it talked about, and it is a real technique: cellulose burns fast and smells of paper, protein self-extinguishes and smells of hair, synthetics melt and bead. It is also an open flame in a building full of solvent, and we have decided against it here. The wet-thread test covers the case that actually matters.
+
+### When it will not resolve
+Some garments will not identify. Four fibres in a blend, no label, a coating over the top. That is not a failure — that is the at-risk conversation, and lesson 7 is where it gets recorded.` },
+
+    { h: 'Reading a care label',
+      body: `**AS/NZS 1957** allows care instructions in words, in symbols, or both. Australian-labelled goods usually carry words. Imports usually carry symbols only. You need to read both, and the symbols are the half almost nobody is taught.
+
+Every symbol is a base shape with modifiers on it. Learn five shapes and three modifiers and you can read any label in the world.
+
+### The five shapes
+- **Wash tub** — domestic washing
+- **Triangle** — bleach
+- **Square** — drying
+- **Iron** — ironing
+- **Circle** — professional textile care. This one is ours.
+
+### The grammar, and it is the same on every shape
+- **A cross through the symbol** means do not do it at all.
+- **Dots** mean temperature. More dots, more heat.
+- **A bar underneath** means a gentler version of the process, and **two bars** means gentler again.
+
+That is the whole system. Five shapes, three modifiers.`,
+      figures: [
+        { fig: 'sym-wash', caption: 'The wash tub. A number is the maximum temperature in degrees Celsius; one bar is reduced mechanical action, two bars much reduced; a hand means hand wash only; crossed out means do not wash.' },
+        { fig: 'sym-bleach', caption: 'The bleach triangle. Empty means any bleach, two diagonal lines mean oxygen bleach only and no chlorine, crossed out means no bleach at all.' },
+        { fig: 'sym-dry', caption: 'The drying square. A circle inside means tumble dry, with dots for heat; lines inside mean line, drip or flat dry; crossed out means do not tumble.' },
+        { fig: 'sym-iron', caption: 'The iron. One dot is about 110 degrees for synthetics, two about 150 for wool, three about 200 for cotton and linen. Crossed steam lines underneath mean no steam.' }
+      ] },
+
+    { h: 'The circle, which is the one that matters to us',
+      body: `Everything else on a care label is advice to the customer. **The circle is an instruction to the plant**, and it is the symbol most likely to be read wrongly at a counter.
+
+### The letters
+- **P** — tetrachloroethylene, which is perc, and hydrocarbon solvents. The normal case.
+- **F** — hydrocarbon solvent only. **Not perc.** A garment marked F that goes through perc is a claim waiting to be made.
+- **W** — professional wet cleaning.
+
+### The bars
+- **A bar under the letter** means a mild process: reduced mechanical action, lower temperature, shorter cycle, gentler drying.
+- **Two bars** means very mild.
+- **A crossed circle** means do not dry clean. **A crossed W** means do not wet clean.
+
+The bar is the half that gets missed, because it looks like decoration and it is not. It is an instruction about how, not whether, and ignoring it is exactly the kind of departure from the label that moves liability from the manufacturer onto us.
+
+### The thing the label never tells you
+The label describes the **main fabric**. It says nothing about the acetate lining, the leather trim on the cuffs, the glued appliqué, or the fusible interfacing inside the collar — every one of which will react differently to the process it recommends.
+
+Read the label. Then look at the garment.`,
+      figures: [
+        { fig: 'sym-pro', caption: 'The professional care circle. P takes perc or hydrocarbon, F is hydrocarbon only, W is professional wet cleaning; a bar underneath means a mild process and two bars very mild; crossed means do not.' },
+        { fig: 'label-read', caption: 'A whole label read end to end. The trap is the last symbol: a W with a bar under it is not a licence to wet clean normally, it is an instruction to use the mild programme.' }
+      ] },
+
+    { h: 'Labels that lie, contradict, or are missing',
+      body: `Labels are wrong often enough that treating one as fact is itself a mistake.
+
+### The ways they go wrong
+- **Mislabelled imports.** The commonest case by a distance. The label was printed for a production run, not tested on this garment.
+- **Dry clean only as legal cover.** Plenty of manufacturers print it because it is the safest thing to print, not because anyone tested it. It still sets the expectation, and it still shifts liability if we depart from it.
+- **The label contradicts the garment.** Dry clean only, on a dress covered in glued stones whose adhesive the solvent will soften. Both of those cannot be true.
+- **Two labels that disagree.** A jacket and its matching skirt, labelled differently, brought in as one order.
+- **The label is gone.** Cut out because it itched, or worn away to nothing.
+- **The label is right about the fabric and silent about everything else.** The most common of the lot.
+
+### The rule that settles almost all of it
+**The garment decides what is safe. The label decides who pays.**
+
+Read it in two halves:
+
+- **What is safe** is a question about fibre, construction and condition — everything in lessons 2 and 3. A label does not override the garment in front of you.
+- **Who pays** is a question about the label. Follow a reasonable label and the garment fails anyway, and we have a genuine answer while the manufacturer has a problem. Depart from it, and we own the outcome — whether or not departing was the right call.
+
+So when the two disagree: take the safe route, name the departure to the customer, and write it down. All three. A careful decision nobody recorded looks exactly like a careless one when the complaint arrives six weeks later.
+
+### No label at all
+Not a free hand. **No label means at-risk, every time.** Identify what you can, take the most conservative route that will still do the job, tell the customer what you are doing and why, and record that they accepted it.` },
+
+    { h: 'From fibre to process',
+      body: `Now the decision itself. Four questions in order, and each one can override the answer before it.
+
+### 1. What is the fibre?
+The starting route, before anything else is considered:
+
+- **Cotton, linen** — launder or wet clean. Dry clean where the construction or the dye demands it.
+- **Wool and the hair fibres** — dry clean, or wet clean on a controlled wool programme.
+- **Silk** — dry clean.
+- **Viscose, rayon, modal** — dry clean, unless the label says otherwise and the garment agrees with it.
+- **Lyocell** — more tolerant than its cousins. Follow the label.
+- **Acetate, triacetate** — dry clean, low heat, and never an acetone-based spotter.
+- **Polyester, nylon** — almost anything. Watch press temperature on polyester, and keep light nylon out of a dirty load.
+- **Acrylic** — cool, low agitation, dried with support so it does not hang itself out of shape.
+- **Elastane blends** — the partner fibre decides, at the lower of the two heat limits.
+- **Leather, suede, fur** — specialist process. It never enters this decision.
+
+### 2. How is it built?
+Construction beats fibre. Any of these overrides the answer above:
+
+- **Fusible interfacing** in collars, cuffs, plackets and jacket fronts — an adhesive that can bubble whatever the face fabric tolerates
+- **Glued trim** — stones, foil, flock, heat-applied motifs
+- **Coated and laminated fabrics** — vinyl, PU, anything with a plastic hand or a metallic finish
+- **Beading and sequins** — sewn usually survives solvent, glued very often does not
+- **More than one fabric in one garment** — a lining that will shrink at a different rate from its face fabric
+- **Built-in structure** — shoulder pads, down fill, heat-set pleating
+
+### 3. What has the maker said?
+The label, read properly. Where it agrees with the first two answers you are finished. Where it does not, lesson 6 applies.
+
+### 4. What has life done to it?
+Age, wear, sun damage, old repairs, and whether the dye is still fast. That is the ground *Reading the garment* covers, and it is the last gate — a correct process on a perished fabric still produces a destroyed garment.
+
+### The five outcomes
+Every garment lands on one of these:
+
+- **Dry clean** — and in which solvent, if the label says F
+- **Wet clean** — and on which programme, if the label carries a bar
+- **Launder**
+- **Press or hand finish only** — clean nothing, freshen it and present it
+- **Decline, or take it at-risk** — with the conversation had, and recorded
+
+That last one is a legitimate answer and not a failure. A garment you decline costs a conversation. A garment you destroy costs the garment, the customer, and whatever the claim settles at.`,
+      figures: [
+        { fig: 'route', caption: 'The four questions in order. Fibre gives you a starting route; construction, the label and the condition of the garment can each override it; and every garment comes out at one of five outcomes.' }
+      ] },
+
+    { h: 'Putting the call on the ticket',
+      body: `The decision is worth exactly as much as the record of it.
+
+### What goes on the ticket
+- **The fibre call** — what you decided it was, and especially so where there was no label to go on
+- **What the label said**, where there was one, and particularly an F or a bar
+- **Any test you ran**, and what it showed
+- **The route** you chose, and where it departs from the label, that it does
+- **The at-risk conversation**, in your words
+
+### Why the fibre call has to be written down
+Because the person who processes the garment is very often not the person who took it in, and because a complaint arrives weeks later when nobody remembers the garment at all.
+
+A ticket reading *no label, hand and wet test read as viscose, dry cleaning rather than wet, customer advised* answers the entire claim by itself. A ticket that says nothing leaves you arguing from memory against a customer who is certain.
+
+### Wording an at-risk acceptance
+Plain, specific, and about the garment rather than about us:
+
+*There is no care label in this one, and the way it handles reads as viscose. That is a fibre that can shrink and mark if it gets wet, so I will dry clean it rather than take that risk. Most of the time it is completely fine. I just want to flag it before we start, because if it does react, that is the fabric rather than anything we have done.*
+
+Name the thing, say what you will do about it, say what could still happen. Then record that you said it.` }
+  ],
+  quiz: [
+    { q: 'What happens to viscose the moment it gets wet?',
+      a: ['It becomes stronger, like cotton',
+          'It loses up to half its strength, and can shrink, distort and water-mark',
+          'Nothing — it behaves like polyester',
+          'The dye sets permanently'],
+      correct: 1,
+      why: 'Viscose loses up to half its strength wet. It is the single most common way a garment is lost to the wrong process, and it is why the wet-thread test is worth the two minutes.' },
+
+    { q: 'Why is acetate a problem that often goes unnoticed until it is too late?',
+      a: ['It is always a bright colour',
+          'It is usually the lining rather than the face fabric, so the garment does not look like an acetate problem',
+          'It only appears in leather garments',
+          'It cannot be dry cleaned at all'],
+      correct: 1,
+      why: 'Acetate dissolves in acetone and softens with heat, and it is very often the lining. You have to look inside the garment, not just at it.' },
+
+    { q: 'A jacket lining carries a circle with an F in it. What does that tell the plant?',
+      a: ['It can go through perc or hydrocarbon, whichever is free',
+          'Hydrocarbon solvent only — not perc',
+          'It must be wet cleaned',
+          'It is a fire-resistant finish'],
+      correct: 1,
+      why: 'F means hydrocarbon solvent only. A garment marked F that goes through perc is a claim waiting to be made, and the label is what the claim will be argued from.' },
+
+    { q: 'What does a bar underneath a care symbol mean?',
+      a: ['Nothing — it is a printing decoration',
+          'A gentler version of that process: reduced action, lower temperature, shorter cycle',
+          'That the instruction is optional',
+          'That the garment has been cleaned before'],
+      correct: 1,
+      why: 'The bar is an instruction about how, not whether, and it is the half that gets missed most often. Ignoring it is a departure from the label like any other.' },
+
+    { q: 'A label says dry clean only. The dress is covered in glued stones that the solvent will soften. What is the rule?',
+      a: ['The label wins — clean it as labelled',
+          'The garment decides what is safe; the label decides who pays. Take the safe route, name the departure, and record it',
+          'Refuse the garment outright',
+          'Clean it as labelled and say nothing'],
+      correct: 1,
+      why: 'Following a reasonable label gives us an answer if the garment fails anyway. Departing from it means we own the outcome — which is exactly why a departure has to be named to the customer and written down.' },
+
+    { q: 'You have a garment with no label and you cannot tell viscose from cotton by hand. What do you do?',
+      a: ['Burn a thread and smell the smoke',
+          'Pull a thread from a seam allowance, wet it and pull it — cotton holds, viscose parts easily',
+          'Guess, based on the price of the garment',
+          'Wash a corner of the hem'],
+      correct: 1,
+      why: 'The wet-thread test shows you the strength loss in your hand instead of in a machine. We do not burn-test — an open flame does not belong near a solvent plant.' },
+
+    { q: 'What causes wool to felt?',
+      a: ['Solvent',
+          'Heat, moisture and agitation arriving together',
+          'Sunlight alone',
+          'Being stored folded'],
+      correct: 1,
+      why: 'Any one of the three on its own is survivable. It is the combination that felts wool, and felting is permanent.' },
+
+    { q: 'A shirt is 97 per cent cotton and 3 per cent elastane. What governs how you treat it?',
+      a: ['The cotton, because it is almost all of the garment',
+          'The elastane, because a blend is governed by its most vulnerable component',
+          'Neither — blends have no rules',
+          'Whichever is listed first on the label'],
+      correct: 1,
+      why: 'The elastane is three per cent of the garment and a hundred per cent of the constraint. Elastane is degraded by heat, so the blend takes the lower of the two heat limits.' },
+
+    { q: 'A garment arrives with the care label cut out. What does that mean for how you take it in?',
+      a: ['We can clean it however we judge best, with nothing further to do',
+          'We must refuse it',
+          'It is at-risk — identify what you can, take the conservative route, tell the customer and record their acceptance',
+          'We follow the label from a similar garment'],
+      correct: 2,
+      why: 'No label is not a free hand and it is not a reason to refuse. It is the textbook trigger for an at-risk acceptance that has been named out loud and written down.' },
+
+    { q: 'What does a care label describe?',
+      a: ['Every component of the garment',
+          'The main fabric only — not the lining, the trim, the buttons or the interfacing',
+          'Only the colour fastness',
+          'The fibre content and nothing else'],
+      correct: 1,
+      why: 'The label covers the face fabric. The acetate lining, the leather cuff trim and the fusible in the collar are all unlabelled and will all react differently to the process it recommends.' }
+  ]
+},
+{
+  id: 'reading',
+  num: '06',
   title: 'Reading the garment',
   blurb: 'Most claims and write-offs are decided before the garment goes anywhere near a machine — at the counter, by whoever looked at it. Here is what to look for.',
   minutes: 12,
@@ -7478,10 +7794,10 @@ The tag is not paperwork. It is the only reason the right garment goes home with
   source: 'Garment Categories and Risk Profiles, and the DLI Textile Analysis Bulletins',
   lessons: [
     { h: 'The care label is a starting point, not gospel',
-      body: `Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong — mislabelled imports, labels cut out because they itched, labels that describe the face fabric and ignore the trim.
+      body: `Course 05 taught you to read one — the five symbols, the professional care circle, and what to do when the label and the garment disagree. This lesson is the half of it that decides who pays.
 
-### How to use a label
-Read it, and treat it as the manufacturer's opinion rather than a guarantee.
+### The label is an opinion, not a guarantee
+Under **AS/NZS 1957**, garments sold in Australia are supposed to carry a care label. Plenty do not, and plenty of the ones that do are wrong. Read it, and treat it as the manufacturer's opinion about their own garment.
 
 - If the label says dry clean only and the fabric is obviously fine to wet clean, the label still sets the expectation. Departing from it is a decision, not a default.
 - **Once we depart from the label, liability shifts to us.** That is the whole point of the rule. If we followed a reasonable label and the garment failed anyway, we have a genuine answer. If we ignored it, we own the outcome.
@@ -7506,7 +7822,9 @@ Glued embellishment is an at-risk conversation, every time. Name it: "These ston
 The same question applies to **coated and laminated fabrics** — vinyl, PU, anything with a plastic-feeling face or a metallic finish. Those coatings crack, peel and go tacky, and they were never really designed to be cleaned.` },
 
     { h: 'Fabrics that need a second look',
-      body: `### Wool
+      body: `Course 05 covered what each of these fibres will tolerate. This is the other question — what to look for on the way in, before it goes anywhere.
+
+### Wool
 Shrinks and felts with heat and agitation. Check for existing pilling and for shine on the seat, elbows and cuffs — that shine is worn fibre and it will not come back.
 
 ### Silk
@@ -7626,7 +7944,7 @@ Curtains deserve their own warning. Sun-rotted curtains **will** split when they
 },
 {
   id: 'fault',
-  num: '06',
+  num: '07',
   title: 'Whose fault is it?',
   blurb: 'Most garment faults are not the cleaner’s. Knowing which is which is what stops us paying for damage we did not cause — and stops us fighting one we did.',
   minutes: 10,
@@ -7783,7 +8101,7 @@ Hangr will take the fault, the fabric, the garment's age and the intake record a
 },
 {
   id: 'manual-handling',
-  num: '07',
+  num: '08',
   title: 'Lifting and moving things safely',
   blurb: 'The tasks in this trade that wreck backs and shoulders, how to do them so they do not, and why saying something early matters more than being tough about it.',
   minutes: 15,
@@ -8127,6 +8445,12 @@ const REFRESH_WARN_DAYS = 30;
 // all. Manual handling is the exception, and deliberately so: a lifting course
 // with no deadline and no refresh is a tick in a box rather than a control.
 const COURSE_RULE_DEFAULTS = {
+  // 60 days rather than manual handling's 30, deliberately. Manual handling
+  // already owns a new starter's first month, and two hard deadlines inside it
+  // means both get missed. The risk this one controls is a garment, not a back.
+  // 24 months because fibre behaviour does not change, but label practice and
+  // the fabrics coming through the door do.
+  'fibres': { required: true, dueDays: 60, refreshMonths: 24 },
   'manual-handling': { required: true, dueDays: 30, refreshMonths: 12 },
 };
 
