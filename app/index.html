@@ -2297,8 +2297,110 @@ function _stateKey(profileState, q){
   const m = hay.match(/\b(vic|nsw|qld|sa|wa|tas|nt|act)\b/);
   return m ? m[1] : 'vic';
 }
+// ===== Non-English questions =====
+// Retrieval is keyword-matched against English terms, and the tokeniser splits
+// on [^a-z0-9'] — so a question typed in Korean or Chinese yields no tokens at
+// all and matches nothing across any of the knowledge topics, while Vietnamese
+// diacritics shatter into fragments. The answer still comes back, which is what
+// makes it dangerous: it comes back without the DLI bulletin, the Award clause
+// or the owner's own price list behind it, and nothing on screen says so.
+//
+// So the question is widened before it is scored. Each entry maps the words
+// people actually type onto English keywords that already exist in KBKW, and is
+// matched by substring against the raw question — which means it works whatever
+// the reply language is set to, works when nobody has set one, and works on the
+// half-English question a bilingual owner actually writes.
+//
+// A wrong entry costs retrieval accuracy, never correctness: the English path is
+// untouched, scoring still ranks, and the pick is capped at three topics. These
+// terms want a native speaker's eye before they are leaned on hard.
+const QUERY_TERMS = [
+  // — the garment, and what went wrong with it —
+  [['줄었', '수축', '줄어들', '축소', '缩水', '縮水', 'co rút', 'co lại', 'bị co'], 'shrink shrinkage shrunk'],
+  [['얼룩', '污渍', '污漬', 'vết bẩn', 'vết ố'], 'stain stains spotting'],
+  [['이염', '물빠짐', '掉色', '染色', 'phai màu', 'ra màu', 'lem màu'], 'dye bleed colour run'],
+  [['변색', '색바람', '褪色', 'bạc màu', 'xuống màu'], 'fade fading'],
+  [['구멍', '찢어', '破洞', '撕裂', 'lỗ thủng', 'rách'], 'hole tear fray'],
+  [['비즈', '스팬글', '珠子', '亮片', 'hạt cườm', 'hạt kim sa', 'vảy kim sa'], 'bead sequin embellishment'],
+  [['가죽', '皮革', 'da thuộc'], 'leather hide'],
+  [['스웨이드', '鹿皮', '麒皮', 'da lộn'], 'suede'],
+  [['모피', '皮草', 'lông thú'], 'fur shearling sheepskin'],
+  [['양모', '모직', '羊毛', 'vải len', 'lông cừu'], 'wool'],
+  [['실크', '丝绸', '絲綿', 'vải lụa'], 'silk'],
+  [['순면', '면직', '棉', 'vải cotton', 'sợi bông'], 'cotton'],
+  [['린넬', '亚麻', '亞麻', 'vải lanh'], 'linen'],
+  [['커튼', '窗帘', '窗簾', 'rèm cửa'], 'curtain curtains drapes'],
+  [['이불', '被子', '羽绒被', 'chăn', 'mền'], 'doona quilt blanket'],
+  [['셔츠', '와이셔츠', '衬衫', '襲衫', 'áo sơ mi'], 'shirt shirts collar'],
+  [['정장', '양복', '西装', '西裝', 'bộ vest', 'com lê'], 'suit'],
+  [['재킷', '코트', '外套', '大衣', 'áo khoác'], 'jacket coat'],
+  [['웨딩드레스', '婚纱', '婚紗', 'váy cưới', 'áo cưới'], 'wedding gown'],
+  [['드레스', '원피스', '连衣裙', '連衣裙', 'váy', 'đầm'], 'dress'],
+  [['단추', '纽扣', '鈕扣', 'cúc áo', 'nút áo'], 'button buttons'],
+  [['안감', '衬里', '襯裡', 'lớp lót'], 'lining interfacing'],
+  [['보풀', '起球', 'xù lông', 'vón cục'], 'pilling wear abrasion'],
+  [['다림질', '프레스', '熨烫', '熨燙', 'là ủi', 'ủi đồ'], 'press pressing'],
+  [['라벨', '취급표시', '洗涤标签', '洗滌標籤', '标签', 'nhãn giặt', 'nhãn mác'], 'care label'],
+  // — the plant —
+  [['용제', '溶剂', '溶劊', 'dung môi'], 'solvent perc'],
+  [['드라이클리닝', '干洗', '乾洗', 'giặt khô'], 'dry clean'],
+  [['물세탁', '웨트클리닝', '湿洗', '濕洗', 'giặt ướt'], 'wet clean wet cleaning'],
+  [['기계', '장비', '机器', '機器', 'máy móc', 'máy giặt'], 'machine equipment breakdown'],
+  [['보일러', '锅炉', '鍋爐', 'nồi hơi'], 'boiler'],
+  [['접수', '카운터', '收件', '柜台', '櫃檯', 'quầy', 'nhận đồ'], 'intake docket counter'],
+  [['분실', '잃어', '遗失', '遺失', '丢失', 'thất lạc', 'mất đồ'], 'lost garment lost item'],
+  // — money —
+  [['가격', '요금', '단가', '价格', '價格', '收费', 'giá cả', 'bảng giá'], 'price pricing price list'],
+  [['견적', '报价', '報價', 'báo giá'], 'quote quoting'],
+  [['환불', '退款', 'hoàn tiền', 'trả lại tiền'], 'refund settlement'],
+  [['청구서', '세금계산서', '发票', '發票', 'hóa đơn'], 'invoice receipt'],
+  [['부가세', '消费税', '消費稅', 'thuế gst'], 'gst bas activity statement'],
+  [['급여', '임금', '월급', '工资', '工資', '薪水', 'tiền lương', 'trả lương'], 'wage payroll pay'],
+  [['세금', '税金', '稅金', 'thuế'], 'tax payroll tax'],
+  [['마진', '이익', '利润', '利潤', 'lợi nhuận'], 'margin'],
+  // — people —
+  [['초과근무', '잔업', '加班', 'tăng ca', 'làm thêm giờ'], 'overtime penalty loading'],
+  [['공휴일', '公共假期', '国定假日', 'ngày lễ'], 'public holiday penalty'],
+  [['휴가', '연차', '休假', '年假', 'nghỉ phép'], 'leave allowance'],
+  [['해고', '해임', '解雇', '辞退', '辞退', 'sa thải', 'cho nghỉ việc'], 'dismissal termination unfair'],
+  [['경고장', '징계', '警告', 'cảnh cáo'], 'warning'],
+  [['정리해고', '감원', '裁员', '裁員', 'cắt giảm nhân sự'], 'redundancy redundant'],
+  [['임시직', '계약직', '临时工', '臨時工', 'thời vụ', 'bán thời gian'], 'casual classification'],
+  [['퇴직연금', '退休金', '养老金', '養老金', 'quỹ hưu trí'], 'super superannuation'],
+  [['최저임금', '最低工资', '最低工資', 'lương tối thiểu'], 'award ma000096 fair work'],
+  // — safety and environment —
+  [['부상', '다친', '다쳐', '受伤', '受傷', 'chấn thương', 'bị thương'], 'injury injured incident'],
+  [['안전', '위험', '安全', '危险', '危險', 'an toàn', 'nguy hiểm'], 'safety hazard whs'],
+  [['화학약품', '化学品', '化學品', 'hóa chất'], 'chemical bleach'],
+  [['폐기물', '오염', '废物', '廢物', '污染', 'chất thải', 'ô nhiễm'], 'waste disposal epa'],
+  [['응급처치', '急救', 'sơ cứu'], 'first aid'],
+  // — the customer, and the claim —
+  [['클레임', '배상', '索赔', '索賠', 'khiếu nại', 'bồi thường'], 'claim compensation fair claims'],
+  [['보험', '保险', '保險', 'bảo hiểm'], 'insurance liability cover'],
+  [['손상', '파손', '损坏', '損壞', 'hư hỏng', 'làm hỏng'], 'damage fault'],
+  [['불만', '컴플레인', '投诉', '投訴', 'phàn nàn'], 'complaint consumer law'],
+  [['고객', '손님', '客户', '客戶', '顾客', 'khách hàng'], 'customer'],
+  [['책임', '责任', '責任', 'trách nhiệm'], 'liability'],
+  // — getting more of them —
+  [['마케팅', '홍보', '营销', '營銷', '推广', '推廣', 'tiếp thị', 'quảng cáo'], 'marketing promotion'],
+  [['리뷰', '후기', '评论', '評論', 'đánh giá'], 'review reviews'],
+  [['문의', '咨询', '諮詢', 'hỏi thông tin'], 'enquiry enquiries']
+];
+// Substring matching, because Korean and Chinese have no word boundaries to
+// tokenise on in the first place — which is the whole reason this exists.
+function expandQuery(q) {
+  const raw = String(q == null ? '' : q).toLowerCase();
+  let extra = '';
+  for (const [terms, english] of QUERY_TERMS) {
+    for (const t of terms) {
+      if (raw.indexOf(t) !== -1) { extra += ' ' + english; break; }
+    }
+  }
+  return extra ? raw + extra : raw;
+}
+
 function retrieveKnowledge(userMessage, profileState, skipStateFiles){
-  const q = (userMessage||'').toLowerCase();
+  const q = expandQuery(userMessage);
   const toks = new Set(q.split(/[^a-z0-9']+/).filter(Boolean));
   const scores = [];
   for (const [key, words] of Object.entries(KBKW)){
@@ -2484,7 +2586,7 @@ function buildSystemPrompt(profile, history, userMessage, opts) {
   ].filter(Boolean).join('; ') || '(not specified)');
 
   const retrievedKB = retrieveKnowledge(userMessage, profile.state);
-  const _q = (userMessage || '').toLowerCase();
+  const _q = expandQuery(userMessage);
   const _isGarment = /garment|fabric|stain|shrink|shrunk|shrinkage|colou?r|dye|bleed|wool|silk|cotton|linen|leather|suede|velvet|bead|sequin|fade|fading|pilling|lining|hem|seam|coat|jacket|dress|suit|trouser|slack|shirt|blouse|skirt|tie|scarf|gown|curtain|drape|blind|press|iron|complaint|damaged/.test(_q);
   const dliDirectory = _isGarment ? DLI_TABS : '';
   const _docs = visibleDocuments();
@@ -10400,7 +10502,7 @@ function _scoreText(text, toks) {
 function retrieveDocuments(q) {
   const docs = visibleDocuments();
   if (!docs.length) return '';
-  const toks = [...new Set((q || '').toLowerCase().split(/[^a-z0-9']+/).filter(t => t.length > 2))];
+  const toks = [...new Set(expandQuery(q).split(/[^a-z0-9']+/).filter(t => t.length > 2))];
   if (!toks.length) return '';
 
   const scored = [];
@@ -10451,7 +10553,7 @@ function retrieveDocuments(q) {
 function retrievePriceLists(q) {
   const lists = state.priceLists || [];
   if (!lists.length) return '';
-  const toks = [...new Set((q || '').toLowerCase().split(/[^a-z0-9']+/).filter(t => t.length > 2))];
+  const toks = [...new Set(expandQuery(q).split(/[^a-z0-9']+/).filter(t => t.length > 2))];
 
   // Name and tag score heavily, so an enquiry that names a store or a contract
   // customer quotes from that store's list rather than whichever was loaded first.
