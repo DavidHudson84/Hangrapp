@@ -6748,7 +6748,188 @@ const MH_FIG_HEIGHT = `<svg viewBox="0 0 420 214" role="img" aria-label="Two sid
   </g>
 </svg>`;
 
-const TRAINING_FIGURES = { lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_PUSH, height: MH_FIG_HEIGHT };
+// ===== Care symbol diagrams, for course 05 =====
+// Drawn rather than reproduced. The symbol set is standardised in ISO 3758 and
+// carried into AS/NZS 1957, and GINETEX asserts rights over the marks in a
+// number of jurisdictions — so these are our own line drawings teaching the
+// shapes, not a chart lifted out of a manufacturer's manual.
+//
+// Grouped by family rather than one figure per symbol, which keeps it to seven
+// constants instead of twenty-odd and, more to the point, puts each modifier
+// beside the base shape. The grammar is what is being taught; the individual
+// symbols are just the grammar applied.
+const CARE_TUB = '<path d="M6 14 L11 44 L37 44 L42 14"/><path d="M6 14 q4.5 -4 9 0 t9 0 t9 0 t9 0"/>';
+const CARE_TRI = '<path d="M24 12 L44 46 L4 46 Z"/>';
+const CARE_SQR = '<path d="M3 12 H47 V56 H3 Z"/>';
+const CARE_IRN = '<path d="M4 44 L46 44 L46 30 Q46 24 40 24 L20 24 Q14 24 11 29 Z"/>';
+const CARE_CIR = '<circle cx="24" cy="32" r="19"/>';
+// A cross sized to the symbol under it, rather than one cross stretched over
+// everything — the tub, the triangle and the circle all sit at different heights.
+const CARE_X = (x1, y1, x2, y2) =>
+  '<path d="M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2 + '"/><path d="M' + x2 + ' ' + y1 + ' L' + x1 + ' ' + y2 + '"/>';
+
+const CARE_FIG_WASH = `<svg viewBox="0 0 420 92" role="img" aria-label="Four wash tub symbols in a row. The first has the number 40 inside it, the second has a single bar underneath, the third has a hand in it, and the fourth is crossed out.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(14,8)">${CARE_TUB}</g>
+    <g transform="translate(114,8)">${CARE_TUB}<path d="M13 52 H35"/></g>
+    <g transform="translate(214,8)">${CARE_TUB}<path d="M18 42 V32 q0 -3 3 -3 t3 3 V27 q0 -3 3 -3 t3 3 V30 q0 -3 3 -3 t3 3 V42"/></g>
+    <g transform="translate(314,8)">${CARE_TUB}${CARE_X(4, 12, 44, 48)}</g>
+  </g>
+  <g font-family="inherit" fill="currentColor" text-anchor="middle">
+    <text x="38" y="42" font-size="14" font-weight="600">40</text>
+    <g font-size="10.5" fill-opacity=".75">
+      <text x="38" y="80">Wash at 40 °C</text>
+      <text x="138" y="80">Mild — one bar</text>
+      <text x="238" y="80">Hand wash only</text>
+      <text x="338" y="80">Do not wash</text>
+    </g>
+  </g>
+</svg>`;
+
+const CARE_FIG_BLEACH = `<svg viewBox="0 0 420 90" role="img" aria-label="Three bleach triangles. The first is empty, the second has two diagonal lines inside it, and the third is crossed out.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(46,8)">${CARE_TRI}</g>
+    <g transform="translate(186,8)">${CARE_TRI}<path d="M16 40 L26 24"/><path d="M25 40 L35 24"/></g>
+    <g transform="translate(326,8)">${CARE_TRI}${CARE_X(4, 12, 44, 50)}</g>
+  </g>
+  <g font-family="inherit" font-size="11" fill="currentColor" fill-opacity=".75" text-anchor="middle">
+    <text x="70" y="78">Any bleach</text>
+    <text x="210" y="78">Oxygen bleach only</text>
+    <text x="350" y="78">No bleach at all</text>
+  </g>
+</svg>`;
+
+const CARE_FIG_DRY = `<svg viewBox="0 0 420 96" role="img" aria-label="Four drying squares. The first has a circle inside with two dots for medium heat, the second has a circle and is crossed out, the third has a vertical line inside for line drying, and the fourth a horizontal line for flat drying.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(13,8)">${CARE_SQR}<circle cx="25" cy="34" r="13"/></g>
+    <g transform="translate(113,8)">${CARE_SQR}<circle cx="25" cy="34" r="13"/>${CARE_X(5, 14, 45, 54)}</g>
+    <g transform="translate(213,8)">${CARE_SQR}<path d="M25 18 V50"/></g>
+    <g transform="translate(313,8)">${CARE_SQR}<path d="M9 34 H41"/></g>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <circle cx="33" cy="42" r="2.4"/><circle cx="43" cy="42" r="2.4"/>
+  </g>
+  <g font-family="inherit" font-size="10.5" fill="currentColor" fill-opacity=".75" text-anchor="middle">
+    <text x="38" y="84">Tumble, medium</text>
+    <text x="138" y="84">Do not tumble</text>
+    <text x="238" y="84">Line dry</text>
+    <text x="338" y="84">Dry flat</text>
+  </g>
+</svg>`;
+
+const CARE_FIG_IRON = `<svg viewBox="0 0 420 88" role="img" aria-label="Four iron symbols. The first has one dot for about 110 degrees, the second two dots for about 150, the third three dots for about 200, and the fourth is crossed out.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(14,8)">${CARE_IRN}</g>
+    <g transform="translate(114,8)">${CARE_IRN}</g>
+    <g transform="translate(214,8)">${CARE_IRN}</g>
+    <g transform="translate(314,8)">${CARE_IRN}${CARE_X(4, 18, 46, 50)}</g>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <circle cx="42" cy="43" r="2.4"/>
+    <circle cx="138" cy="43" r="2.4"/><circle cx="146" cy="43" r="2.4"/>
+    <circle cx="234" cy="43" r="2.4"/><circle cx="242" cy="43" r="2.4"/><circle cx="250" cy="43" r="2.4"/>
+  </g>
+  <g font-family="inherit" font-size="10.5" fill="currentColor" fill-opacity=".75" text-anchor="middle">
+    <text x="38" y="76">1 dot — 110°</text>
+    <text x="138" y="76">2 dots — 150°</text>
+    <text x="238" y="76">3 dots — 200°</text>
+    <text x="338" y="76">Do not iron</text>
+  </g>
+</svg>`;
+
+const CARE_FIG_PRO = `<svg viewBox="0 0 420 92" role="img" aria-label="Five professional care circles. P for perc or hydrocarbon, F for hydrocarbon only, W for professional wet cleaning, W again with a bar underneath for the mild process, and an empty circle crossed out meaning do not dry clean.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(18,8)">${CARE_CIR}</g>
+    <g transform="translate(102,8)">${CARE_CIR}</g>
+    <g transform="translate(186,8)">${CARE_CIR}</g>
+    <g transform="translate(270,8)">${CARE_CIR}<path d="M13 58 H35"/></g>
+    <g transform="translate(354,8)">${CARE_CIR}${CARE_X(6, 14, 42, 50)}</g>
+  </g>
+  <g font-family="inherit" fill="currentColor" text-anchor="middle">
+    <g font-size="18" font-weight="600">
+      <text x="42" y="46">P</text>
+      <text x="126" y="46">F</text>
+      <text x="210" y="46">W</text>
+      <text x="294" y="46">W</text>
+    </g>
+    <g font-size="10.5" fill-opacity=".75">
+      <text x="42" y="82">Perc or HC</text>
+      <text x="126" y="82">HC only</text>
+      <text x="210" y="82">Wet clean</text>
+      <text x="294" y="82">Wet clean, mild</text>
+      <text x="378" y="82">No dry clean</text>
+    </g>
+  </g>
+</svg>`;
+
+const CARE_FIG_LABEL = `<svg viewBox="0 0 420 196" role="img" aria-label="A whole care label read across: do not wash, no bleach, do not tumble, cool iron, and professional wet cleaning with a bar under it. The last symbol is picked out, because the bar makes it an instruction to use the mild programme rather than the normal one.">
+  <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="56" y="16" width="308" height="104" rx="6" stroke-opacity=".45"/>
+    <path d="M56 40 H364" stroke-opacity=".2" stroke-dasharray="3 5"/>
+    <g transform="translate(76,56) scale(.62)">${CARE_TUB}${CARE_X(4, 12, 44, 48)}</g>
+    <g transform="translate(130,54) scale(.62)">${CARE_TRI}${CARE_X(4, 12, 44, 50)}</g>
+    <g transform="translate(184,52) scale(.62)">${CARE_SQR}<circle cx="25" cy="34" r="13"/>${CARE_X(5, 14, 45, 54)}</g>
+    <g transform="translate(240,56) scale(.62)">${CARE_IRN}</g>
+    <g transform="translate(296,52) scale(.62)">${CARE_CIR}<path d="M13 58 H35"/></g>
+    <rect x="292" y="52" width="42" height="54" rx="5" stroke="var(--warn)" stroke-dasharray="4 4" stroke-width="1.8"/>
+    <path d="M313 112 C313 132 280 138 256 146" stroke="var(--warn)" stroke-width="1.8"/>
+    <path d="M256 146 L265 145" stroke="var(--warn)" stroke-width="1.8"/>
+    <path d="M256 146 L257 137" stroke="var(--warn)" stroke-width="1.8"/>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <circle cx="257" cy="78" r="1.7"/>
+  </g>
+  <g font-family="inherit" fill="currentColor">
+    <text x="72" y="34" font-size="10.5" fill-opacity=".6" letter-spacing="1.4">100% VISCOSE — MADE IN CHINA</text>
+    <text x="311" y="80" font-size="12" font-weight="600" text-anchor="middle">W</text>
+    <g font-size="11.5" fill-opacity=".8" text-anchor="middle">
+      <text x="200" y="172">The last symbol is a W with a bar under it. That is not</text>
+      <text x="200" y="188">permission to wet clean — it is the mild programme, only.</text>
+    </g>
+  </g>
+</svg>`;
+
+const CARE_FIG_ROUTE = `<svg viewBox="0 0 420 296" role="img" aria-label="The routing decision as four questions in order: what is the fibre, how is it built, what has the maker said, and what has life done to it. Each one can override the answer before it, and every garment comes out at one of five outcomes.">
+  <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="28" y="14" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="66" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="118" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="170" width="248" height="36" rx="6" stroke-opacity=".5"/>
+    <rect x="28" y="228" width="360" height="56" rx="6" stroke-opacity=".5" stroke="var(--green)"/>
+    <g stroke-opacity=".55">
+      <path d="M152 50 V64"/><path d="M152 64 L148 58"/><path d="M152 64 L156 58"/>
+      <path d="M152 102 V116"/><path d="M152 116 L148 110"/><path d="M152 116 L156 110"/>
+      <path d="M152 154 V168"/><path d="M152 168 L148 162"/><path d="M152 168 L156 162"/>
+      <path d="M152 206 V226"/><path d="M152 226 L148 220"/><path d="M152 226 L156 220"/>
+    </g>
+  </g>
+  <g font-family="inherit" fill="currentColor">
+    <g font-size="12.5">
+      <text x="44" y="37">1 &#183; What is the fibre?</text>
+      <text x="44" y="89">2 &#183; How is it built?</text>
+      <text x="44" y="141">3 &#183; What has the maker said?</text>
+      <text x="44" y="193">4 &#183; What has life done to it?</text>
+    </g>
+    <g font-size="10" fill-opacity=".55">
+      <text x="288" y="37">the starting route</text>
+      <text x="288" y="89">construction wins</text>
+      <text x="288" y="141">the label, read right</text>
+      <text x="288" y="193">age, wear, dye</text>
+    </g>
+    <text x="44" y="249" font-size="10.5" fill-opacity=".6">One of five outcomes</text>
+    <g font-size="12">
+      <text x="44" y="268">Dry clean &#183; Wet clean &#183; Launder</text>
+      <text x="44" y="284">Press only &#183; Decline, or take it at-risk</text>
+    </g>
+  </g>
+</svg>`;
+
+const TRAINING_FIGURES = {
+  lift: MH_FIG_LIFT, twist: MH_FIG_TWIST, push: MH_FIG_PUSH, height: MH_FIG_HEIGHT,
+  'sym-wash': CARE_FIG_WASH, 'sym-bleach': CARE_FIG_BLEACH, 'sym-dry': CARE_FIG_DRY,
+  'sym-iron': CARE_FIG_IRON, 'sym-pro': CARE_FIG_PRO, 'label-read': CARE_FIG_LABEL,
+  route: CARE_FIG_ROUTE,
+};
 
 // Adding or removing a course here changes what the landing page claims. The
 // hero section of index.html says how many built-in courses there are in words
