@@ -1,7 +1,12 @@
 # Fibres, fabrics and cleaning method — scope for a new course
 
-> **Status: scope for review. Nothing built.** Written as the eighth built-in course and
+> **Status: scoped and decided. Nothing built.** Written as the eighth built-in course and
 > proposed to slot in at **05**, ahead of *Reading the garment*.
+>
+> Four decisions were put to David on 22 September 2026 and answered. Three confirm the
+> recommendation — the course carries a practical bench test, it ships required with a 60-day
+> deadline and a 24-month refresh, and curtain work stays out. The fourth went the other way:
+> **the burn test is out entirely.** Reflected inline below, and set out under *Decisions taken*.
 
 Scoped against `app/index.html` at `36e8311`, with `docs/TRAINING.md` as the reference for how
 the training engine already works and `docs/manual-handling-scope.md` as the precedent for a
@@ -85,6 +90,9 @@ becomes a short liability framing plus a pointer, and no change at all to its ot
 | **Rules** | Required, due within **60 days** of start, **24-month** refresh | 60 rather than 30 because manual handling already owns the 30-day slot and stacking two hard deadlines on a new starter's first month means both get missed. 24 months because fibre behaviour does not change but label practice and new fabrics do. |
 | **Figures** | Redraw the full care-symbol set as inline SVG | You cannot teach symbol grammar in prose. This is the largest content lift in the build and the reason the course is worth more than a page of notes. |
 
+All four are now settled — see *Decisions taken*. The only one that moved off the
+recommendation is depth's companion question, the burn test, which is out.
+
 ## What the course teaches
 
 Seven lessons, about eighteen minutes, ten questions, same 80 per cent pass mark as the rest.
@@ -95,7 +103,7 @@ Bulletins.*
 |---|---|---|
 | 1 | Why this is the first question, not the last | The four write-offs that start here — viscose wet, acetate and acetone, wool felted, disperse dye at press heat. Fibre decides process; everything else is a modifier. |
 | 2 | The fibre families and what they tolerate | Five families, not forty fibres. What each one does with water, heat, agitation, alkali and solvent. |
-| 3 | Identifying it without a label | Hand, drape, lustre, the wet test, the solvent spot test, and the seam-thread burn test — including where the burn test is and is not allowed in a solvent plant. |
+| 3 | Identifying it without a label | Hand, drape and lustre, the wet-thread test, and the solvent spot test. **No burn test** — decided out, see below. |
 | 4 | Reading a care label | The five symbols and the modifier grammar. The circle is ours and it gets the most room. |
 | 5 | Labels that lie, contradict or are missing | Mislabelled imports, "dry clean only" as legal cover, the label that describes the face fabric and ignores the glued trim, two halves of a suit labelled differently, no label at all. |
 | 6 | From fibre to process | The routing decision, and the three things that override the face fabric: trim, interlining and colour. |
@@ -104,6 +112,12 @@ Bulletins.*
 Lesson 2 is the one a business is most likely to want to replace with a list matched to its own
 work — a shirt laundry and a bridal specialist do not meet the same fibres — and the existing
 custom-course tool already allows exactly that.
+
+Lesson 3 does the work the burn test would have done through the **wet-thread test** instead:
+pull a thread from a seam allowance, wet it, and tug. Viscose loses up to half its strength wet
+and parts under a pull that cotton shrugs off, which is the one distinction the burn test was
+carrying. It is slower and it is less certain on a blend, and it is the honest substitute for a
+technique we have decided not to teach.
 
 ## Reading a care label — what lesson 4 actually has to contain
 
@@ -180,7 +194,7 @@ Six checks, same shape as the manual handling sign-off:
 1. Names the fibre family by hand and drape on an unlabelled garment
 2. Reads a symbol label correctly, including the modifier bars and the professional-care letter
 3. Checks lining, trim and interlining separately from the face fabric
-4. Runs the right test before committing — colour transfer, wet test, solvent spot, burn where permitted
+4. Runs the right test before committing — colour transfer, wet-thread, solvent spot
 5. Routes each garment to a process and can say what drove the decision
 6. Recognises and correctly words the at-risk cases, and records them
 
@@ -260,31 +274,50 @@ fails. Beyond that: the standing machine and the refresh arithmetic are already 
 new tests are the renumber (every existing attempt still resolves), the per-course checklist
 (old sign-offs still render against manual handling's six), and the quiz itself.
 
-## Questions still open
+## Decisions taken
 
-1. **05 or 08?** Recommendation is 05 and the argument is above. It is a one-line change either
-   way, so it is worth deciding deliberately rather than by default.
-2. **The burn test — teach it or leave it out?** It is genuine trade skill and it is the only
-   reliable way to separate viscose from cotton by hand. It is also an open flame in a building
-   full of solvent. Recommendation: teach it, and teach it as a plant task done at the sink away
-   from the machines, on a thread pulled from a seam allowance, never at the counter and never
-   in the plant room. The alternative — leaving it out entirely — makes the course honest about
-   nothing and means people learn it badly from each other anyway.
-3. **Does the quiz need images?** Identifying fibre from a photograph is not the same skill as
-   identifying it in your hand, so the questions can carry the course without them. The
-   *symbols*, though, are visual by definition — a question that describes a symbol in words is
-   testing reading comprehension. Either the quiz gets figure support, or symbol questions stay
-   in the lesson figures and the quiz tests what the symbols mean once you know which one it is.
-   Recommendation: the second, and revisit if the pass rates say otherwise.
-4. **Dr Drapes.** Curtain and blind fabrics share the fibre families and almost none of the
-   constructions — backings, interlinings, pleat tapes, and sun rot that has already destroyed
-   the fibre before it arrives. Same call the Gordon Hotel got on manual handling: out of scope,
-   and a separate course if it is worth one.
-5. **Photographs.** Weave, nap, lustre and pilling are the things a photo teaches better than a
-   drawing, and the renderer was built to take a `src` when image support lands. Same position as
-   manual handling: it belongs in a business's own course, and image upload for custom courses is
-   still deliberately unbuilt because `renderMarkdown()` escapes before it parses and that escape
-   is what keeps an AI-drafted course from injecting markup.
+Four questions were put to David on 22 September 2026. All four are answered and the build can
+proceed on them.
+
+1. **Does the course end with a practical?** **Yes — a quiz plus a watched bench test.** Naming
+   six fibres on a multiple choice is not the same skill as telling viscose from linen with it in
+   your hand, and the sign-off machinery already exists. Roughly 40 labour hours across the group
+   to get everyone through, recurring at each refresh, against one wrongly routed garment. It
+   ships as batch C, after the content, so nothing is held behind it.
+2. **What does it ask of a person?** **Required of everyone, due within 60 days of starting,
+   refreshing every 24 months.** 60 rather than 30 because manual handling already owns the first
+   month; 24 months because fibre behaviour does not change but label practice does. Everyone
+   past their first 60 days reads as overdue the day it releases, and the one-time notice on the
+   register is what explains that.
+3. **Does it teach the burn test?** **No — out entirely.** No open flame is taught anywhere in
+   our training. That is the one decision that went against the recommendation in the original
+   scope, and it costs the course its cleanest viscose-versus-cotton call; lesson 3 carries the
+   wet-thread test in its place, which is slower and less certain on a blend. The technique is
+   not named, not described and not gated — it is simply absent, which is the only version of
+   "out" that holds up if anything ever goes wrong.
+4. **Does curtain and blind work get covered?** **No — out of scope.** Same answer the Gordon
+   Hotel got on manual handling. Dr Drapes fabrics share the fibre families and almost none of
+   the constructions, and folding them in would make a built-in course look written for one
+   business. A curtain course is a separate course if it is worth one.
+
+## Still open
+
+Two items where the recommendation stands and the build proceeds on it unless someone says
+otherwise, plus one that is genuinely follow-on work.
+
+- **05 or 08.** Proceeding on **05**, ahead of *Reading the garment*, for the reasons under
+  *Where it sits in the running order*. It is a one-line change either way and nothing is keyed
+  on the number, so it stays reversible after release.
+- **Images in the quiz.** Proceeding **without them**. Identifying fibre from a photograph is not
+  the same skill as identifying it in your hand, so the questions can carry the course; the
+  symbols are visual by definition, but they are taught in the lesson figures and the quiz tests
+  what they mean rather than which shape is which. Revisit if the pass rates say otherwise.
+- **Photographs instead of line drawings.** Weave, nap, lustre and pilling are the things a photo
+  teaches better than a drawing, and the renderer was built to take a `src` when image support
+  lands. Same position as manual handling: real photographs belong in a business's own course,
+  and image upload for custom courses is still deliberately unbuilt, because `renderMarkdown()`
+  escapes before it parses and that escape is what keeps an AI-drafted course from injecting
+  markup.
 
 ## Files this touches
 
