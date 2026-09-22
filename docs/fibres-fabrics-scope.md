@@ -1,12 +1,20 @@
 # Fibres, fabrics and cleaning method — scope for a new course
 
-> **Status: scoped and decided. Nothing built.** Written as the eighth built-in course and
-> proposed to slot in at **05**, ahead of *Reading the garment*.
+> **Status: all three batches built and pushed. Nothing is deployed.** They land as three
+> commits on `claude/fibres-fabrics-cleaning-scope-qcyxnq`, one per batch, so each can be
+> reviewed or reverted on its own.
 >
 > Four decisions were put to David on 22 September 2026 and answered. Three confirm the
 > recommendation — the course carries a practical bench test, it ships required with a 60-day
 > deadline and a 24-month refresh, and curtain work stays out. The fourth went the other way:
-> **the burn test is out entirely.** Reflected inline below, and set out under *Decisions taken*.
+> **the burn test is out entirely.** Set out under *Decisions taken*.
+>
+> Where the build diverged from this scope, noted inline: the course is **eight lessons, not
+> seven** — the professional care circle earned one of its own; the mock tenant needed two
+> bug fixes to take a ten-question course at all; and `mock/verify.mjs` grew its own tests
+> rather than the browser pass standing alone. Covered by 103 assertions in `mock/verify.mjs`
+> plus a driven browser pass through the register, all eight lessons, the quiz and the
+> sign-off form.
 
 Scoped against `app/index.html` at `36e8311`, with `docs/TRAINING.md` as the reference for how
 the training engine already works and `docs/manual-handling-scope.md` as the precedent for a
@@ -98,6 +106,12 @@ recommendation is depth's companion question, the burn test, which is out.
 Seven lessons, about eighteen minutes, ten questions, same 80 per cent pass mark as the rest.
 Source line: *AS/NZS 1957:1998, the ISO 3758 care symbol set, and the DLI Textile Analysis
 Bulletins.*
+
+Built as **eight** lessons rather than seven. *The circle, which is the one that matters to us*
+was the back half of lesson 4 in this scope and would not fit: the letters, the bars, the two
+crossed forms and the point that the circle is an instruction to the plant rather than advice
+to the customer is a lesson, not a section. Splitting it also puts the two figures that matter
+most on a page of their own.
 
 | # | Lesson | The point of it |
 |---|---|---|
@@ -261,18 +275,44 @@ rules panel.
 | **B** | The seven figures | Low, and self-contained. The renderer already takes them. |
 | **C** | Per-course sign-off checklists, and the bench test wired up as this course's practical | Medium. Touches records that already exist for manual handling. |
 
-**Ship A and B together; C can follow.** The course is worth having as knowledge-only on the day
-it lands, and the sign-off change is the only part that touches existing records — there is no
-reason to hold the content behind it.
+All three are built, as three commits. A and B were kept separable as planned, and C landed in
+the same pass rather than a later release — the change turned out smaller than scoped, because
+`SIGNOFF_CHECKS` had only three call sites and sign-off records already carried `courseId`.
+
+### Two bugs the build turned up, both in the mock
+
+Neither is in the app, and both were latent before this course existed.
+
+**The answer generator hung.** `markAnswers()` walks the question list by a fixed step to
+scatter the wrong answers, and the step could share a factor with the question count — with ten
+questions and a step of five it revisits two questions forever and never fills the set. Eight
+questions hid it; the first ten-question course seeded into the mock made it a hang rather than
+a latent bug. The walk now steps by a value coprime with the count.
+
+**The declaration lifter read apostrophes inside comments as strings.** `mock/verify.mjs` pulls
+declarations out of `index.html` by balancing braces, tracking string literals so a brace inside
+one does not count. It did not know about comments, so *a business's own course* in a comment
+opened a string that never closed and the declaration read as unbalanced to the end of the file.
+It now skips comments whole.
 
 ## How it gets tested
 
-`mock/verify.mjs` asserts **seven** active courses (line 215) and `mock/build.mjs` seeds the demo
-tenant's attempts from a six-id `BUILT_IN_MODULES` list (line 35). Both need updating or Main
-Street Dry Cleaners ships with a register that is red down one whole column and a verify that
-fails. Beyond that: the standing machine and the refresh arithmetic are already covered, so the
-new tests are the renumber (every existing attempt still resolves), the per-course checklist
-(old sign-offs still render against manual handling's six), and the quiz itself.
+Both mock guards were updated as expected — the active-course count, and `BUILT_IN_MODULES` so
+the demo tenant has attempts against the new course rather than a register that is red down one
+whole column. Five people now sit the fibres course in the demo, four of them awaiting a
+sign-off, which is what a register looks like in the months after a course is switched on.
+
+The counts that were hard-coded to six now count against the active list, so the next course to
+land changes what they mean without changing what they assert. **103 assertions pass**, including
+the new ones: that each practical course serves its own checklist, that a passed quiz with no
+sign-off reads as `awaiting-signoff` and is never overdue, that the rule defaults are what was
+decided, that every figure a lesson asks for exists, and that every course is sittable.
+
+The browser pass drove the real app against the mock tenant: the register and its new-course
+notice, all eight lessons with their figures, the ten-question quiz, and the sign-off form
+showing the fibres checklist rather than the lifting one. It caught two captions overflowing
+their own viewBox, which no assertion in `verify.mjs` could see — the sandbox has no DOM and
+`getBBox()` is the only honest way to measure rendered text.
 
 ## Decisions taken
 
