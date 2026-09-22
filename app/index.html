@@ -7657,6 +7657,19 @@ The tag is not paperwork. It is the only reason the right garment goes home with
   minutes: 18,
   reviewed: 'September 2026',
   source: 'AS/NZS 1957:1998, the ISO 3758 care symbol set, and the DLI Textile Analysis Bulletins',
+  // The second course with a practical half. You can name six fibres on a
+  // multiple choice and still not tell viscose from linen with it in your hand,
+  // and it is the hand that decides what goes in which machine.
+  practical: true,
+  practicalBlurb: 'Once you have passed the questions, a supervisor puts five garments in front of you — at least two with no usable label — and watches you identify, read, test and route each one. That second half is what finishes the course.',
+  signoffChecks: [
+    'Names the fibre family by hand and drape, on a garment with no usable label',
+    'Reads a symbol label correctly, including the modifier bars and the professional care letter',
+    'Checks the lining, the trim and the interfacing separately from the face fabric',
+    'Runs the right test before committing — colour transfer, wet thread, solvent spot',
+    'Routes each garment to a process, and can say what drove the decision',
+    'Recognises an at-risk case, words it properly to the customer, and records it',
+  ],
   lessons: [
     { h: 'Why this is the first question, not the last',
       body: `Everything else you have been taught about taking a garment in assumes you already know what you are holding.
@@ -8293,6 +8306,14 @@ Hangr will take the fault, the fabric, the garment's age and the intake record a
   // courseStanding() for how the sign-off gates the pass.
   practical: true,
   practicalBlurb: 'Once you have passed the questions, a supervisor watches you do the work and records that you can do it properly. That second half is what finishes the course.',
+  signoffChecks: [
+    'Assesses and plans before lifting — asks for help, or gets the equipment, when the load needs it',
+    'Lifts and lowers with a stable base, the load in against them, and no twisting',
+    'Pushes rather than carries wherever a trolley or a cage will do the job',
+    'Communicates and leads a team lift properly',
+    'Works at a sensible height, and rotates through tasks rather than staying on one',
+    'Knows how to report discomfort, and when',
+  ],
   lessons: [
     { h: 'What the law actually asks of us',
       body: `Most people think manual handling training means being shown how to lift a box. That is part of it, and it is the smallest part.
@@ -8684,21 +8705,29 @@ function staffStartMs(staffRec) {
 }
 
 // ===== The practical half =====
-// One course asks for more than a quiz. Manual handling is the obvious case and
-// the reason this exists: a person can answer ten out of ten on lifting and
-// still hurt themselves the first time they pull a loaded cage out of the van,
-// which is why every regulator in the country treats instruction on its own as
-// something short of controlling the risk.
+// Some courses ask for more than a quiz, because knowing and doing are
+// different things. Manual handling was the first: a person can answer ten out
+// of ten on lifting and still hurt themselves the first time they pull a loaded
+// cage out of the van, which is why every regulator in the country treats
+// instruction on its own as something short of controlling the risk. Fibre
+// identification is the second, for the commercial version of the same reason —
+// naming six fibres on a multiple choice is not the same skill as telling
+// viscose from linen with it in your hand.
 //
-// What a supervisor is signing that they watched. All six, or it is not a pass.
-const SIGNOFF_CHECKS = [
-  'Assesses and plans before lifting — asks for help, or gets the equipment, when the load needs it',
-  'Lifts and lowers with a stable base, the load in against them, and no twisting',
-  'Pushes rather than carries wherever a trolley or a cage will do the job',
-  'Communicates and leads a team lift properly',
-  'Works at a sensible height, and rotates through tasks rather than staying on one',
-  'Knows how to report discomfort, and when',
-];
+// The checklist belongs to the course rather than to the app. It lived in one
+// global constant while manual handling was the only practical course; a second
+// one makes it per course. Existing sign-off records already carry courseId, so
+// they render against the right list with nothing to migrate.
+//
+// What a supervisor is signing that they watched. All of them, or it is not a pass.
+function signoffChecksFor(course) {
+  if (!course) return [];
+  if (Array.isArray(course.signoffChecks) && course.signoffChecks.length) return course.signoffChecks;
+  // A business's own course that replaces a practical built-in inherits its
+  // checklist, the same way courseWithNum() has it inherit the running number.
+  const b = course.replaces ? TRAINING_MODULES.find(m => m.id === course.replaces) : null;
+  return (b && Array.isArray(b.signoffChecks)) ? b.signoffChecks : [];
+}
 
 function signoffsFor(who, courseId) {
   if (!who) return [];
@@ -9365,6 +9394,10 @@ function renderTrainingResult(screen) {
 // should say so once, rather than turning a register red overnight and leaving
 // the owner to work out what broke.
 const NOTICE_MANUAL_HANDLING = 'course-07-manual-handling';
+// Keyed on what the course was called when the notice shipped, not on its
+// current number — the id is what state.seenNotices already holds, so renaming
+// it would show the note again to everyone who has already dismissed it.
+const NOTICE_FIBRES = 'course-05-fibres';
 
 function noticeSeen(id) { return (state.seenNotices || []).includes(id); }
 
@@ -9374,17 +9407,38 @@ function dismissNotice(id) {
   persistState();
 }
 
+// A release that ships a new required course turns it on for every business at
+// once, and everyone past its deadline reads as overdue the moment it lands.
+// This is the note that says so. Listed rather than written per course, because
+// there has now been a second one and there will be a third. Lowest course
+// number first, and one at a time — two notices stacked on one screen reads as
+// a problem rather than an explanation.
+const NEW_COURSE_NOTICES = [
+  { id: NOTICE_FIBRES, courseId: 'fibres' },
+  { id: NOTICE_MANUAL_HANDLING, courseId: 'manual-handling' },
+];
+
+function trainingNoticeDue() {
+  if (!can('training.manage')) return null;
+  for (const n of NEW_COURSE_NOTICES) {
+    if (noticeSeen(n.id)) continue;
+    const c = activeCourses().find(x => x.id === n.courseId);
+    if (c) return { noticeId: n.id, course: c };
+  }
+  return null;
+}
+
 function trainingNoticeHtml() {
-  if (!can('training.manage') || noticeSeen(NOTICE_MANUAL_HANDLING)) return '';
-  const c = activeCourses().find(x => x.id === 'manual-handling');
-  if (!c) return '';
-  const r = courseRuleDefault('manual-handling');
+  const due = trainingNoticeDue();
+  if (!due) return '';
+  const c = due.course;
+  const r = courseRuleDefault(c.id);
   return `<div class="tr-queue" style="border-left-color:var(--green)">
       <h3>Course ${escapeHtml(c.num)}, ${escapeHtml(c.title)}, is new</h3>
       <p>It is required of everyone, due within ${r.dueDays} days of a person's start date, and falls due again every ${r.refreshMonths} months. Anyone who started more than ${r.dueDays} days ago reads as overdue until they do it &mdash; that is the course being new, not something being wrong.</p>
-      <p>It also carries a half the others do not. Once somebody passes the questions, a supervisor records that they watched them do the work, and the course is not finished until they have. Whoever is waiting on that shows at the top of this screen, and your managers can record a sign-off as well as you can.</p>
+      ${c.practical ? `<p>It also carries a half most of the others do not. Once somebody passes the questions, a supervisor records that they watched them do the work, and the course is not finished until they have. Whoever is waiting on that shows at the top of this screen, and your managers can record a sign-off as well as you can.</p>` : ''}
       <p>What it asks of people and by when is yours to change at the bottom of this screen, switching it off included.</p>
-      <button class="btn btn-secondary" id="tr-notice-ok">Got it</button>
+      <button class="btn btn-secondary" id="tr-notice-ok" data-notice="${escapeHtml(due.noticeId)}">Got it</button>
     </div>`;
 }
 
@@ -9465,7 +9519,7 @@ function openSignoff(staffId, staffName, courseId) {
   if (!canRecordSignoff(who)) return;
   state.signoffDraft = {
     staffId: staffId || null, staffName, courseId,
-    checks: SIGNOFF_CHECKS.map(() => false),
+    checks: signoffChecksFor(courseById(courseId)).map(() => false),
     competent: true, note: '', by: signoffByName()
   };
   renderTraining();
@@ -9487,7 +9541,7 @@ function renderSignoff(screen) {
   const self = signoffIsSelf(who);
   const prior = signoffsFor(who, course.id).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
 
-  const checks = SIGNOFF_CHECKS.map((t, i) => `
+  const checks = signoffChecksFor(course).map((t, i) => `
       <label class="tr-check ${d.checks[i] ? 'on' : ''}">
         <input type="checkbox" data-sign-check="${i}" ${d.checks[i] ? 'checked' : ''}>
         <span>${escapeHtml(t)}</span>
@@ -9704,7 +9758,7 @@ function renderTrainingTeam(screen) {
   const csv = document.getElementById('tr-csv');
   if (csv) csv.addEventListener('click', exportTrainingCsv);
   const nb = document.getElementById('tr-notice-ok');
-  if (nb) nb.addEventListener('click', () => { dismissNotice(NOTICE_MANUAL_HANDLING); renderTraining(); });
+  if (nb) nb.addEventListener('click', () => { dismissNotice(nb.dataset.notice); renderTraining(); });
   bindSignoffQueue(screen);
   bindCourseRulesPanel(screen);
 }

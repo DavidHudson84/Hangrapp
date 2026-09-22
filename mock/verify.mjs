@@ -30,12 +30,19 @@ function lift(kind, name) {
   let i = src.indexOf(kind === 'function' ? '{' : '=', start);
   if (kind !== 'function') i = src.indexOf(/[[{]/.exec(src.slice(i))[0], i);
   const open = src[i], close = open === '{' ? '}' : ']';
-  let depth = 0, inStr = null, esc = false;
+  let depth = 0, inStr = null, esc = false, inLine = false, inBlock = false;
   for (let j = i; j < src.length; j++) {
     const c = src[j];
+    // Comments are skipped whole. Without this an apostrophe in a comment —
+    // "a business's own course" — opens a string that never closes, and the
+    // declaration reads as unbalanced to the end of the file.
+    if (inLine) { if (c === '\n') inLine = false; continue; }
+    if (inBlock) { if (c === '*' && src[j + 1] === '/') { inBlock = false; j++; } continue; }
     if (esc) { esc = false; continue; }
     if (c === '\\') { esc = true; continue; }
     if (inStr) { if (c === inStr) inStr = null; continue; }
+    if (c === '/' && src[j + 1] === '/') { inLine = true; j++; continue; }
+    if (c === '/' && src[j + 1] === '*') { inBlock = true; j++; continue; }
     if (c === '"' || c === "'" || c === '`') { inStr = c; continue; }
     if (c === open) depth++;
     else if (c === close) {
@@ -65,6 +72,10 @@ const LIFTED = [
   ['function', 'claimsTotals'],
   ['function', 'docVisibleToRole'], ['function', 'machineryUnits'],
   ['function', 'trainingPassMark'], ['function', 'lifeExpectancyFor'], ['function', 'calcAdjustment'],
+  ['const', 'COURSE_RULE_DEFAULTS'], ['function', 'courseRuleDefault'], ['function', 'courseRule'],
+  ['function', 'addMonths'], ['function', 'staffStartMs'], ['function', 'trainingLatest'],
+  ['function', 'signoffChecksFor'], ['function', 'signoffsFor'], ['function', 'signoffLatest'],
+  ['function', 'courseStanding'], ['const', 'TRAINING_FIGURES'],
   ['function', 'docChunks'], ['function', '_scoreText'],
 ];
 
@@ -79,7 +90,12 @@ const CONDITION_NOTES = { excellent: '', average: '', poor: '' };
 const fmtAud = (n) => '$' + Number(n).toFixed(2);
 `;
 
-const code = LIFTED.map(([k, n]) => lift(k, n)).join('\n\n')
+// The figure constants are kilobytes of SVG apiece and nothing here renders
+// them — only the keys matter, so stub them and lift the map that names them.
+const FIG_STUBS = [...new Set((src.match(/const (?:MH_FIG_\w+|CARE_FIG_\w+)/g) || [])
+  .map(m => m.replace('const ', '')))].map(n => `const ${n} = '<svg/>';`).join('\n');
+
+const code = FIG_STUBS + '\n\n' + LIFTED.map(([k, n]) => lift(k, n)).join('\n\n')
   + '\nconst TRAINING_PASS_MARK = 0.8;'
   + '\nconst DOC_CHUNK_CHARS = 1400;'
   + EXTRA;
@@ -235,6 +251,56 @@ ok('somebody has failed and not retried', blob.training.some(r => !r.passed
 ok('somebody failed then passed', blob.training.some(r => r.passed && r.attempt > 1));
 ok('nobody has passed everything on the roster', 
    blob.staff.filter(s => passedActive(s.id) === active.length).length < blob.staff.length);
+
+console.log('\nThe practical half, now that two courses have one');
+const fibres = ctx("courseById('fibres')");
+const mh = ctx("courseById('manual-handling')");
+ok('fibres is course 05', fibres.num === '05', `got ${fibres.num}`);
+ok('two courses carry a practical', active.filter(c => c.practical).length === 2,
+   `got ${active.filter(c => c.practical).length}`);
+// The whole point of batch C: each practical course asks its own questions.
+const fibChecks = ctx("signoffChecksFor(courseById('fibres'))");
+const mhChecks = ctx("signoffChecksFor(courseById('manual-handling'))");
+ok('fibres has its own six checks', fibChecks.length === 6, `got ${fibChecks.length}`);
+ok('manual handling keeps its own six', mhChecks.length === 6, `got ${mhChecks.length}`);
+ok('the two checklists are different', fibChecks[0] !== mhChecks[0]);
+ok('the fibres checklist is about fibres', /fibre family/.test(fibChecks[0]), fibChecks[0]);
+ok('the lifting checklist is about lifting', /lifting/.test(mhChecks[0]), mhChecks[0]);
+ok('a course with no practical has no checklist',
+   ctx("signoffChecksFor(courseById('acl'))").length === 0);
+
+// Sharon passed the fibres quiz and nobody has watched her do the work.
+const sharon = { staffId: 'Ssharon', staffName: 'Sharon Doyle' };
+const sharonRec = blob.staff.find(s => s.id === 'Ssharon');
+const st = ctx(`courseStanding(${JSON.stringify(sharon)}, courseById('fibres'), ${JSON.stringify(sharonRec)})`);
+ok('a passed quiz with no sign-off is awaiting-signoff', st.state === 'awaiting-signoff', `got ${st.state}`);
+ok('awaiting-signoff is outstanding', st.outstanding === true);
+ok('awaiting-signoff is never overdue', st.state !== 'overdue');
+
+// The rules the course ships with.
+const fibRule = ctx("courseRuleDefault('fibres')");
+ok('fibres is required of everyone', fibRule.required === true);
+ok('fibres is due within 60 days', fibRule.dueDays === 60, `got ${fibRule.dueDays}`);
+ok('fibres refreshes every 24 months', fibRule.refreshMonths === 24, `got ${fibRule.refreshMonths}`);
+ok('manual handling is untouched at 30 and 12',
+   ctx("courseRuleDefault('manual-handling')").dueDays === 30 &&
+   ctx("courseRuleDefault('manual-handling')").refreshMonths === 12);
+
+// Every figure a lesson asks for has to exist, or it renders as nothing at all.
+const figKeys = Object.keys(ctx('TRAINING_FIGURES'));
+const asked = active.flatMap(c => (c.lessons || []).flatMap(l => (l.figures || []).map(f => f.fig)));
+ok('every figure a lesson asks for exists', asked.every(k => figKeys.includes(k)),
+   asked.filter(k => !figKeys.includes(k)).join(', '));
+ok('the care symbol figures are all used', ['sym-wash', 'sym-bleach', 'sym-dry', 'sym-iron',
+   'sym-pro', 'label-read', 'route'].every(k => asked.includes(k)));
+
+console.log('\nEvery course is sittable');
+active.forEach(c => {
+  const bad = (c.quiz || []).filter(q => !Array.isArray(q.a) || q.a.length !== 4
+    || !(q.correct >= 0 && q.correct < 4) || !q.why);
+  ok(`${c.num} ${c.title} — ${(c.quiz || []).length} questions, all well formed`,
+     (c.quiz || []).length >= 8 && bad.length === 0, bad.length ? `${bad.length} bad` : '');
+});
 
 console.log('\nWhat a counter login can reach');
 const caps = ctx('ROLE_CAPS');
